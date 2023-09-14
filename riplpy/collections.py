@@ -54,6 +54,9 @@ from collections import namedtuple
 # Dataclass
 from dataclasses import dataclass
 
+# RegEx
+import re
+
 # Local Namespace
 from .elements import Elements
 
@@ -184,7 +187,7 @@ class Nuclide(NucleusBase):
         # These two dictionary should be mutually exlusive
         nuc, kw = self._subset(kwargs)
 
-        # Initialize by possible 
+        # Initialize by possible keyword arguments
         if 'z' in nuc.keys() and 'a' in nuc.keys():
             self.Z = int(nuc['z'])
             self.N = int(nuc['a']) - int(self.Z)
@@ -230,6 +233,29 @@ class Nuclide(NucleusBase):
         """Return the mass number of the Nuclide. """
         return self.Z + self.N
 
+    @classmethod
+    def from_string(cls, val: str):
+        """Initialize the object from a string. """
+        if "-" in val:
+            # @TODO: Implement
+            pass
+        else:
+            # Assume of the form '###El'
+            lst = []
+            for i in re.split('(\d+)', val):
+                i = i.strip()
+                if len(i) > 0:
+                    lst.append(i)
+            assert len(lst) == 2
+            for v in lst:
+                if v.isnumeric():
+                    A = int(v)
+                else:
+                    sym = v
+            Z = Elements.element_from_symbol(sym)
+            N = A - Z
+            return cls(Z=Z, N=N)
+
     def _subset(self, kwargs: dict) -> tuple:
         """Return a tuple of the reduced subset of the provided kwargs dict and the rest. """
         ret = {} # The subset of reserved kwargs
@@ -242,7 +268,7 @@ class Nuclide(NucleusBase):
 
     def __str__(self, ) -> str:
         """Return a string representation of the object.  """
-        return f"<Nuclide(Z={self.Z}, A={self.A}, symbol={self.element_symbol})"
+        return f"<Nuclide(Z={self.Z}, A={self.A}, symbol={self.element_symbol})>"
 
 
 @dataclass

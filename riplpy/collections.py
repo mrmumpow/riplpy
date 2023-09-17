@@ -147,7 +147,6 @@ class Element(object):
         for k,v in kw.items():
             setattr(self, k, v)
 
-
     def _subset(self, kwargs: dict) -> tuple:
         """Return a tuple of the reduced subset of the provided kwargs dict and the rest. """
         ret = {} # The subset of reserved kwargs
@@ -157,6 +156,13 @@ class Element(object):
             if k in self._reserved_kwargs:
                 ret[k] = kw.pop(key)
         return ret, kw
+
+    def __lt__(self, other: object) -> bool:
+        """Return true if self is strictly smaller than the given (other) object. """
+        if self.Z < other.Z:
+            return True
+        else:
+            return False
 
 
 @dataclass
@@ -313,6 +319,13 @@ class Nuclide(NucleusBase):
             if k in self._reserved_kwargs:
                 ret[k] = kw.pop(key)
         return ret, kw
+
+    def __lt__(self, other: object) -> bool:
+        """Return true if self is strictly smaller than the given (other) object. """
+        if (self.Z, self.A) < (other.Z, other.A):
+            return True
+        else:
+            return False
 
     def __str__(self, ) -> str:
         """Return a string representation of the object.  """

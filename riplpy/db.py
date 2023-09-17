@@ -7,12 +7,12 @@ class DatabaseEntry(object):
 
     @property
     def as_list(self, ) -> list:
-        """Return a list representation of the object. Useful for writing to file. """
+        """Return a list representation of the object. """
         return [getattr(self, f.name) for f in fields(self.__class__)]
 
     @property
     def as_tuple(self, ) -> tuple:
-        """Return a tuple representation of the object. Useful for writing to file. """
+        """Return a tuple representation of the object. Intended for writing to file. """
         return tuple(self.as_list)
 
     @property
@@ -22,6 +22,18 @@ class DatabaseEntry(object):
         for f in fields(self.__class__):
             d[f.name] = getattr(self, f.name)
         return d
+
+@dataclass
+class NuclideDatabaseEntry(DatabaseEntry):
+
+    @property
+    def as_tuple(self, ) -> tuple:
+        """Return a tuple representation of the object. Intended for writing to file. """
+        lst = [self.n.Z, self.n.A, self.n.element_symbol]
+        for f in fields(self.__class__):
+            if f.name != 'n':
+                lst.append(getattr(self, f.name))
+        return tuple(lst)
 
 
 class Database(object):
@@ -37,6 +49,7 @@ class Database(object):
 
     def load(self, fpath: str) -> None:
         """Load the database from an ASCII file into the data dictionary. """
+        self.data = {}
         data = type(self).reader(fpath) # This call returns the data dictionary, but not yet formatted for the db
         # Loop over the data entries
         for key in data.keys():

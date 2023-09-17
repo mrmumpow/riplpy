@@ -7,6 +7,7 @@ Therefore, uncertainty aerr is deduced by fitting Dth+Derr or Dth-Derr (See TECH
 
 """
 
+# ========================
 
 # Dataclasses
 from dataclasses import dataclass
@@ -15,18 +16,19 @@ from dataclasses import dataclass
 import fortranformat as _ff
 
 # RIPLpy
+import riplpy.db as _db
 import riplpy.collections as _c
 
 # ========================
 
-BSFG_FILE_HEADER = "   Z  A  El   I0    Bn       D0        Derr    Nlow  Ulow   Ntop  Utop      dW      gamma      ainf     aerr    pairing\n"
+FILE_HEADER = "   Z  A  El   I0    Bn       D0        Derr    Nlow  Ulow   Ntop  Utop      dW      gamma      ainf     aerr    pairing\n"
 BSFG_FORTRAN_FORMAT = '(2i4,1x,a2,1x,f4.1,2x,f6.3,1x,1pe10.3,1x,1pe10.3,0p,1x,i3,2x,f6.3,2x,i3,2x,f6.3,3f10.5,f8.3,1f10.5)'
 bsfg_reader = _ff.FortranRecordReader(BSFG_FORTRAN_FORMAT)
 bsfg_writer = _ff.FortranRecordWriter(BSFG_FORTRAN_FORMAT)
 
 # ========================
 
-def read_bsfg_ascii_file(fpath: str) -> dict:
+def read_ascii_file(fpath: str) -> dict:
     """Read BSFG data from an ASCII formatted file and return as a dictionary. """
 
     # Placeholder dictionary
@@ -53,24 +55,25 @@ def read_bsfg_ascii_file(fpath: str) -> dict:
     return d
 
 
-def write_bsfg_ascii_file(fpath: str, data: dict) -> None:
+def write_ascii_file(fpath: str, data: dict) -> None:
     """Write a Back-Shifted Fermi-Gas (BSFG) ASCII file given a filename and a data dictionary. """
 
     # Write data to file
     with open(fpath, 'w') as fp:
         # Write header line
-        fp.write(BSFG_FILE_HEADER)
+        fp.write(FILE_HEADER)
         # Loop over data
         for n in data.keys():
-            line = (n.Z, n.A, n.sym, data[n].Io, data[n].Bn, data[n].Do, data[n].Derr, data[n].Nlow, data[n].Ulow, data[n].Ntop, data[n].Utop, data[n].dW, data[n].gamma, data[n].ainf, data[n].aerr, data[n].pairing)
+            #line = (n.Z, n.A, n.sym, data[n].Io, data[n].Bn, data[n].Do, data[n].Derr, data[n].Nlow, data[n].Ulow, data[n].Ntop, data[n].Utop, data[n].dW, data[n].gamma, data[n].ainf, data[n].aerr, data[n].pairing)
+            line = data[n].as_tuple
             fp.write(bsfg_writer.write(line)+"\n")
 
 
 @dataclass
-class BSFG_Entry(object):
+class Entry(_db.DatabaseEntry):
     """An entry in the Back-Shifted Fermi-Gas (BSFG) database. """
     
-    n      : _c.Nuclide = None # Compound nucleus 
+    n      : _c.Nuclide = None # Compound nucleus
     Io     : float      = None # Spin of the ground state of the target nucleus
     Bn     : float      = None # Neutron binding energy of the compound nucleus [MeV]
     Do     : float      = None # Evaluated average resonance spacing [eV]
@@ -84,4 +87,3 @@ class BSFG_Entry(object):
     ainf   : float      = None # Asymptotic level density parameter [1/MeV]
     aerr   : float      = None # Uncertainty of the asymptotic level density parameter [1/MeV]
     pairing: float      = None # Effective energy shift in MeV
-

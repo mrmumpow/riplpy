@@ -12,14 +12,14 @@ import riplpy.densities as _densities
 
 # ========================
 
-CT_FILE_HEADER = "   Z  A  El   I0    Bn       D0        Derr    Nlow  Ulow   Ntop  Utop      dW      gamma      ainf     aerr    pairing   Ematch      E0         T\n"
-CT_FORTRAN_FORMAT   = '(2i4,1x,a2,1x,f4.1,2x,f6.3,1x,1pe10.3,1x,1pe10.3,0p,1x,i3,2x,f6.3,2x,i3,2x,f6.3,3f10.5,f8.3,4f10.5)'
-ct_reader   = _ff.FortranRecordReader(CT_FORTRAN_FORMAT)
-ct_writer   = _ff.FortranRecordWriter(CT_FORTRAN_FORMAT)
+FILE_HEADER = "   Z  A  El   I0    Bn       D0        Derr    Nlow  Ulow   Ntop  Utop      dW      gamma      ainf     aerr    pairing   Ematch      E0         T\n"
+FORTRAN_FORMAT   = '(2i4,1x,a2,1x,f4.1,2x,f6.3,1x,1pe10.3,1x,1pe10.3,0p,1x,i3,2x,f6.3,2x,i3,2x,f6.3,3f10.5,f8.3,4f10.5)'
+reader   = _ff.FortranRecordReader(FORTRAN_FORMAT)
+writer   = _ff.FortranRecordWriter(FORTRAN_FORMAT)
 
 # ========================
 
-def read_ct_ascii_file(fpath: str) -> dict:
+def read_ascii_file(fpath: str) -> dict:
     """Read Constant Temperature (CT) data from an ASCII file and return a dictionary. """
     # Placeholder dictionary
     d = {}
@@ -33,7 +33,7 @@ def read_ct_ascii_file(fpath: str) -> dict:
             # Skip the header line(s)
             if i < skiprows:
                 continue
-            data  = ct_reader.read(line)
+            data  = reader.read(line)
             Z       = data[0]
             A       = data[1]
             n       = _c.Nuclide(Z=Z, A=A)
@@ -45,21 +45,22 @@ def read_ct_ascii_file(fpath: str) -> dict:
     return d
 
 
-def write_ct_ascii_file(fpath: str, data: dict) -> None:
+def write_ascii_file(fpath: str, data: dict) -> None:
     """Write a Constant Temperature (CT) ASCII file given a filename and a data dictionary. """
 
     # Write data to file
     with open(fpath, 'w') as fp:
         # Write header line
-        fp.write(CT_FILE_HEADER)
+        fp.write(FILE_HEADER)
         # Loop over data
         for n in data.keys():
-            line = (n.Z, n.A, n.sym, data[n].Io, data[n].Bn, data[n].Do, data[n].Derr, data[n].Nlow, data[n].Ulow, data[n].Ntop, data[n].Utop, data[n].dW, data[n].gamma, data[n].ainf, data[n].aerr, data[n].pairing, data[n].Ematch, data[n].E0, data[n].T)
-            fp.write(ct_writer.write(line)+"\n")
+            #line = (n.Z, n.A, n.sym, data[n].Io, data[n].Bn, data[n].Do, data[n].Derr, data[n].Nlow, data[n].Ulow, data[n].Ntop, data[n].Utop, data[n].dW, data[n].gamma, data[n].ainf, data[n].aerr, data[n].pairing, data[n].Ematch, data[n].E0, data[n].T)
+            line = data[n].as_tuple
+            fp.write(writer.write(line)+"\n")
 
 
 @dataclass
-class CT_Entry(_densities.bsfg.BSFG_Entry):
+class Entry(_densities.bsfg.Entry):
     """An entry in the Constant Temperature (CT) database. """
 
     Ematch: float = None # Energy at which the low and high energy formulae match [MeV]

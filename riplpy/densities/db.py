@@ -18,14 +18,20 @@ import riplpy.densities as _densities
 
 class BSFG_Database(_db.Database):
 
-    reader: object = _densities.bsfg.read_bsfg_ascii_file
-    entry : object = _densities.bsfg.BSFG_Entry
-    writer: object = _densities.bsfg.write_bsfg_ascii_file
+    reader: object = _densities.bsfg.read_ascii_file
+    entry : object = _densities.bsfg.Entry
+    writer: object = _densities.bsfg.write_ascii_file
 
 
 class CT_Database(BSFG_Database):
 
-    reader: object = _densities.ct.read_ct_ascii_file
-    entry : object = _densities.ct.CT_Entry
-    writer: object = _densities.ct.write_ct_ascii_file
+    reader: object = _densities.ct.read_ascii_file
+    entry : object = _densities.ct.Entry
+    writer: object = _densities.ct.write_ascii_file
 
+
+class EGSM_Database(_db.Database):
+
+    reader: object = _densities.egsm.read_ascii_file
+    entry : object = _densities.egsm.Entry
+    writer: object = _densities.egsm.write_ascii_file

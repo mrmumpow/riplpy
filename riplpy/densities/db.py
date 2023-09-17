@@ -32,7 +32,12 @@ __loc__ = _os.path.dirname(_os.path.realpath(__file__))
 BSFG_FORTRAN_FORMAT = '(2i4,1x,a2,1x,f4.1,2x,f6.3,1x,1pe10.3,1x,1pe10.3,0p,1x,i3,2x,f6.3,2x,i3,2x,f6.3,3f10.5,f8.3,1f10.5)'
 CT_FORTRAN_FORMAT   = '(2i4,1x,a2,1x,f4.1,2x,f6.3,1x,1pe10.3,1x,1pe10.3,0p,1x,i3,2x,f6.3,2x,i3,2x,f6.3,3f10.5,f8.3,4f10.5)'
 bsfg_reader = _ff.FortranRecordReader(BSFG_FORTRAN_FORMAT)
+bsfg_writer = _ff.FortranRecordWriter(BSFG_FORTRAN_FORMAT)
 ct_reader   = _ff.FortranRecordReader(CT_FORTRAN_FORMAT)
+ct_writer   = _ff.FortranRecordWriter(CT_FORTRAN_FORMAT)
+
+BSFG_FILE_HEADER = "   Z  A  El   I0    Bn       D0        Derr    Nlow  Ulow   Ntop  Utop      dW      gamma      ainf     aerr    pairing\n"
+CT_FILE_HEADER = "   Z  A  El   I0    Bn       D0        Derr    Nlow  Ulow   Ntop  Utop      dW      gamma      ainf     aerr    pairing   Ematch      E0         T\n"
 
 # ========================
 
@@ -63,6 +68,19 @@ def read_bsfg_ascii_file(fpath: str) -> dict:
     return d
 
 
+def write_bsfg_ascii_file(fpath: str, data: dict) -> None:
+    """Write a Back-Shifted Fermi-Gas (BSFG) ASCII file given a filename and a data dictionary. """
+
+    # Write data to file
+    with open(fpath, 'w') as fp:
+        # Write header line
+        fp.write(BSFG_FILE_HEADER)
+        # Loop over data
+        for n in data.keys():
+            line = (n.Z, n.A, n.sym, data[n].Io, data[n].Bn, data[n].Do, data[n].Derr, data[n].Nlow, data[n].Ulow, data[n].Ntop, data[n].Utop, data[n].dW, data[n].gamma, data[n].ainf, data[n].aerr, data[n].pairing)
+            fp.write(bsfg_writer.write(line)+"\n")
+
+
 def read_ct_ascii_file(fpath: str) -> dict:
     """Read Constant Temperature (CT) data from an ASCII file and return a dictionary. """
     # Placeholder dictionary
@@ -89,8 +107,17 @@ def read_ct_ascii_file(fpath: str) -> dict:
     return d
 
 
-def write_ct_ascii_file(fpath: str, )
+def write_ct_ascii_file(fpath: str, data: dict) -> None:
+    """Write a Constant Temperature (CT) ASCII file given a filename and a data dictionary. """
 
+    # Write data to file
+    with open(fpath, 'w') as fp:
+        # Write header line
+        fp.write(CT_FILE_HEADER)
+        # Loop over data
+        for n in data.keys():
+            line = (n.Z, n.A, n.sym, data[n].Io, data[n].Bn, data[n].Do, data[n].Derr, data[n].Nlow, data[n].Ulow, data[n].Ntop, data[n].Utop, data[n].dW, data[n].gamma, data[n].ainf, data[n].aerr, data[n].pairing, data[n].Ematch, data[n].E0, data[n].T)
+            fp.write(ct_writer.write(line)+"\n")
 
 
 @dataclass
@@ -126,14 +153,14 @@ class BSFG_Database(_db.Database):
 
     reader: object = read_bsfg_ascii_file
     entry : object = BSFG_Entry
-    writer: object = None #write_bsfg_ascii_file
+    writer: object = write_bsfg_ascii_file
 
 
 class CT_Database(BSFG_Database):
 
     reader: object = read_ct_ascii_file
     entry : object = CT_Entry
-    writer: object = None #writer_ct_ascii_file
+    writer: object = write_ct_ascii_file
 
 
 # d = read_bsfg_ascii_file("data/level-densities-bfmeff.dat")
@@ -142,3 +169,4 @@ class CT_Database(BSFG_Database):
 # bsfg = BSFG_Database()
 # bsfg.load("data/level-densities-bfmeff.dat")
 # print(bsfg.data)
+# bsfg.save("a-test.dat")

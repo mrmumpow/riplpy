@@ -81,7 +81,7 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 
 @dataclass
-class Entry(_db.DatabaseEntry):
+class Entry(_db.NuclideDatabaseEntry):
     """An entry in the Enhanced Generalized Superfluid Model (EGSM) database. """
    
     n   : _c.Nuclide = None # Compound nucleus

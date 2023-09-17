@@ -32,6 +32,9 @@ egsm_db.load(_os.path.join(__loc__, "data", "level-densities-egsm.dat"))
 egsm_norm_db = _db.EGSM_NormDatabase()
 egsm_norm_db.load(_os.path.join(__loc__, "data", "level-densities-egsm-norm.dat"))
 
-# The shell correction energies database
-shell_corr_db = _db.ShellCorrDatabase()
-shell_corr_db.load(_os.path.join(__loc__, "data", "shellcor-ms.dat"))
+# The shell correction energies databases
+shellcorr_ms_db = _db.ShellCorr_MS_Database()
+shellcorr_ms_db.load(_os.path.join(__loc__, "data", "shellcor-ms.dat"))
+shellcorr_mk_db = _db.ShellCorr_MK_Database()
+shellcorr_mk_db.load(_os.path.join(__loc__, "data", "shellmengoninakajima.dat"))
+

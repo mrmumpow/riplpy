@@ -44,8 +44,15 @@ class EGSM_NormDatabase(_db.ElementDatabase):
     writer: object = _densities.egsm_norm.write_ascii_file
 
 
-class ShellCorrDatabase(_db.NuclideDatabase):
+class ShellCorr_MS_Database(_db.NuclideDatabase):
 
-    reader: object = _densities.shell_corr.read_ascii_file
+    reader: object = _densities.shell_corr.read_ms_ascii_file
+    entry : object = _densities.shell_corr.ExtendedEntry
+    writer: object = _densities.shell_corr.write_ms_ascii_file
+
+
+class ShellCorr_MK_Database(_db.NuclideDatabase):
+
+    reader: object = _densities.shell_corr.read_mk_ascii_file
     entry : object = _densities.shell_corr.Entry
-    writer: object = _densities.shell_corr.write_ascii_file
+    writer: object = _densities.shell_corr.write_mk_ascii_file

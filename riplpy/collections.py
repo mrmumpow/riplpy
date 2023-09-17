@@ -114,6 +114,51 @@ class NucleusBase(object):
         return hash((self.Z, self.N, 0))
 
 
+class Element(object):
+    """A class representing a single element. """
+
+    _reserved_kwargs: tuple = ('z', 'symbol', 'sym', 'name')
+
+    def __init__(self, **kwargs) -> None:
+        """Initialize the object. """
+
+        # Check if treated as a placeholder
+        if len(kwargs) == 0:
+            return
+
+        # Create a reduced subset of the initialized kwargs dict
+        # These two dictionary should be mutually exlusive
+        nuc, kw = self._subset(kwargs)
+
+        # Initialize by possible keyword arguments
+        if 'z' in nuc.keys():
+            self.Z = int(nuc['z'])
+        elif 'sym' in nuc.keys():
+            self.Z = Elements.element(nuc['sym'])
+            self.N = A - self.Z
+        elif 'symbol' in nuc.keys():
+            self.Z = Elements.element(nuc['symbol'])
+        elif 'name' in nuc.keys():
+            self.Z = Elements.element(nuc['name'])
+        else:
+            raise Exception("Element is not valid!")
+        
+        # Set provided auxiliary attributes
+        for k,v in kw.items():
+            setattr(self, k, v)
+
+
+    def _subset(self, kwargs: dict) -> tuple:
+        """Return a tuple of the reduced subset of the provided kwargs dict and the rest. """
+        ret = {} # The subset of reserved kwargs
+        kw  = copy.deepcopy(kwargs)
+        for key in kwargs.keys():
+            k = key.lower() # Force to lower case to check against reserved dictionary keys
+            if k in self._reserved_kwargs:
+                ret[k] = kw.pop(key)
+        return ret, kw
+
+
 @dataclass
 class Nucleus(NucleusBase):
     """An object representing a nucleus defined by Z-protons and N-neutrons: (Z,N). 

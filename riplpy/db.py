@@ -25,10 +25,7 @@ class DatabaseEntry(object):
 
 
 class Database(object):
-    """A generic representation of a RIPL database that accesses information from a single ASCII file. 
-    
-    Data in all RIPL databases are associated with a single nucleus.
-    """
+    """A generic representation of a RIPL database that accesses information from a single ASCII file. """
 
     reader: object = None # The method to read data from a specified ASCII file
     entry : object = None # The object which represents an entry in the database
@@ -38,18 +35,13 @@ class Database(object):
         """Initialize the object. """
         self.data = data
 
-    @property
-    def nuclei(self, ) -> list:
-        """Return the list of nuclei in the database. """
-        return list(self.data.keys())
-
     def load(self, fpath: str) -> None:
         """Load the database from an ASCII file into the data dictionary. """
         data = type(self).reader(fpath) # This call returns the data dictionary, but not yet formatted for the db
         # Loop over the data entries
-        for n in data.keys():
+        for key in data.keys():
             # Properly format each entry for the specified db
-            self.data[n] = self.entry(**data[n])
+            self.data[key] = self.entry(**data[key])
 
     def save(self, fpath: str) -> None:
         """Save the database to an ASCII file. """
@@ -63,7 +55,20 @@ class Database(object):
         """Set the entry in the database given the key and value. """
         self.data[key] = value
 
-    def insert(self, entry: object) -> None:
+    def remove(self, key: object) -> None:
+        """Remove an existing entry in the database by providing a key (typically a nucleus-like) object. """
+        self.data.pop(key)
+
+
+class NuclideDatabase(Database):
+    """Data in this type of RIPL database are accessible via a single nucleus. """
+
+    @property
+    def nuclei(self, ) -> list:
+        """Return the list of nuclei in the database. """
+        return list(self.data.keys())
+
+    def insert_by_entry(self, entry: object) -> None:
         """Insert a new entry into the database. """
         # Check that a proper entry has been provided
         if isinstance(entry, self.entry):
@@ -72,7 +77,7 @@ class Database(object):
         else:
             raise TypeError(f"Entry must be of type = ({type(self.entry)}); given = ({type(entry)})!")
 
-    def remove(self, entry: object) -> None:
+    def remove_by_entry(self, entry: object) -> None:
         """Remove an existing entry in the database. """
         # Check that a proper entry has been provided
         if hasattr(entry, 'n'):
@@ -80,6 +85,34 @@ class Database(object):
         else:
             raise Exception("Entry object must have a nucleus property!")
 
-    def remove_by_nucleus(self, n: object) -> None:
-        """Remove an existing entry in the database by providing a nucleus-like object. """
-        self.data.pop(n)
+
+class ElementDatabase(Database):
+    """Data  in this type of RIPL database are accessible through an element number. """
+
+    @property
+    def elements(self, ) -> list:
+        """Return the list of elements in the database. """
+        return list(self.data.keys())
+
+    def insert_by_entry(self, entry: object) -> None:
+        """Insert a new entry into the database. """
+        # Check that a proper entry has been provided
+        if isinstance(entry, self.entry):
+            # Insert the entry by its nucleus; this may overwrite an existing entry
+            self.data[entry.Z] = entry
+        else:
+            raise TypeError(f"Entry must be of type = ({type(self.entry)}); given = ({type(entry)})!")
+
+    def remove_by_entry(self, entry: object) -> None:
+        """Remove an existing entry in the database. """
+        # Check that a proper entry has been provided
+        if hasattr(entry, 'Z'):
+            self.data.pop(entry.Z)
+        elif hasattr(entry, 'sym'):
+            self.data.pop(entry.Z)
+        elif hasattr(entry, 'symbol'):
+            self.data.pop(entry.Z)
+        elif hasattr(entry, 'name'):
+            self.data.pop(entry.Z)
+        else:
+            raise Exception("Entry object must have an element number!")

@@ -94,6 +94,10 @@ class NucleusBase(object):
         """Return the name of the element as a string."""
         return Elements.name(self.Z)
 
+    @property
+    def sym(self, ) -> str:
+        return self.element_symbol
+
     def __eq__(self, other) -> bool:
         """Return the equality (bool) of this object with another. """
         return self.Z == other.Z and self.N == other.N
@@ -123,12 +127,6 @@ class Nucleus(NucleusBase):
     Z: int = None # The proton number of the nucleus
     N: int = None # The neutron number of the nucleus
 
-
-    def __post_init__(self, ) -> None:
-        """Perform post-initialization checks. """
-        if self.Z is not None and self.N is not None:
-            assert self.Z + self.N == self.A
-
     @classmethod
     def from_ZA(cls, val: tuple):
         """Initialize the class from (Z,A) tuple. """
@@ -142,6 +140,11 @@ class Nucleus(NucleusBase):
         N, A = val
         Z = A - N
         return cls(Z,N)
+
+    def __post_init__(self, ) -> None:
+        """Perform post-initialization checks. """
+        if self.Z is not None and self.N is not None:
+            assert self.Z + self.N == self.A
 
     @property
     def A(self, ) -> int:

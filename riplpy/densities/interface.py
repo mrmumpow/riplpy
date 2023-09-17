@@ -27,3 +27,7 @@ ct_db.load(_os.path.join(__loc__, "data", "level-densities-ctmeff.dat"))
 # The EGSM database
 egsm_db = _db.EGSM_Database()
 egsm_db.load(_os.path.join(__loc__, "data", "level-densities-egsm.dat"))
+
+# The EGSM normalization database
+egsm_norm_db = _db.EGSM_NormDatabase()
+egsm_norm_db.load(_os.path.join(__loc__, "data", "level-densities-egsm-norm.dat"))

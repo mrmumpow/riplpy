@@ -16,7 +16,7 @@ import riplpy.densities as _densities
 
 # ========================
 
-class BSFG_Database(_db.Database):
+class BSFG_Database(_db.NuclideDatabase):
 
     reader: object = _densities.bsfg.read_ascii_file
     entry : object = _densities.bsfg.Entry
@@ -30,8 +30,15 @@ class CT_Database(BSFG_Database):
     writer: object = _densities.ct.write_ascii_file
 
 
-class EGSM_Database(_db.Database):
+class EGSM_Database(_db.NuclideDatabase):
 
     reader: object = _densities.egsm.read_ascii_file
     entry : object = _densities.egsm.Entry
     writer: object = _densities.egsm.write_ascii_file
+
+
+class EGSM_NormDatabase(_db.ElementDatabase):
+
+    reader: object = _densities.egsm_norm.read_ascii_file
+    entry : object = _densities.egsm_norm.Entry
+    writer: object = _densities.egsm_norm.write_ascii_file

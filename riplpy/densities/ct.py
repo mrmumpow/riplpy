@@ -1,3 +1,24 @@
+# -*- coding: utf-8 -*-
+"""Python objects that provide access to the Constant Temperature (CT) level density model. 
+
+Python 3.10+ is expected to run this code properly.
+
+Examples:
+    (1) Load and print the CT level density database::
+       $ import riplpy.densities as dens
+       $ ct = dens.ct.load() # The CT level density database
+       $ print(ct.data)
+    (2) Access a particular entry of the CT level density database using the get method::
+       $ from riplpy.collections import Nuclide
+       $ n = Nuclide(z=17, a=36)
+       $ print(ct.get(n))
+    (3) 
+Authors:
+    * Matthew Mumpower {mumpower@lanl.gov}
+
+"""
+
+# ========================
 
 # OS
 import os as _os

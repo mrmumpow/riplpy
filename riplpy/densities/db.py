@@ -1,5 +1,12 @@
+# -*- coding: utf-8 -*-
+"""Access to the pre-loaded databases in the Densities section of RIPL. 
 
-# The pre-loaded databases
+Python 3.10+ is expected to run this code properly.
+
+Authors:
+    * Matthew Mumpower {mumpower@lanl.gov}
+
+"""
 
 # ========================
 

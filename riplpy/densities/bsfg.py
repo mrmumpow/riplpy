@@ -1,9 +1,25 @@
+# -*- coding: utf-8 -*-
+"""Python objects that provide access to the Back-Shifted Fermi-Gas (BSFG) level density model. 
+   Level density parameters are provided for the BSFG model without explicit treatment of collective effects. 
+   The parameters are obtained by fitting the Fermi-gas model formula both to the RIPL II recommended spacings of s-wave neutron resonances D0 and to the cumulative number of low-lying levels evaluated from the analysis of nuclear levels. 
+   Since the goal is to reproduce as well as possible both the discrete levels and the D0 values, the adopted parameters do not generally provide a perfect fit of D0. 
+   Instead, we obtain a theoretical value Dth. 
+   Therefore, uncertainty aerr is deduced by fitting Dth+Derr or Dth-Derr (See TECHDOC for more explanations). 
 
-"""
-Level density parameters for the BSFG model without explicit treatment of collective effects. 
-The parameters are obtained by fitting the Fermi-gas model formula both to the RIPL II recommended spacings of s-wave neutron resonances D0 and to the cumulative number of low-lying levels evaluated from the analysis of nuclear levels. 
-Since the goal is to reproduce as well as possible both the discrete levels and the D0 values, the adopted parameters do not generally provide a perfect fit of D0. Instead, we obtain a theoretical value Dth. 
-Therefore, uncertainty aerr is deduced by fitting Dth+Derr or Dth-Derr (See TECHDOC for more explanations). 
+Python 3.10+ is expected to run this code properly.
+
+Examples:
+    (1) Load and print the BSFG level density database::
+       $ import riplpy.densities as dens
+       $ bsfg = dens.bsfg.load() # The BSFG level density database
+       $ print(bsfg.data)
+    (2) Access a particular entry of the BSFG level density database using the get method::
+       $ from riplpy.collections import Nuclide
+       $ n = Nuclide(z=50, a=125)
+       $ print(bsfg.get(n))
+    (3) 
+Authors:
+    * Matthew Mumpower {mumpower@lanl.gov}
 
 """
 

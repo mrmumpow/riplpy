@@ -1,3 +1,24 @@
+# -*- coding: utf-8 -*-
+"""Python objects that provide access to the natural abundances. 
+
+Python 3.10+ is expected to run this code properly.
+
+Examples:
+    (1) Load and print the natural abundance database::
+       $ import riplpy.masses as masses
+       $ natab = masses.ab.load() # The natural abundances database
+       $ print(natab.data)
+    (2) Access a particular entry of the natural abundances database using the get method::
+       $ from riplpy.collections import Nuclide
+       $ n = Nuclide(z=50, a=120)
+       $ print(natab.get(n))
+    (3) 
+Authors:
+    * Matthew Mumpower {mumpower@lanl.gov}
+
+"""
+
+# ========================
 
 # OS
 import os as _os

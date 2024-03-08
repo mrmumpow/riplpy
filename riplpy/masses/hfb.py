@@ -1,3 +1,24 @@
+# -*- coding: utf-8 -*-
+"""Python objects that provide access to the HFB mass model. 
+
+Python 3.10+ is expected to run this code properly.
+
+Examples:
+    (1) Load and print the HFB14 database::
+       $ import riplpy.masses as masses
+       $ hfb14 = masses.hfb.load() # The HFB-14 database
+       $ print(hfb14.data)
+    (2) Access a particular entry of the mass database using the get method::
+       $ from riplpy.collections import Nuclide
+       $ n = Nuclide(z=82, a=208)
+       $ print(hfb14.get(n))
+    (3) 
+Authors:
+    * Matthew Mumpower {mumpower@lanl.gov}
+
+"""
+
+# ========================
 
 # OS
 import os as _os

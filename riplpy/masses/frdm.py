@@ -1,3 +1,24 @@
+# -*- coding: utf-8 -*-
+"""Python objects that provide access to the Finite-Range Droplet Model (FRDM). 
+
+Python 3.10+ is expected to run this code properly.
+
+Examples:
+    (1) Load and print the FRDM1995 database::
+       $ import riplpy.masses as masses
+       $ frdm1995 = masses.frdm.load() # The FRDM1995 database
+       $ print(frdm1995.data)
+    (2) Access a particular entry of the mass database using the get method::
+       $ from riplpy.collections import Nuclide
+       $ n = Nuclide(z=82, a=208)
+       $ print(frdm1995.get(n))
+    (3) 
+Authors:
+    * Matthew Mumpower {mumpower@lanl.gov}
+
+"""
+
+# ========================
 
 # OS
 import os as _os

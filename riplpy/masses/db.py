@@ -1,6 +1,14 @@
-"""
+# -*- coding: utf-8 -*-
+"""Python objects that load the mass databases into memory.
+
+Python 3.10+ is expected to run this code properly.
+
+Authors:
+    * Matthew Mumpower {mumpower@lanl.gov}
 
 """
+
+# ========================
 
 # RIPLpy
 from . import frdm

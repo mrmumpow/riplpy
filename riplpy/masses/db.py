@@ -2,39 +2,18 @@
 
 """
 
-
-# ========================
-
 # RIPLpy
-import riplpy.collections as _c
-import riplpy.db as _db
-import riplpy.masses as _masses
+from . import frdm
+from . import hfb
+from . import ab
 
 # ========================
 
-class MassDatabase(_db.NuclideDatabase):
+# FRDM1995 mass database
+frdm1995 = frdm.load()
 
-    def mass_excess(self, n: _c.Nuclide) -> float:
-        """Return the mass excess of the requested nucleus (n). """
-        return self.data[n]['Mth']
+# HFB14 mass database
+hfb14 = hfb.load()
 
-
-class FRDM95Database(MassDatabase):
-
-    reader: object = _masses.frdm.read_ascii_file
-    entry : object = _masses.frdm.Entry
-    writer: object = _masses.frdm.write_ascii_file
-
-
-class HFB14Database(MassDatabase):
-
-    reader: object = _masses.hfb.read_ascii_file
-    entry : object = _masses.hfb.Entry
-    writer: object = _masses.hfb.write_ascii_file
-
-
-class NaturalAbundancesDatabase(_db.NuclideDatabase):
-
-    reader: object = _masses.ab.read_ascii_file
-    entry : object = _masses.ab.Entry
-    writer: object = _masses.ab.write_ascii_file
+# Natural abundance database
+natab = ab.load()

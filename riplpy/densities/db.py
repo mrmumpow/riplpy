@@ -1,58 +1,34 @@
-# Example usage: 
 
-# d = read_bsfg_ascii_file("data/level-densities-bfmeff.dat")
-# print(d)
-
-# bsfg = BSFG_Database()
-# bsfg.load("data/level-densities-bfmeff.dat")
-# print(bsfg.data)
-# bsfg.save("a-test.dat")
+# The pre-loaded databases
 
 # ========================
 
 # RIPLpy
-import riplpy.db as _db
-import riplpy.densities as _densities
+from . import bsfg as _bsfg
+from . import ct as _ct
+from . import egsm as _egsm
+from . import egsm_norm as _egsm_norm
+from . import shell_corr as _shell_corr
 
 # ========================
 
-class BSFG_Database(_db.NuclideDatabase):
+# Imports
+__all__ = ('bsfg', 'ct', 'egsm', 'egsm_norm', 'shellcorr_ms', 'shellcorr_mk')
 
-    reader: object = _densities.bsfg.read_ascii_file
-    entry : object = _densities.bsfg.Entry
-    writer: object = _densities.bsfg.write_ascii_file
+# ========================
 
+# The BSFG level density database
+bsfg = _bsfg.load()
 
-class CT_Database(BSFG_Database):
+# The CT level density database
+ct = _ct.load()
 
-    reader: object = _densities.ct.read_ascii_file
-    entry : object = _densities.ct.Entry
-    writer: object = _densities.ct.write_ascii_file
+# The EGSM database
+egsm = _egsm.load()
 
+# The EGSM normalization database
+egsm_norm = _egsm_norm.load()
 
-class EGSM_Database(_db.NuclideDatabase):
-
-    reader: object = _densities.egsm.read_ascii_file
-    entry : object = _densities.egsm.Entry
-    writer: object = _densities.egsm.write_ascii_file
-
-
-class EGSM_NormDatabase(_db.ElementDatabase):
-
-    reader: object = _densities.egsm_norm.read_ascii_file
-    entry : object = _densities.egsm_norm.Entry
-    writer: object = _densities.egsm_norm.write_ascii_file
-
-
-class ShellCorr_MS_Database(_db.NuclideDatabase):
-
-    reader: object = _densities.shell_corr.read_ms_ascii_file
-    entry : object = _densities.shell_corr.ExtendedEntry
-    writer: object = _densities.shell_corr.write_ms_ascii_file
-
-
-class ShellCorr_MK_Database(_db.NuclideDatabase):
-
-    reader: object = _densities.shell_corr.read_mk_ascii_file
-    entry : object = _densities.shell_corr.Entry
-    writer: object = _densities.shell_corr.write_mk_ascii_file
+# The shell correction energies databases
+shellcorr_ms = _shell_corr.load_ms()
+shellcorr_mk = _shell_corr.load_mk()

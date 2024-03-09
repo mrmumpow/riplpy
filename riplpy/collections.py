@@ -94,6 +94,10 @@ class NucleusBase(object):
         """Return the name of the element as a string."""
         return Elements.name(self.Z)
 
+    @property
+    def sym(self, ) -> str:
+        return self.element_symbol
+
     def __eq__(self, other) -> bool:
         """Return the equality (bool) of this object with another. """
         return self.Z == other.Z and self.N == other.N
@@ -110,6 +114,57 @@ class NucleusBase(object):
         return hash((self.Z, self.N, 0))
 
 
+class Element(object):
+    """A class representing a single element. """
+
+    _reserved_kwargs: tuple = ('z', 'symbol', 'sym', 'name')
+
+    def __init__(self, **kwargs) -> None:
+        """Initialize the object. """
+
+        # Check if treated as a placeholder
+        if len(kwargs) == 0:
+            return
+
+        # Create a reduced subset of the initialized kwargs dict
+        # These two dictionary should be mutually exlusive
+        nuc, kw = self._subset(kwargs)
+
+        # Initialize by possible keyword arguments
+        if 'z' in nuc.keys():
+            self.Z = int(nuc['z'])
+        elif 'sym' in nuc.keys():
+            self.Z = Elements.element(nuc['sym'])
+            self.N = A - self.Z
+        elif 'symbol' in nuc.keys():
+            self.Z = Elements.element(nuc['symbol'])
+        elif 'name' in nuc.keys():
+            self.Z = Elements.element(nuc['name'])
+        else:
+            raise Exception("Element is not valid!")
+        
+        # Set provided auxiliary attributes
+        for k,v in kw.items():
+            setattr(self, k, v)
+
+    def _subset(self, kwargs: dict) -> tuple:
+        """Return a tuple of the reduced subset of the provided kwargs dict and the rest. """
+        ret = {} # The subset of reserved kwargs
+        kw  = copy.deepcopy(kwargs)
+        for key in kwargs.keys():
+            k = key.lower() # Force to lower case to check against reserved dictionary keys
+            if k in self._reserved_kwargs:
+                ret[k] = kw.pop(key)
+        return ret, kw
+
+    def __lt__(self, other: object) -> bool:
+        """Return true if self is strictly smaller than the given (other) object. """
+        if self.Z < other.Z:
+            return True
+        else:
+            return False
+
+
 @dataclass
 class Nucleus(NucleusBase):
     """An object representing a nucleus defined by Z-protons and N-neutrons: (Z,N). 
@@ -122,12 +177,6 @@ class Nucleus(NucleusBase):
 
     Z: int = None # The proton number of the nucleus
     N: int = None # The neutron number of the nucleus
-
-
-    def __post_init__(self, ) -> None:
-        """Perform post-initialization checks. """
-        if self.Z is not None and self.N is not None:
-            assert self.Z + self.N == self.A
 
     @classmethod
     def from_ZA(cls, val: tuple):
@@ -142,6 +191,11 @@ class Nucleus(NucleusBase):
         N, A = val
         Z = A - N
         return cls(Z,N)
+
+    def __post_init__(self, ) -> None:
+        """Perform post-initialization checks. """
+        if self.Z is not None and self.N is not None:
+            assert self.Z + self.N == self.A
 
     @property
     def A(self, ) -> int:
@@ -265,6 +319,13 @@ class Nuclide(NucleusBase):
             if k in self._reserved_kwargs:
                 ret[k] = kw.pop(key)
         return ret, kw
+
+    def __lt__(self, other: object) -> bool:
+        """Return true if self is strictly smaller than the given (other) object. """
+        if (self.Z, self.A) < (other.Z, other.A):
+            return True
+        else:
+            return False
 
     def __str__(self, ) -> str:
         """Return a string representation of the object.  """

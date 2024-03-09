@@ -72,6 +72,11 @@ class Database(object):
         """Remove an existing entry in the database by providing a key (typically a nucleus-like) object. """
         self.data.pop(key)
 
+    def clear(self, ) -> None:
+        """Clear the database. """
+        del self.data
+        self.data = {}
+
 
 class NuclideDatabase(Database):
     """Data in this type of RIPL database are accessible via a single nucleus. """

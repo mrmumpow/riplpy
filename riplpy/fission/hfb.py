@@ -121,6 +121,55 @@ class Database(_db.Database):
     entry : object = Entry
     writer: object = write_ascii_file
 
+    # @property
+    # def heights(self, ) -> list:
+    #     """Return the barrier heights in the database as a list of tuples (Z,A,F_A,F_B,F_C). """
+    #     ret = []
+    #     for nuc in self.data.keys():
+    #         Z, A = nuc.Z, nuc.A
+    #         ret.append((Z,A,self.data[nuc].A.height,self.data[nuc].B.height,self.data[nuc].C.height))
+    #     return ret
+
+    # @property
+    # def curvatures(self, ) -> list:
+    #     """Return the barrier curvatures in the database as list of tuples (Z,A,C_A,C_B,C_C). """
+    #     ret = []
+    #     for nuc in self.data.keys():
+    #         Z, A = nuc.Z, nuc.A
+    #         ret.append((Z,A,self.data[nuc].A.curvature,self.data[nuc].B.curvature,self.data[nuc].C.curvature))
+    #     return ret
+
+    # @property
+    # def as_numpy_array(self, ) -> _np.array:
+    #     """Return the database as a structured Numpy array. """
+    #     ret = []
+    #     for n, v in self.data.items():
+    #         # Define nucleus information
+    #         Z, N, A, sym = n.Z, n.N, n.A, n.element_symbol
+    #         # First barrier
+    #         Bin, hwin, alphain, deltain = v.A.height, v.A.curvature, v.A.alpha, v.A.delta
+    #         # Second barrier
+    #         Bout, hwout, alphaout, deltaout = v.B.height, v.B.curvature, v.B.alpha, v.B.delta
+    #         # Third barrier
+    #         Bout2, hwout2, alphaout2, deltaout2 = v.C.height, v.C.curvature, v.C.alpha, v.C.delta
+    #         ret.append((Z,N,A,sym,Bin,hwin,alphain,deltain,Bout,hwout,alphaout,deltaout,Bout2,hwout2,alphaout2,deltaout2))
+    #     return _np.array(ret, dtype=HFB_DB_NUMPY_DTYPE)
+
+    # @property
+    # def as_nuclides(self, ) -> list:
+    #     """Return the database as a list of Nuclides. Each nuclide contains the relevant barrier properties. """
+    #     ret = []
+    #     for _n, _v in self.data.items():
+    #         # Copy nucleus to a new memory location
+    #         n = _copy.deepcopy(_n)
+    #         # First barrier
+    #         n.Bin, n.hwin, n.alphain, n.deltain = _v.A.height, _v.A.curvature, _v.A.alpha, _v.A.delta
+    #         # Second barrier
+    #         n.Bout, n.hwout, n.alphaout, n.deltaout = _v.B.height, _v.B.curvature, _v.B.alpha, _v.B.delta
+    #         # Third barrier
+    #         n.Bout2, n.hwout2, n.alphaout2, n.deltaout2 = _v.C.height, _v.C.curvature, _v.C.alpha, _v.C.delta
+    #         ret.append(n)
+    #     return ret
 
 def load() -> Database:
     """Load and return the HFB fission barrier database. """

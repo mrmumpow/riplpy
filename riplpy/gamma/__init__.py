@@ -1,7 +1,10 @@
 
 # Local
+from .core import *
 from . import gdr
+from . import gsf
 from . import slo
+
 
 def load() -> None:
     """Load the entire database of the Gamma section of RIPL. 

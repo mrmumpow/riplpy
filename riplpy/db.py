@@ -1,6 +1,7 @@
 
 from dataclasses import dataclass, fields
 
+
 @dataclass
 class DatabaseEntry(object):
     """A generic database entry. This class is expected to be extended. """
@@ -23,6 +24,7 @@ class DatabaseEntry(object):
             d[f.name] = getattr(self, f.name)
         return d
 
+
 @dataclass
 class NuclideDatabaseEntry(DatabaseEntry):
 
@@ -37,7 +39,10 @@ class NuclideDatabaseEntry(DatabaseEntry):
 
 
 class Database(object):
-    """A generic representation of a RIPL database that accesses information from a single ASCII file. """
+    """A generic representation of a RIPL database that accesses information from a single ASCII file. 
+    
+       More complicated databases may have multiple reader and writer methods.
+    """
 
     reader: object = None # The method to read data from a specified ASCII file
     entry : object = None # The object which represents an entry in the database
@@ -48,7 +53,10 @@ class Database(object):
         self.data = data
 
     def load(self, fpath: str) -> None:
-        """Load the database from an ASCII file into the data dictionary. """
+        """A generic function for Loading the database from an ASCII file into the data dictionary. 
+           This method may need to be extended; it may not work in every case. 
+           The success of loading depends sensitively on the structure of the input file.
+        """
         self.data = {}
         data = type(self).reader(fpath) # This call returns the data dictionary, but not yet formatted for the db
         # Loop over the data entries
@@ -138,3 +146,10 @@ class ElementDatabase(Database):
             self.data.pop(entry.Z)
         else:
             raise Exception("Entry object must have an element number!")
+
+
+def load(dbobj: object, db_file_path: str) -> object:
+    """Load the database into memeory and return it. """
+    db = dbobj()
+    db.load(db_file_path)
+    return db

@@ -1,60 +1,143 @@
 
+# ========================
+
+# OS
+import os as _os
+
 # Collections
-from dataclasses import dataclass, field
+from dataclasses import dataclass as _dataclass
+from dataclasses import field as _field
 
 # Numpy
 import numpy as _np
 
+# Fortran format
+import fortranformat as _ff
 
 # RIPLpy
-from riplpy.collections import Nuclide
-from riplpy.levels import DiscreteNuclearLevel
+import riplpy.collections as _c
+import riplpy.db as _db
+from . import core as _core
 
 # ========================
 
-@dataclass
-class DecayMode(object):
-    """A representation of a decay mode for the RIPL database. """
+# Current location
+__loc__  = _os.path.dirname(_os.path.realpath(__file__))
+data_dir = _os.path.join(__loc__, "data")
 
-    mode      : str   = None # Decay flag as a string
-    flag      : str   = None # Decay percentage modifier flag; informs a user about major uncertainties. 
-                             # The modifiers are copied out of ENSDF with no modification, and can 
-                             # have the following values: =, <, >, ? (unknown, but expected), 
-                             # AP (approximate), GE (greater or equal), LE (less or equal), 
-                             # LT (less then), SY  (value from systematics)
-    percent   : str   = None # Percentage decay of different decay modes
+# ========================
 
+IDENT_FORTRAN_FORMAT = '(a5,6i5,2f12.6)'
+LEVEL_FORTRAN_FORMAT = '(i3,1x,f10.6,1x,f5.1,i3,1x,(1pe10.2),i3,1x,a1,1x,a4,1x,a18,i3,10(1x,a2,1x,0pf10.4,1x,a7),f10.6,1x,3(i2))'
+GAMMA_FORTRAN_FORMAT = '(39x,i4,1x,f10.3,3(1x,e10.3))'
+ident_reader = _ff.FortranRecordReader(IDENT_FORTRAN_FORMAT)
+level_reader = _ff.FortranRecordReader(LEVEL_FORTRAN_FORMAT)
+gamma_reader = _ff.FortranRecordReader(GAMMA_FORTRAN_FORMAT)
 
+# ========================
 
-@dataclass
-class DiscreteLevelInfo(DiscreteNuclearLevel):
-    """An object representing an entry in the discrete nuclear level database. """
-
-    halflife   : float = None # Half-life in [seconds]
-    num_gammas : int   = None # Number of gamma-rays de-exciting the level
-    jflag      : str   = None # Flag for spin estimation method
-    unc        : str   = None # Flag for an uncertain level energy
-    jpistr     : str   = None # String representation of spin-parity (original spins from the ENSDF file)
-    decay_modes: list  = field(default_factory=list) # Decay modes of the level
-    shift      : str   = None # Value assigned to uncertain "X" in an ENSDF level
-    band       : int   = None # Integer assigned to band(s) to which the level is part
-
-    @property
-    def number_decay_modes(self) -> int:
-        """Return the number of decay modes. Returns None for unknown. """
-        return len(self.decay_modes)
+def read_identification_record(substr: str) -> list:
+    """Read the isotope's identification record. """
+    return ident_reader.read(substr)
 
 
-@dataclass
-class DiscreteLevelGammaEntry(DiscreteNuclearLevel):
+def read_level_record(substr: str) -> list:
+    """Read a level record of the particular isotope. """
+    return level_reader.read(substr)
+
+
+def read_ascii_file(fpath: str) -> dict:
+    """Read data into the database object from a single ASCII file. """
+    # Placeholder for data
+    d = {}
+
+    # RIPL discrete level files have no headers
+    with open(fpath, 'r') as fp:    
+        # Begin reading data directly from the first line
+        for line in fp.readlines():
+            # Parse the given line
+            try:
+                header     = ident_reader.read(line)
+                nucleus    = header[0]
+                num_levels = int(header[3])
+                levels     = []
+                gammas     = {}
+            except ValueError:
+                if "                                      " in line[0:40]:
+                    # Find appropriate level to attach to
+                    lvl = int(level[0])
+                    # Parse data
+                    gamma = gamma_reader.read(line)
+                    gammas[lvl] = gamma
+                else:
+                    # Parse data
+                    level = level_reader.read(line)
+                    levels.append(level)
+            # Check if we save data to the dictionary
+            if len(levels) == num_levels:
+                d[nucleus] = (header, levels, gammas)
+
+        return d
+
+
+def parse_ascii_dict(data: dict) -> dict:
+    """Parse the dictionary to a more Pythonic friendly representation. """
+        
+    offset = 3 # Offset used for decay mode information
+        
+    output = {} # Placeholder for return information
+
+    # Loop over the dictionary keys
+    for nucleus in data.keys():
+        n = _c.Nuclide.from_string(nucleus)
+        header, levels, gammas = data[nucleus]
+        # Recast levels into objects
+        recasted_levels = []
+        for lvl in levels:
+            e       = float(lvl[1])
+            spin    = float(lvl[2])
+            parity  = int(lvl[3])
+            t12     = float(lvl[4])
+            ng      = int(lvl[5])
+            jflag   = lvl[6].strip()
+            unc     = lvl[7].strip()
+            jpistr  = lvl[8].strip()
+            n_modes = int(lvl[9])
+            modes = []
+            for m in range(n_modes):
+                dpm     = lvl[10+m*offset].strip()
+                percent = float(lvl[11+m*offset])
+                mode    = lvl[12+m*offset].strip()
+                modes.append(_core.DecayMode(mode, dpm, percent))
+            recasted_levels.append(_core.DiscreteLevelInfo(e, spin, parity, t12, ng, jflag, unc, jpistr, modes))
+
+        # Recast the gammas into objects
+        recasted_gammas = {}
+        for lvl_id in gammas.keys():
+            recasted_gammas[lvl_id] = _core.DiscreteGamma(*gammas[lvl_id])
+
+        # Save for later
+        output[n] = LevelEntry(n, recasted_levels, recasted_gammas)
+
+    return output
+
+
+def write_ascii_file(fpath: str, data: dict) -> None:
+    """"Write the discrete level information to file. """
+    # @TODO: Finish this function
+    pass
+
+
+@_dataclass
+class GammaEntry(_core.DiscreteNuclearLevel, _db.NuclideDatabaseEntry):
     """An object representing an entry in the  discrete nuclear level database that also contains associated gamma-rays. """
 
     halflife   : float = None # Half-life in [seconds]
     jflag      : str   = None # Flag for spin estimation method
     unc        : str   = None # Flag for an uncertain level energy
     jpistr     : str   = None # String representation of spin-parity (original spins from the ENSDF file)
-    gammas     : dict  = field(default_factory=dict) # Associated gamma-rays with this level
-    decay_modes: list  = field(default_factory=list) # Decay modes of the level
+    gammas     : dict  = _field(default_factory=dict) # Associated gamma-rays with this level
+    decay_modes: list  = _field(default_factory=list) # Decay modes of the level
     shift      : str   = None # Value assigned to uncertain "X" in an ENSDF level
     band       : int   = None # Integer assigned to band(s) to which the level is part
 
@@ -69,28 +152,13 @@ class DiscreteLevelGammaEntry(DiscreteNuclearLevel):
         return len(self.gammas)
 
 
-@dataclass
-class DiscreteGamma(object):
-    """An object representing a gamma-ray from a discrete nuclear level. """
-
-    to_level_numer: int   = None # Final level number (unique integer in associated DiscreteLevel list)
-    energy        : float = None # Energy, typically in [MeV]
-    prob_g        : float = None # Probability that the level decays through photon (gamma ray) emission
-    prob_em       : float = None # Probability of the electromagnetic transition (photon, conversion electron, pair creation)
-                                 # The sum of the Pe gives the IT (electromagnetic transition) branching ratio of the level
-                                 # This is 1 unless other decay modes are listed in the level record (see example below)
-    cc            : float = None # Internal conversion coefficient of the transition
-                                 # Pe, Pg, and ICC are in the following relation:
-                                 # Pe = Pg * (1 + ICC)
-
-
-@dataclass
-class DiscreteLevelEntry(object):
+@_dataclass
+class LevelEntry(_db.NuclideDatabaseEntry):
     """Object which represents an entry in the DiscreteLevelsDatabase. """
 
-    nucleus: Nuclide = None
-    levels: list = field(default_factory=list) # Order matters
-    gammas: dict = field(default_factory=dict) # Order matters
+    nucleus: _c.Nuclide = None
+    levels: list = _field(default_factory=list) # Order matters
+    gammas: dict = _field(default_factory=dict) # Order matters
 
 
     @property
@@ -103,22 +171,36 @@ class DiscreteLevelEntry(object):
         return [lvl.energy for lvl in self.levels]
 
 
-class DiscreteLevels(object):
+class Database(_db.NuclideDatabase):
     """An object which holds the RIPL discrete levels information. """
 
+    reader: object = read_ascii_file
+    entry : object = LevelEntry
+    writer: object = write_ascii_file
+    parser: object = parse_ascii_dict
 
-    def __init__(self, data: dict = {}) -> None:
-        """Initialize a new RIPL discrete levels object. """
-        self.data = data # The dictionary which defines the data
+    def load(self, fpath: str) -> None:
+        """Read discrete level information from an ASCII file. 
+           Not this can be used in successive calls, each time adding potentially new entries to the database (self.data).
+        """
+        _data = type(self).reader(fpath)
+        _data = type(self).parser(_data)
+        for entry in _data.keys():
+            self.data[entry] = _data[entry]
 
-    def entry(self, n: Nuclide) -> object:
-        """Return the database entry for the requested nucleus. """
-        try:
-            return self.data[n]
-        except KeyError:
-            return None
+    def load_all(self, ) -> None:
+        """Read the entire database into memory from many individual ASCII files. """
+        # Loop over the element numbers
+        for Z in range(1, 119):
+            fpath = _os.path.join(data_dir, "discrete", f"z{Z:03d}.dat")
+            self.load(fpath)
 
-    def levels(self, n: Nuclide) -> object:
+    def load_element(self, Z: int) -> None:
+        """Read the database entry for element with proton number (Z). """
+        fpath = _os.path.join(data_dir, "discrete", f"z{Z:03d}.dat")
+        self.load(fpath)
+
+    def levels(self, n: _c.Nuclide) -> object:
         """Return the levels for the particular nuclide in the database. """
         try:
             return self.data[n].levels
@@ -142,7 +224,7 @@ class DiscreteLevels(object):
                 lst.append(lvl)
         return lst
 
-    def insert_level(self, n: Nuclide, new_level: DiscreteLevelInfo) -> None:
+    def insert_level(self, n: _c.Nuclide, new_level: _core.DiscreteLevelInfo) -> None:
         """Insert a new level into the database for the provided nuclide. """
         # Check if nucleus is already in the database
         if n in self.data.keys():
@@ -161,4 +243,18 @@ class DiscreteLevels(object):
                 self.data[n].levels.insert(i, new_level)
         else:
             # We can easily add since the nucleus is not in the database
-            self.data[n] = DiscreteLevelEntry(n, new_level, [])
+            self.data[n] = LevelEntry(n, new_level, [])
+
+
+def load_all() -> Database:
+    """Load and return the entire discrete level database. """
+    d = Database()
+    d.load_all()
+    return d
+
+
+def load_element(Z: int) -> Database:
+    """Load and return the discrete level database for a given element (Z). """
+    d = Database()
+    d.load_element(Z)
+    return d

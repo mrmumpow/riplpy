@@ -77,6 +77,10 @@ class Database(object):
         del self.data
         self.data = {}
 
+    def __iter__(self, ) -> iter:
+        """Return the list of keys for the data property as an iterable. """
+        return iter(self.data.keys())
+
 
 class NuclideDatabase(Database):
     """Data in this type of RIPL database are accessible via a single nucleus. """

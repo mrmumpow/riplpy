@@ -218,6 +218,14 @@ class Nucleus(NucleusBase):
         """
         return hash((self.Z, self.N, 0))
 
+    def __str__(self, ) -> str:
+        """Return a string representation of the object. """
+        return f"<Nucleus(z={self.Z}, n={self.N})>"
+
+    def __repr__(self, ) -> str:
+        """Return a string representation of the object which can be used to initialize. """
+        return f"Nucleus(z={self.Z}, n={self.N})"
+
 
 class Nuclide(NucleusBase):
     """A Nucleus-like object which supports a more robust initialization procedure where additional attributes may be set.
@@ -328,8 +336,12 @@ class Nuclide(NucleusBase):
             return False
 
     def __str__(self, ) -> str:
-        """Return a string representation of the object.  """
-        return f"<Nuclide(Z={self.Z}, A={self.A}, symbol={self.element_symbol})>"
+        """Return a string representation of the object. """
+        return f"<Nuclide(z={self.Z}, a={self.A}, symbol={self.element_symbol})>"
+
+    def __repr__(self, ) -> str:
+        """Return a string representation of the object which can be used to initialize. """
+        return f"Nuclide(z={self.Z}, a={self.A})"
 
 
 @dataclass
@@ -367,6 +379,13 @@ class IsomericNucleus(Nucleus, NucleusBase):
         """Return a unique (unsafe) hash of this object. """
         return hash((self.Z, self.N, self.m))
 
+    def __str__(self, ) -> str:
+        """Return a string representation of the object. """
+        return f"<IsomericNucleus(z={self.Z}, n={self.N}, symbol={self.element_symbol})>"
+
+    def __repr__(self, ) -> str:
+        """Return a string representation of the object which can be used to initialize. """
+        return f"IsomericNucleus(z={self.Z}, n={self.N}, m={self.m})"
 
 # class IsomericNuclide(Nuclide, metaclass=NucleusMeta):
 #     """A Nuclide-like object which handles the special case of isomeric states. """

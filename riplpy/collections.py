@@ -138,7 +138,6 @@ class Element(object):
             self.Z = int(nuc['z'])
         elif 'sym' in nuc.keys():
             self.Z = Elements.element(nuc['sym'])
-            self.N = A - self.Z
         elif 'symbol' in nuc.keys():
             self.Z = Elements.element(nuc['symbol'])
         elif 'name' in nuc.keys():

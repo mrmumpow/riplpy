@@ -16,7 +16,7 @@ from . import discrete as _di
 
 # ========================
 
-__all__ = ('frdm1995', 'hfb14', 'natab')
+__all__ = ('discrete_levels', 'constant_temperature')
 
 # ========================
 

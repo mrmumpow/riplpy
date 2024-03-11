@@ -37,6 +37,9 @@ Examples:
     (12) Create a set of Nucleus-like objects::
        $ n, m, p, q = Nucleus(Z=82, N=126), Nucleus(Z=50, N=82), IsomericNucleus(Z=82, N=126), Nucleus(Z=71, N=111)
        $ s = set([n,m,p,q]) # only contains: n, m and q (since n == p)
+    (13) Create a set of Nucleus-like objects::
+       $ n, m, p, q = Nucleus(Z=82, N=126), Nucleus(Z=50, N=82), IsomericNucleus(Z=82, N=126, m=2), Nucleus(Z=71, N=111)
+       $ s = set([n,m,p,q]) # contains all since the isomeric nucleus (p) is distinct from the ground state (n)
 
 Authors:
     * Matthew Mumpower {mumpower@lanl.gov}
@@ -46,16 +49,16 @@ Authors:
 # ========================
 
 # Copy
-import copy
+import copy as _copy
 
 # Collections
-from collections import namedtuple
+from collections import namedtuple as _namedtuple
 
 # Dataclass
-from dataclasses import dataclass
+from dataclasses import dataclass as _dataclass
 
 # RegEx
-import re
+import re as _re
 
 # Local Namespace
 from .elements import Elements
@@ -63,14 +66,14 @@ from .elements import Elements
 # ========================
 
 # Tuples that can be used to quickly access properties
-ZNTuple              = namedtuple('ZNTuple', 'Z, N')
-ZATuple              = namedtuple('ZATuple', 'Z, A')
-NATuple              = namedtuple('NATuple', 'N, A')
-NucleusTuple         = namedtuple('NucleusTuple', 'Z, N, A')
-IsomericNucleusTuple = namedtuple('IsomericNucleusTuple', 'Z, N, A, i')
-SymNucleusTuple      = namedtuple('SymNucleusTuple', 'Z, N, A, sym')
-NamedNucleusTuple    = namedtuple('NamedNucleusTuple', 'Z, N, A, name')
-SymNamedNucleusTuple = namedtuple('SymNamedNucleusTuple', 'Z, N, A, sym, name')
+ZNTuple              = _namedtuple('ZNTuple', 'Z, N')
+ZATuple              = _namedtuple('ZATuple', 'Z, A')
+NATuple              = _namedtuple('NATuple', 'N, A')
+NucleusTuple         = _namedtuple('NucleusTuple', 'Z, N, A')
+IsomericNucleusTuple = _namedtuple('IsomericNucleusTuple', 'Z, N, A, i')
+SymNucleusTuple      = _namedtuple('SymNucleusTuple', 'Z, N, A, sym')
+NamedNucleusTuple    = _namedtuple('NamedNucleusTuple', 'Z, N, A, name')
+SymNamedNucleusTuple = _namedtuple('SymNamedNucleusTuple', 'Z, N, A, sym, name')
 
 
 class NucleusBase(object):
@@ -96,7 +99,6 @@ class NucleusBase(object):
 
     @property
     def sym(self, ) -> str:
-        """Return the element symbol as a string. """
         return self.element_symbol
 
     def __eq__(self, other) -> bool:
@@ -151,7 +153,7 @@ class Element(object):
     def _subset(self, kwargs: dict) -> tuple:
         """Return a tuple of the reduced subset of the provided kwargs dict and the rest. """
         ret = {} # The subset of reserved kwargs
-        kw  = copy.deepcopy(kwargs)
+        kw  = _copy.deepcopy(kwargs)
         for key in kwargs.keys():
             k = key.lower() # Force to lower case to check against reserved dictionary keys
             if k in self._reserved_kwargs:
@@ -166,7 +168,7 @@ class Element(object):
             return False
 
 
-@dataclass
+@_dataclass
 class Nucleus(NucleusBase):
     """An object representing a nucleus defined by Z-protons and N-neutrons: (Z,N). 
 
@@ -219,14 +221,6 @@ class Nucleus(NucleusBase):
         """
         return hash((self.Z, self.N, 0))
 
-    def __str__(self, ) -> str:
-        """Return a string representation of the object. """
-        return f"<Nucleus(z={self.Z}, n={self.N})>"
-
-    def __repr__(self, ) -> str:
-        """Return a string representation of the object which can be used to initialize. """
-        return f"Nucleus(z={self.Z}, n={self.N})"
-
 
 class Nuclide(NucleusBase):
     """A Nucleus-like object which supports a more robust initialization procedure where additional attributes may be set.
@@ -265,21 +259,21 @@ class Nuclide(NucleusBase):
             self.Z = Elements.element(nuc['sym'])
             self.N = A - self.Z
         elif 'sym' in nuc.keys() and 'n' in nuc.keys():
-            self.N = int(nuc['n'])
+            self.N = int(nuc['N'])
             self.Z = Elements.element(nuc['sym'])
         elif 'symbol' in nuc.keys() and 'a' in nuc.keys():
             A = int(nuc['a'])
             self.Z = Elements.element(nuc['symbol'])
             self.N = A - self.Z
         elif 'symbol' in nuc.keys() and 'n' in nuc.keys():
-            self.N = int(nuc['n'])
+            self.N = int(nuc['N'])
             self.Z = Elements.element(nuc['symbol'])
         elif 'name' in nuc.keys() and 'a' in nuc.keys():
             A = int(nuc['a'])
             self.Z = Elements.element(nuc['name'])
             self.N = A - self.Z
         elif 'name' in nuc.keys() and 'n' in nuc.keys():
-            self.N = int(nuc['n'])
+            self.N = int(nuc['N'])
             self.Z = Elements.element(nuc['name'])
         else:
             raise Exception("Nucleus is not valid (Z,A) or (Z,N) or (N,A) not given!")
@@ -305,7 +299,7 @@ class Nuclide(NucleusBase):
         else:
             # Assume of the form '###El'
             lst = []
-            for i in re.split('(\d+)', val):
+            for i in _re.split('(\d+)', val):
                 i = i.strip()
                 if len(i) > 0:
                     lst.append(i)
@@ -322,7 +316,7 @@ class Nuclide(NucleusBase):
     def _subset(self, kwargs: dict) -> tuple:
         """Return a tuple of the reduced subset of the provided kwargs dict and the rest. """
         ret = {} # The subset of reserved kwargs
-        kw  = copy.deepcopy(kwargs)
+        kw  = _copy.deepcopy(kwargs)
         for key in kwargs.keys():
             k = key.lower() # Force to lower case to check against reserved dictionary keys
             if k in self._reserved_kwargs:
@@ -337,15 +331,11 @@ class Nuclide(NucleusBase):
             return False
 
     def __str__(self, ) -> str:
-        """Return a string representation of the object. """
-        return f"<Nuclide(z={self.Z}, a={self.A}, symbol={self.element_symbol})>"
-
-    def __repr__(self, ) -> str:
-        """Return a string representation of the object which can be used to initialize. """
-        return f"Nuclide(z={self.Z}, a={self.A})"
+        """Return a string representation of the object.  """
+        return f"<Nuclide(Z={self.Z}, A={self.A}, symbol={self.element_symbol})>"
 
 
-@dataclass
+@_dataclass
 class IsomericNucleus(Nucleus, NucleusBase):
     """An object representing a nucleus that also contains information about an isomeric state.
        
@@ -380,13 +370,6 @@ class IsomericNucleus(Nucleus, NucleusBase):
         """Return a unique (unsafe) hash of this object. """
         return hash((self.Z, self.N, self.m))
 
-    def __str__(self, ) -> str:
-        """Return a string representation of the object. """
-        return f"<IsomericNucleus(z={self.Z}, n={self.N}, symbol={self.element_symbol})>"
-
-    def __repr__(self, ) -> str:
-        """Return a string representation of the object which can be used to initialize. """
-        return f"IsomericNucleus(z={self.Z}, n={self.N}, m={self.m})"
 
 # class IsomericNuclide(Nuclide, metaclass=NucleusMeta):
 #     """A Nuclide-like object which handles the special case of isomeric states. """

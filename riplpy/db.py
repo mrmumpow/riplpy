@@ -1,15 +1,28 @@
+# -*- coding: utf-8 -*-
+"""The base objects which define access to RIPL databases. 
 
-from dataclasses import dataclass, fields
+Python 3.10+ is expected to run this code properly.
 
+Authors:
+    * Matthew Mumpower {mumpower@lanl.gov}
 
-@dataclass
+"""
+
+# ========================
+
+from dataclasses import dataclass as _dataclass
+from dataclasses import fields as _fields
+
+# ========================
+
+@_dataclass
 class DatabaseEntry(object):
     """A generic database entry. This class is expected to be extended. """
 
     @property
     def as_list(self, ) -> list:
         """Return a list representation of the object. """
-        return [getattr(self, f.name) for f in fields(self.__class__)]
+        return [getattr(self, f.name) for f in _fields(self.__class__)]
 
     @property
     def as_tuple(self, ) -> tuple:
@@ -20,19 +33,19 @@ class DatabaseEntry(object):
     def as_dict(self, ) -> dict:
         """Return a dictionary representation of the object. Useful packaging for other objects. """
         d = {}
-        for f in fields(self.__class__):
+        for f in _fields(self.__class__):
             d[f.name] = getattr(self, f.name)
         return d
 
 
-@dataclass
+@_dataclass
 class NuclideDatabaseEntry(DatabaseEntry):
 
     @property
     def as_tuple(self, ) -> tuple:
         """Return a tuple representation of the object. Intended for writing to file. """
         lst = [self.n.Z, self.n.A, self.n.element_symbol]
-        for f in fields(self.__class__):
+        for f in _fields(self.__class__):
             if f.name != 'n':
                 lst.append(getattr(self, f.name))
         return tuple(lst)

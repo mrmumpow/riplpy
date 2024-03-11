@@ -89,6 +89,10 @@ class Database(object):
         """Set the entry in the database given the key and value. """
         self.data[key] = value
 
+    def insert(self, key: object, value: object) -> None:
+        """Insert the entry in the database given the key and value. """
+        self.set(key, value)
+
     def remove(self, key: object) -> None:
         """Remove an existing entry in the database by providing a key (typically a nucleus-like) object. """
         self.data.pop(key)

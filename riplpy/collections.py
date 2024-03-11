@@ -86,7 +86,6 @@ class NucleusBase(object):
         cls.A - Mass number
     """
 
-
     @property
     def element_symbol(self, ) -> str:
         """Return the element symbol as a string. """
@@ -116,6 +115,10 @@ class NucleusBase(object):
         """
         return hash((self.Z, self.N, 0))
 
+    def __str__(self, ) -> str:
+        """Return a string representation of the object. """
+        return f"<{self.__class__.__name__}(z={self.Z}, n={self.N})>"
+
 
 class Element(object):
     """A class representing a single element. """
@@ -135,7 +138,7 @@ class Element(object):
 
         # Initialize by possible keyword arguments
         if 'z' in nuc.keys():
-            self.Z = int(nuc['z'])
+            self.Z      = int(nuc['z'])
         elif 'sym' in nuc.keys():
             self.Z = Elements.element(nuc['sym'])
         elif 'symbol' in nuc.keys():
@@ -144,7 +147,10 @@ class Element(object):
             self.Z = Elements.element(nuc['name'])
         else:
             raise Exception("Element is not valid!")
-        
+        self.symbol = Elements.symbol(self.Z)
+        self.sym    = self.symbol
+        self.name   = Elements.name(self.Z)
+
         # Set provided auxiliary attributes
         for k,v in kw.items():
             setattr(self, k, v)
@@ -165,6 +171,26 @@ class Element(object):
             return True
         else:
             return False
+
+    def __eq__(self, other) -> bool:
+        """Return the equality (bool) of this object with another. """
+        return self.Z == other.Z
+
+    def __ne__(self, other) -> bool:
+        """Return the equality (bool) of this object with another. """
+        return not self.__eq__(other)
+
+    def __hash__(self, ) -> int:
+        """Return a unique (unsafe) hash of an Element object given the independent variables, Z. """
+        return hash(self.Z)
+
+    def __str__(self, ) -> str:
+        """Return a string representation of the object. """
+        return f"<{self.__class__.__name__}(z={self.Z}, symbol={self.symbol}, name={self.name})>"
+
+    def __repr__(self, ) -> str:
+        """Return a string representation of the object. """
+        return f"{self.__class__.__name__}(z={self.Z})"
 
 
 @_dataclass
@@ -219,6 +245,10 @@ class Nucleus(NucleusBase):
         By default this also assumes a third component (m=0); the ground state.
         """
         return hash((self.Z, self.N, 0))
+
+    def __repr__(self, ) -> str:
+        """Return a string representation of the object which can be used to initialize. """
+        return f"Nucleus(z={self.Z}, n={self.N})"
 
 
 class Nuclide(NucleusBase):
@@ -330,9 +360,12 @@ class Nuclide(NucleusBase):
             return False
 
     def __str__(self, ) -> str:
-        """Return a string representation of the object.  """
-        return f"<Nuclide(Z={self.Z}, A={self.A}, symbol={self.element_symbol})>"
+        """Return a string representation of the object. """
+        return f"<Nuclide(z={self.Z}, a={self.A}, symbol={self.element_symbol})>"
 
+    def __repr__(self, ) -> str:
+        """Return a string representation of the object which can be used to initialize. """
+        return f"Nuclide(z={self.Z}, a={self.A})"
 
 @_dataclass
 class IsomericNucleus(Nucleus, NucleusBase):
@@ -368,6 +401,14 @@ class IsomericNucleus(Nucleus, NucleusBase):
     def __hash__(self) -> int:
         """Return a unique (unsafe) hash of this object. """
         return hash((self.Z, self.N, self.m))
+
+    def __str__(self, ) -> str:
+        """Return a string representation of the object. """
+        return f"<IsomericNucleus(z={self.Z}, n={self.N}, m={self.m}, symbol={self.element_symbol})>"
+
+    def __repr__(self, ) -> str:
+        """Return a string representation of the object which can be used to initialize. """
+        return f"IsomericNucleus(z={self.Z}, n={self.N}, m={self.m})"
 
 
 # class IsomericNuclide(Nuclide, metaclass=NucleusMeta):

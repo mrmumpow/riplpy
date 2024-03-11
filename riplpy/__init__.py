@@ -1,7 +1,7 @@
 
 
 # Code version 
-__version__ = "0.1.0"
+__version__ = "0.2.4"
 
 
 # Local
@@ -29,6 +29,7 @@ def load() -> None:
 
 def in_ripl(x: Nuclide | Element) -> bool:
    """Check if the given Nuclide (or Element) is in the RIPL database. Returns True if so, False otherwise. 
+      This method may only be used once riplpy.load() has been issued.
 
       Input:
          x [Nuclide | Element]: a Nuclide or Element object that may be in the RIPL database
@@ -47,6 +48,7 @@ def in_ripl(x: Nuclide | Element) -> bool:
 
 def in_sections(x: Nuclide | Element) -> list:
    """Check if the given Nuclide (or Element) is in various sections of the RIPL database. Returns a list of sections where True. 
+      This method may only be used once riplpy.load() has been issued.
 
       Input:
          x [Nuclide | Element]: a Nuclide or Element object that may be in the RIPL database
@@ -68,6 +70,7 @@ def in_sections(x: Nuclide | Element) -> list:
 
 def in_dbs(x: Nuclide | Element) -> list:
    """Check if the given Nuclide (or Element) is in various databases of RIPL. Returns a list of database names where the nucleus can be found.
+      This method may only be used once riplpy.load() has been issued.
 
       Input:
          x [Nuclide | Element]: a Nuclide or Element object that may be in the RIPL database

@@ -1,7 +1,11 @@
 
+# ========================
 
-# Dataclasses
-from dataclasses import dataclass
+# OS
+import os as _os
+
+# Dataclass
+from dataclasses import dataclass as _dataclass
 
 # Fortran format
 import fortranformat as _ff
@@ -12,11 +16,17 @@ import riplpy.db as _db
 
 # ========================
 
-PWAVE_FILE_HEADER = "#                 Resonance data for p-wave resonances \n# Z El  A   Io     Bn        D0        dD      S0    dS    Gg   dG   Com.\n#                 [MeV]     [keV]     [keV]  [1E-4][1E-4][meV][meV]  &Ref\n#========================================================================\n"
-SWAVE_FILE_HEADER = "#                 Resonance data for s-wave resonances \n# Z El  A   Io     Bn        D0        dD      S0    dS    Gg   dG   Com.\n#                 [MeV]     [keV]     [keV]  [1E-4][1E-4][meV][meV]  &Ref\n#========================================================================\n"
+# Current location
+__loc__ = _os.path.dirname(_os.path.realpath(__file__))
+# Database location
+db_file_path = _os.path.join(__loc__, 'data', 'resonances1.dat')
+
+# ========================
+
+FILE_HEADER = "#                 Resonance data for p-wave resonances \n# Z El  A   Io     Bn        D0        dD      S0    dS    Gg   dG   Com.\n#                 [MeV]     [keV]     [keV]  [1E-4][1E-4][meV][meV]  &Ref\n#========================================================================\n"
 FORTRAN_FORMAT   = '(i3,1x,a2,1x,i3,2x,f3.1,2x,f6.3,2x,2(e8.2,2x),1x,2(f4.2,2x),2(f4.1,1x),2x,a4)'
-reader   = _ff.FortranRecordReader(FORTRAN_FORMAT)
-writer   = _ff.FortranRecordWriter(FORTRAN_FORMAT)
+reader = _ff.FortranRecordReader(FORTRAN_FORMAT)
+writer = _ff.FortranRecordWriter(FORTRAN_FORMAT)
 
 # ========================
 
@@ -46,33 +56,20 @@ def read_ascii_file(fpath: str) -> dict:
     return d
 
 
-def write_pwave_ascii_file(fpath: str, data: dict) -> None:
+def write_ascii_file(fpath: str, data: dict) -> None:
     """Write P-wave ASCII file given a filename and a data dictionary. """
 
     # Write data to file
     with open(fpath, 'w') as fp:
         # Write header line
-        fp.write(PWAVE_FILE_HEADER)
+        fp.write(FILE_HEADER)
         # Loop over data
         for n in data.keys():
             line = data[n].as_tuple
             fp.write(writer.write(line)+"\n")
 
 
-def write_swave_ascii_file(fpath: str, data: dict) -> None:
-    """Write S-wave ASCII file given a filename and a data dictionary. """
-
-    # Write data to file
-    with open(fpath, 'w') as fp:
-        # Write header line
-        fp.write(SWAVE_FILE_HEADER)
-        # Loop over data
-        for n in data.keys():
-            line = data[n].as_tuple
-            fp.write(writer.write(line)+"\n")
-
-
-@dataclass
+@_dataclass
 class Entry(_db.NuclideDatabaseEntry):
     """An entry in the resonance spacing database. """
 
@@ -86,3 +83,15 @@ class Entry(_db.NuclideDatabaseEntry):
     Gam   : float      = None # Average radiative width [meV]
     Gerr  : float      = None # Uncertainty of Gam [meV]
     ref   : str        = None # Reference to the work in which the analysis was performed
+
+
+class Database(_db.NuclideDatabase):
+
+    reader: object = read_ascii_file
+    entry : object = Entry
+    writer: object = write_ascii_file
+
+
+def load() -> Database:
+    """Load and return P-wave database. """
+    return _db.load(Database, db_file_path)

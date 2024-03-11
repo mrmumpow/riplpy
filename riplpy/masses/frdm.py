@@ -32,7 +32,7 @@ import fortranformat as _ff
 # RIPLpy
 import riplpy.collections as _c
 import riplpy.db as _db
-from . import _masses
+from . import core as _core
 
 # ========================
 
@@ -108,7 +108,7 @@ class Entry(_db.NuclideDatabaseEntry):
     beta6 : float      = None # Calculated hexacontatetrapole deformation of the nuclear ground-state
 
 
-class Database(_masses.MassDatabase):
+class Database(_core.MassDatabase):
     """The FRDM1995 ground state masses database. """
 
     reader: object = read_ascii_file

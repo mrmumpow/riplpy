@@ -1,14 +1,48 @@
+# -*- coding: utf-8 -*-
+"""Python objects that provide access to the Constant Temperature (CT) level density model. 
 
+Python 3.10+ is expected to run this code properly.
+
+Examples:
+    (1) Load and print the CT level density database::
+       $ import riplpy.densities as dens
+       $ ct = dens.ct.load() # The CT level density database
+       $ print(ct.data)
+    (2) Access a particular entry of the CT level density database using the get method::
+       $ from riplpy.collections import Nuclide
+       $ n = Nuclide(z=17, a=36)
+       $ print(ct.get(n))
+    (3) 
+Authors:
+    * Matthew Mumpower {mumpower@lanl.gov}
+
+"""
+
+# ========================
+
+# OS
+import os as _os
 
 # Dataclasses
-from dataclasses import dataclass
+from dataclasses import dataclass as _dataclass
 
 # Fortran format
 import fortranformat as _ff
 
 # RIPLpy
 import riplpy.collections as _c
-import riplpy.densities as _densities
+
+# Local Namespace
+from . import bsfg as _bsfg
+
+# ========================
+
+__all__ = ('db_file_path', 'FILE_HEADER', 'FORTRAN_FORMAT', 'reader', 'writer', 'read_ascii_file', 'write_ascii_file', 'Entry', 'Database', 'load')
+
+# Current location
+__loc__ = _os.path.dirname(_os.path.realpath(__file__))
+
+db_file_path = _os.path.join(__loc__, "data", "level-densities-ctmeff.dat")
 
 # ========================
 
@@ -59,10 +93,23 @@ def write_ascii_file(fpath: str, data: dict) -> None:
             fp.write(writer.write(line)+"\n")
 
 
-@dataclass
-class Entry(_densities.bsfg.Entry):
+@_dataclass
+class Entry(_bsfg.Entry):
     """An entry in the Constant Temperature (CT) database. """
 
     Ematch: float = None # Energy at which the low and high energy formulae match [MeV]
     E0    : float = None # Energy shift for the low-energy approach [MeV]
     T     : float = None # Temperature for the low-energy approach [MeV]
+
+
+class Database(_bsfg.Database):
+    """The database object for the Constant Temperature (CT) level density model. """
+
+    reader: object = read_ascii_file
+    entry : object = Entry
+    writer: object = write_ascii_file
+
+
+def load() -> Database:
+    """Load the database into memeory and return it. """
+    return _bsfg._db.load(Database, db_file_path)

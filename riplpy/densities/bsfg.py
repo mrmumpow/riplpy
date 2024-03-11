@@ -1,16 +1,35 @@
+# -*- coding: utf-8 -*-
+"""Python objects that provide access to the Back-Shifted Fermi-Gas (BSFG) level density model. 
+   Level density parameters are provided for the BSFG model without explicit treatment of collective effects. 
+   The parameters are obtained by fitting the Fermi-gas model formula both to the RIPL II recommended spacings of s-wave neutron resonances D0 and to the cumulative number of low-lying levels evaluated from the analysis of nuclear levels. 
+   Since the goal is to reproduce as well as possible both the discrete levels and the D0 values, the adopted parameters do not generally provide a perfect fit of D0. 
+   Instead, we obtain a theoretical value Dth. 
+   Therefore, uncertainty aerr is deduced by fitting Dth+Derr or Dth-Derr (See TECHDOC for more explanations). 
 
-"""
-Level density parameters for the BSFG model without explicit treatment of collective effects. 
-The parameters are obtained by fitting the Fermi-gas model formula both to the RIPL II recommended spacings of s-wave neutron resonances D0 and to the cumulative number of low-lying levels evaluated from the analysis of nuclear levels. 
-Since the goal is to reproduce as well as possible both the discrete levels and the D0 values, the adopted parameters do not generally provide a perfect fit of D0. Instead, we obtain a theoretical value Dth. 
-Therefore, uncertainty aerr is deduced by fitting Dth+Derr or Dth-Derr (See TECHDOC for more explanations). 
+Python 3.10+ is expected to run this code properly.
+
+Examples:
+    (1) Load and print the BSFG level density database::
+       $ import riplpy.densities as dens
+       $ bsfg = dens.bsfg.load() # The BSFG level density database
+       $ print(bsfg.data)
+    (2) Access a particular entry of the BSFG level density database using the get method::
+       $ from riplpy.collections import Nuclide
+       $ n = Nuclide(z=50, a=125)
+       $ print(bsfg.get(n))
+    (3) 
+Authors:
+    * Matthew Mumpower {mumpower@lanl.gov}
 
 """
 
 # ========================
 
+# OS
+import os as _os
+
 # Dataclasses
-from dataclasses import dataclass
+from dataclasses import dataclass as _dataclass
 
 # Fortran format
 import fortranformat as _ff
@@ -18,6 +37,18 @@ import fortranformat as _ff
 # RIPLpy
 import riplpy.db as _db
 import riplpy.collections as _c
+
+# ========================
+
+__all__ = ('db_file_path', 'FILE_HEADER', 'FORTRAN_FORMAT', 'reader', 'writer', 'read_ascii_file', 'write_ascii_file', 'Entry', 'Database', 'load')
+
+# ========================
+
+# Current location
+__loc__ = _os.path.dirname(_os.path.realpath(__file__))
+
+# Database file
+db_file_path = _os.path.join(__loc__, "data", "level-densities-bfmeff.dat")
 
 # ========================
 
@@ -69,7 +100,7 @@ def write_ascii_file(fpath: str, data: dict) -> None:
             fp.write(writer.write(line)+"\n")
 
 
-@dataclass
+@_dataclass
 class Entry(_db.NuclideDatabaseEntry):
     """An entry in the Back-Shifted Fermi-Gas (BSFG) database. """
     
@@ -87,3 +118,16 @@ class Entry(_db.NuclideDatabaseEntry):
     ainf   : float      = None # Asymptotic level density parameter [1/MeV]
     aerr   : float      = None # Uncertainty of the asymptotic level density parameter [1/MeV]
     pairing: float      = None # Effective energy shift in MeV
+
+
+class Database(_db.NuclideDatabase):
+    """The database object for the Back-Shifted Fermi-Gas (BSFG) level density model. """
+
+    reader: object = read_ascii_file
+    entry : object = Entry
+    writer: object = write_ascii_file
+
+
+def load() -> Database:
+    """Load the database into memeory and return it. """
+    return _db.load(Database, db_file_path)

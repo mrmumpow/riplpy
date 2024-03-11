@@ -96,6 +96,7 @@ class NucleusBase(object):
 
     @property
     def sym(self, ) -> str:
+        """Return the element symbol as a string. """
         return self.element_symbol
 
     def __eq__(self, other) -> bool:
@@ -264,21 +265,21 @@ class Nuclide(NucleusBase):
             self.Z = Elements.element(nuc['sym'])
             self.N = A - self.Z
         elif 'sym' in nuc.keys() and 'n' in nuc.keys():
-            self.N = int(nuc['N'])
+            self.N = int(nuc['n'])
             self.Z = Elements.element(nuc['sym'])
         elif 'symbol' in nuc.keys() and 'a' in nuc.keys():
             A = int(nuc['a'])
             self.Z = Elements.element(nuc['symbol'])
             self.N = A - self.Z
         elif 'symbol' in nuc.keys() and 'n' in nuc.keys():
-            self.N = int(nuc['N'])
+            self.N = int(nuc['n'])
             self.Z = Elements.element(nuc['symbol'])
         elif 'name' in nuc.keys() and 'a' in nuc.keys():
             A = int(nuc['a'])
             self.Z = Elements.element(nuc['name'])
             self.N = A - self.Z
         elif 'name' in nuc.keys() and 'n' in nuc.keys():
-            self.N = int(nuc['N'])
+            self.N = int(nuc['n'])
             self.Z = Elements.element(nuc['name'])
         else:
             raise Exception("Nucleus is not valid (Z,A) or (Z,N) or (N,A) not given!")

@@ -21,7 +21,7 @@ __all__ = ('frdm1995', 'hfb14', 'natab')
 # ========================
 
 # The entire discrete level database
-discrete_levels = _di.load()
+discrete_levels = _di.load_all()
 
 # The constant temperature fit database
 constant_temperature = _ct.load()

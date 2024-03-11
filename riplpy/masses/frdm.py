@@ -1,6 +1,30 @@
+# -*- coding: utf-8 -*-
+"""Python objects that provide access to the Finite-Range Droplet Model (FRDM). 
+
+Python 3.10+ is expected to run this code properly.
+
+Examples:
+    (1) Load and print the FRDM1995 database::
+       $ import riplpy.masses as masses
+       $ frdm1995 = masses.frdm.load() # The FRDM1995 database
+       $ print(frdm1995.data)
+    (2) Access a particular entry of the mass database using the get method::
+       $ from riplpy.collections import Nuclide
+       $ n = Nuclide(z=82, a=208)
+       $ print(frdm1995.get(n))
+    (3) 
+Authors:
+    * Matthew Mumpower {mumpower@lanl.gov}
+
+"""
+
+# ========================
+
+# OS
+import os as _os
 
 # Dataclasses
-from dataclasses import dataclass
+from dataclasses import dataclass as _dataclass
 
 # Fortran format
 import fortranformat as _ff
@@ -8,6 +32,18 @@ import fortranformat as _ff
 # RIPLpy
 import riplpy.collections as _c
 import riplpy.db as _db
+from . import _masses
+
+# ========================
+
+__all__ = ('db_file_path', 'FILE_HEADER', 'FORTRAN_FORMAT', 'reader', 'writer', 'read_ascii_file', 'write_ascii_file', 'Entry', 'Database', 'load')
+
+# ========================
+
+# Current location
+__loc__ = _os.path.dirname(_os.path.realpath(__file__))
+# Database location
+db_file_path = _os.path.join(__loc__, "data", "mass-frdm95.dat")
 
 # ========================
 
@@ -53,7 +89,7 @@ def write_ascii_file(fpath: str, data: dict) -> None:
             fp.write(writer.write(line)+"\n")
 
 
-@dataclass
+@_dataclass
 class Entry(_db.NuclideDatabaseEntry):
     """An entry in the FRDM1995 mass database. """
 
@@ -70,3 +106,16 @@ class Entry(_db.NuclideDatabaseEntry):
     beta3 : float      = None # Calculated octupole deformation of the nuclear ground-state
     beta4 : float      = None # Calculated hexadecapole deformation of the nuclear ground-state
     beta6 : float      = None # Calculated hexacontatetrapole deformation of the nuclear ground-state
+
+
+class Database(_masses.MassDatabase):
+    """The FRDM1995 ground state masses database. """
+
+    reader: object = read_ascii_file
+    entry : object = Entry
+    writer: object = write_ascii_file
+
+
+def load() -> Database:
+    """Load and return the FRDM1995 database. """
+    return _db.load(Database, db_file_path)

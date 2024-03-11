@@ -1,6 +1,30 @@
+# -*- coding: utf-8 -*-
+"""Python objects that provide access to the natural abundances. 
+
+Python 3.10+ is expected to run this code properly.
+
+Examples:
+    (1) Load and print the natural abundance database::
+       $ import riplpy.masses as masses
+       $ natab = masses.ab.load() # The natural abundances database
+       $ print(natab.data)
+    (2) Access a particular entry of the natural abundances database using the get method::
+       $ from riplpy.collections import Nuclide
+       $ n = Nuclide(z=50, a=120)
+       $ print(natab.get(n))
+    (3) 
+Authors:
+    * Matthew Mumpower {mumpower@lanl.gov}
+
+"""
+
+# ========================
+
+# OS
+import os as _os
 
 # Dataclasses
-from dataclasses import dataclass
+from dataclasses import dataclass as _dataclass
 
 # Fortran format
 import fortranformat as _ff
@@ -8,6 +32,17 @@ import fortranformat as _ff
 # RIPLpy
 import riplpy.collections as _c
 import riplpy.db as _db
+
+# ========================
+
+__all__ = ('db_file_path', 'FILE_HEADER', 'FORTRAN_FORMAT', 'reader', 'writer', 'read_ascii_file', 'write_ascii_file', 'Entry', 'Database', 'load')
+
+# ========================
+
+# Current location
+__loc__ = _os.path.dirname(_os.path.realpath(__file__))
+# Database location
+db_file_path = _os.path.join(__loc__, "data", "abundance.dat")
 
 # ========================
 
@@ -51,10 +86,23 @@ def write_ascii_file(fpath: str, data: dict) -> None:
             fp.write(writer.write(line)+"\n")
 
 
-@dataclass
+@_dataclass
 class Entry(_db.NuclideDatabaseEntry):
     """An entry in the natural abundances database. """
 
     n          : _c.Nuclide = None # Compound nucleus
     abundance  : float      = None # Abundance in %
     uncertainty: float      = None # Uncertainties in abundance in %
+
+
+class Database(_db.NuclideDatabase):
+    """The natural abundances database. """
+
+    reader: object = read_ascii_file
+    entry : object = Entry
+    writer: object = write_ascii_file
+
+
+def load() -> Database:
+    """Load and return the natural abundances database. """
+    return _db.load(Database, db_file_path)

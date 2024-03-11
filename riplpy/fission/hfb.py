@@ -21,6 +21,9 @@ Authors:
 # OS
 import os as _os
 
+# Dataclasses
+from dataclasses import dataclass as _dataclass
+
 # Fortran format
 import fortranformat as _ff
 
@@ -79,7 +82,7 @@ def read_ascii_file(fpath: str) -> dict:
 
             package = {'Bin': Bin, 'hwin': hwin, 'alphain': alphain, 'deltain': deltain,
                        'Bout': Bout, 'hwout': hwout, 'alphaout': alphaout, 'deltaout': deltaout,
-                       'Bout2': Bout2, 'hwout2': hwout2, 'alphaout2': alphaout2, 'deltout2': deltaout2,
+                       'Bout2': Bout2, 'hwout2': hwout2, 'alphaout2': alphaout2, 'deltaout2': deltaout2,
                       }
             d[n] = package
     return d
@@ -98,6 +101,7 @@ def write_ascii_file(fpath: str, data: dict) -> None:
             fp.write(writer.write(line)+"\n")
 
 
+@_dataclass
 class Entry(_db.NuclideDatabaseEntry):
     """An object which represents an entry in the HFB fission barrier database. """
     

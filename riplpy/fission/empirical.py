@@ -21,6 +21,9 @@ Authors:
 # OS
 import os as _os
 
+# Dataclasses
+from dataclasses import dataclass as _dataclass
+
 # Fortran format
 import fortranformat as _ff
 
@@ -93,6 +96,7 @@ def write_ascii_file(fpath: str, data: dict) -> None:
             fp.write(writer.write(line)+"\n")
 
 
+@_dataclass
 class Entry(_db.NuclideDatabaseEntry):
     """An object which represents an entry in the empirical fission barrier database. """
     

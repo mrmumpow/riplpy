@@ -32,7 +32,7 @@ import fortranformat as _ff
 # RIPLpy
 import riplpy.collections as _c
 import riplpy.db as _db
-from . import _masses
+from . import core as _core
 
 # ========================
 
@@ -112,7 +112,7 @@ class Entry(_db.NuclideDatabaseEntry):
     ap    : float      = None # Calculated diffuseness of the proton density distribution [fm]
 
 
-class Database(_masses.MassDatabase):
+class Database(_core.MassDatabase):
 
     reader: object = read_ascii_file
     entry : object = Entry

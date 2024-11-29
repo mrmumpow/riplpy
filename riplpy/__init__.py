@@ -3,6 +3,8 @@
 # Code version 
 __version__ = "0.2.4"
 
+# Importlib
+import importlib as _im
 
 # Local
 from .collections import *
@@ -18,13 +20,24 @@ from . import resonances
 sections = ('densities', 'fission', 'gamma', 'levels', 'masses', 'resonances')
 
 
-def load() -> None:
-    """Load the entire RIPL database. 
+def _parallel_load(section: str) -> None:
+   i = _im.import_module(f"riplpy.{section}")
+   i.load()
 
-       Once this method is called, the databases cannot be unloaded.
-    """
-    for section in sections:
-        eval(f"{section}.load()")
+
+def load(quick: bool = False) -> None:
+   """Load the entire RIPL database. 
+
+      Once this method is called, the databases cannot be unloaded.
+   """
+   if quick:
+      # @TODO: Re-evaluate the usefulness of this feature once database is complete
+      import multiprocessing as _mp
+      _pool = _mp.Pool(min(_mp.cpu_count(), len(sections)))
+      _pool.map(_parallel_load, sections)
+   else:
+      for section in sections:
+         eval(f"{section}.load()")
 
 
 def in_ripl(x: Nuclide | Element) -> bool:
@@ -36,6 +49,13 @@ def in_ripl(x: Nuclide | Element) -> bool:
 
       Output:
          [bool]: True if x in RIPL, False otherwise
+
+      Examples:
+         (1) Check if input is in the RIPL database::
+            $ import riplpy
+            $ riplpy.load()
+            $ n = riplpy.Nuclide(z=50, a=130)
+            $ riplpy.in_ripl(n) # True
    """
    # Loop over each section of RIPL
    for section in sections:
@@ -55,6 +75,13 @@ def in_sections(x: Nuclide | Element) -> list:
 
       Output:
          [list]: A list of section names (as a string) x is in; empty otherwise
+
+      Examples:
+         (1) Return the section names that the input is in::
+            $ import riplpy
+            $ riplpy.load() # This will take some time
+            $ n = riplpy.Nuclide(z=46, a=119)
+            $ riplpy.in_sections(n) # ['densities', 'gamma', 'levels', 'masses']
    """
    
    _sections = []
@@ -69,7 +96,7 @@ def in_sections(x: Nuclide | Element) -> list:
 
 
 def in_dbs(x: Nuclide | Element) -> list:
-   """Check if the given Nuclide (or Element) is in various databases of RIPL. Returns a list of database names where the nucleus can be found.
+   """Check if the given Nuclide (or Element) is in various databases of RIPL. Returns a list of database names where the object can be found.
       This method may only be used once riplpy.load() has been issued.
 
       Input:

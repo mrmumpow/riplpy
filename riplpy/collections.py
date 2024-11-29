@@ -48,9 +48,6 @@ Authors:
 
 # ========================
 
-# Copy
-import copy as _copy
-
 # Collections
 from collections import namedtuple as _namedtuple
 
@@ -76,7 +73,28 @@ NamedNucleusTuple    = _namedtuple('NamedNucleusTuple', 'Z, N, A, name')
 SymNamedNucleusTuple = _namedtuple('SymNamedNucleusTuple', 'Z, N, A, sym, name')
 
 
-class NucleusBase(object):
+class Base(object):
+    """A generic base class for collections. """
+
+    def _subset(self, kwargs: dict) -> tuple:
+        """Return a tuple of two sets: 
+           1. The set of keys in kwargs that are part of the reserved kwargs.
+           2. The set of keys in kwargs that are not part of the reserved kwargs.
+        """
+        reserved_keys = set()
+        other_keys = set()
+    
+        for key in kwargs.keys():
+            k = key.lower()  # Force to lower case to check against reserved dictionary keys
+            if k in self._reserved_kwargs:
+                reserved_keys.add(k)
+            else:
+                other_keys.add(key)
+    
+        return reserved_keys, other_keys
+
+
+class NucleusBase(Base):
     """A base class for Nucleus-like object. 
     
     This class should not be initialized directly. Instead it contains useful methods for extended objects.
@@ -120,7 +138,7 @@ class NucleusBase(object):
         return f"<{self.__class__.__name__}(z={self.Z}, n={self.N})>"
 
 
-class Element(object):
+class Element(Base):
     """A class representing a single element. """
 
     _reserved_kwargs: tuple = ('z', 'symbol', 'sym', 'name')
@@ -128,42 +146,52 @@ class Element(object):
     def __init__(self, **kwargs) -> None:
         """Initialize the object. """
 
-        # Check if treated as a placeholder
-        if len(kwargs) == 0:
+        # If no kwargs are provided, return immediately (placeholder behavior)
+        if not kwargs:
             return
 
-        # Create a reduced subset of the initialized kwargs dict
-        # These two dictionary should be mutually exlusive
-        nuc, kw = self._subset(kwargs)
+        # Partition the keys into reserved and other keys
+        reserved_keys, other_keys = self._subset(kwargs)
 
-        # Initialize by possible keyword arguments
-        if 'z' in nuc.keys():
-            self.Z      = int(nuc['z'])
-        elif 'sym' in nuc.keys():
-            self.Z = Elements.element(nuc['sym'])
-        elif 'symbol' in nuc.keys():
-            self.Z = Elements.element(nuc['symbol'])
-        elif 'name' in nuc.keys():
-            self.Z = Elements.element(nuc['name'])
+        # Map of lowercase reserved keys to their original case-sensitive counterparts
+        reserved_map = {k.lower(): k for k in kwargs.keys() if k.lower() in reserved_keys}
+
+        # Retrieve reserved parameters
+        z = int(kwargs.get(reserved_map.get('z'), 0))
+        sym = kwargs.get(reserved_map.get('sym'))
+        symbol = kwargs.get(reserved_map.get('symbol'))
+        name = kwargs.get(reserved_map.get('name'))
+
+        # Determine Z based on provided input
+        if z:
+            self.Z = z
+        elif sym:
+            self.Z = Elements.element(sym)
+        elif symbol:
+            self.Z = Elements.element(symbol)
+        elif name:
+            self.Z = Elements.element(name)
         else:
-            raise Exception("Element is not valid!")
-        self.symbol = Elements.symbol(self.Z)
-        self.sym    = self.symbol
-        self.name   = Elements.name(self.Z)
+            raise Exception("Element is not valid: requires 'z', 'sym', 'symbol', or 'name'.")
 
-        # Set provided auxiliary attributes
-        for k,v in kw.items():
-            setattr(self, k, v)
+        # Set any additional attributes from remaining kwargs
+        for k in other_keys:
+            setattr(self, k, kwargs[k])
 
-    def _subset(self, kwargs: dict) -> tuple:
-        """Return a tuple of the reduced subset of the provided kwargs dict and the rest. """
-        ret = {} # The subset of reserved kwargs
-        kw  = _copy.deepcopy(kwargs)
-        for key in kwargs.keys():
-            k = key.lower() # Force to lower case to check against reserved dictionary keys
-            if k in self._reserved_kwargs:
-                ret[k] = kw.pop(key)
-        return ret, kw
+    @property
+    def symbol(self, ) -> str:
+        """Return the element symbol. """
+        return Elements.symbol(self.Z)
+    
+    @property
+    def sym(self, ) -> str:
+        """Return the element symbol. """
+        return self.symbol
+
+    @property
+    def name(self, ) -> str:
+        """Return the element name. """
+        return Elements.name(self.Z)
 
     def __lt__(self, other: object) -> bool:
         """Return true if self is strictly smaller than the given (other) object. """
@@ -265,54 +293,61 @@ class Nuclide(NucleusBase):
     def __init__(self, **kwargs) -> None:
         """Initialize the object. """
 
-        # Check if treated as a placeholder
-        if len(kwargs) == 0:
+        # If no kwargs are provided, return immediately (placeholder behavior)
+        if not kwargs:
             return
-        
-        # Create a reduced subset of the initialized kwargs dict
-        # These two dictionary should be mutually exlusive
-        nuc, kw = self._subset(kwargs)
 
-        # Initialize by possible keyword arguments
-        if 'z' in nuc.keys() and 'a' in nuc.keys():
-            self.Z = int(nuc['z'])
-            self.N = int(nuc['a']) - int(self.Z)
-        elif 'z' in nuc.keys() and 'n' in nuc.keys():
-            self.Z = int(nuc['z'])
-            self.N = int(nuc['n'])
-        elif 'n' in nuc.keys() and 'a' in nuc.keys():
-            self.N = int(nuc['n'])
-            self.Z = int(nuc['a']) - int(self.N)
-        elif 'sym' in nuc.keys() and 'a' in nuc.keys():
-            A = int(nuc['a'])
-            self.Z = Elements.element(nuc['sym'])
-            self.N = A - self.Z
-        elif 'sym' in nuc.keys() and 'n' in nuc.keys():
-            self.N = int(nuc['n'])
-            self.Z = Elements.element(nuc['sym'])
-        elif 'symbol' in nuc.keys() and 'a' in nuc.keys():
-            A = int(nuc['a'])
-            self.Z = Elements.element(nuc['symbol'])
-            self.N = A - self.Z
-        elif 'symbol' in nuc.keys() and 'n' in nuc.keys():
-            self.N = int(nuc['n'])
-            self.Z = Elements.element(nuc['symbol'])
-        elif 'name' in nuc.keys() and 'a' in nuc.keys():
-            A = int(nuc['a'])
-            self.Z = Elements.element(nuc['name'])
-            self.N = A - self.Z
-        elif 'name' in nuc.keys() and 'n' in nuc.keys():
-            self.N = int(nuc['n'])
-            self.Z = Elements.element(nuc['name'])
+        # Partition the keys into reserved and other keys
+        reserved_keys, other_keys = self._subset(kwargs)
+
+        # Map of lowercase reserved keys to their original case-sensitive counterparts
+        reserved_map = {k.lower(): k for k in kwargs.keys() if k.lower() in reserved_keys}
+
+        # Retrieve reserved parameters, default to None if not present
+        z = int(kwargs.get(reserved_map.get('z'), 0))
+        n = int(kwargs.get(reserved_map.get('n'), 0))
+        a = int(kwargs.get(reserved_map.get('a'), 0))
+        symbol = kwargs.get(reserved_map.get('symbol'))
+        sym    = kwargs.get(reserved_map.get('sym'))
+        name   = kwargs.get(reserved_map.get('name'))
+
+        # Calculate Z and N based on input combinations
+        if z and a:
+            self.Z = z
+            self.N = a - z
+        elif z and n:
+            self.Z = z
+            self.N = n
+        elif n and a:
+            self.N = n
+            self.Z = a - n
+        elif sym and a:
+            self.Z = Elements.element(sym)
+            self.N = a - self.Z
+        elif sym and n:
+            self.Z = Elements.element(sym)
+            self.N = n
+        elif symbol and a:
+            self.Z = Elements.element(symbol)
+            self.N = a - self.Z
+        elif symbol and n:
+            self.Z = Elements.element(symbol)
+            self.N = n
+        elif name and a:
+            self.Z = Elements.element(name)
+            self.N = a - self.Z
+        elif name and n:
+            self.Z = Elements.element(name)
+            self.N = n
         else:
-            raise Exception("Nucleus is not valid (Z,A) or (Z,N) or (N,A) not given!")
+            raise Exception("Nucleus is not valid: requires (Z, A), (Z, N), or (N, A).")
 
         # Sanity check on nucleus
-        assert self.Z + self.N == self.A
+        assert self.Z + self.N == self.A, "Sanity check failed: Z + N != A."
 
-        # Set provided auxiliary attributes
-        for k,v in kw.items():
-            setattr(self, k, v)
+        # Set any additional attributes from remaining kwargs
+        for k in other_keys:
+            setattr(self, k, kwargs[k])
 
     @property
     def A(self, ) -> int:
@@ -343,14 +378,21 @@ class Nuclide(NucleusBase):
             return cls(Z=Z, N=N)
 
     def _subset(self, kwargs: dict) -> tuple:
-        """Return a tuple of the reduced subset of the provided kwargs dict and the rest. """
-        ret = {} # The subset of reserved kwargs
-        kw  = _copy.deepcopy(kwargs)
+        """Return a tuple of two sets: 
+           1. The set of keys in kwargs that are part of the reserved kwargs.
+           2. The set of keys in kwargs that are not part of the reserved kwargs.
+        """
+        reserved_keys = set()
+        other_keys = set()
+    
         for key in kwargs.keys():
-            k = key.lower() # Force to lower case to check against reserved dictionary keys
+            k = key.lower()  # Force to lower case to check against reserved dictionary keys
             if k in self._reserved_kwargs:
-                ret[k] = kw.pop(key)
-        return ret, kw
+                reserved_keys.add(k)
+            else:
+                other_keys.add(key)
+    
+        return reserved_keys, other_keys
 
     def __lt__(self, other: object) -> bool:
         """Return true if self is strictly smaller than the given (other) object. """

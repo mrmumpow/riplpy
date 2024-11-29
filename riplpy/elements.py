@@ -326,7 +326,7 @@ NametoZ = dict(map(reversed, ZtoName.items()))
 
 def isotope_str_to_tuple(istr: str) -> tuple:
     """Convert an isotope string to a tuple of (Z,N,A); assumes the first two entries are A followed by symbol. """
-    res = re.findall('(\d+|[A-Za-z]+)', istr)
+    res = re.findall(r'(\d+|[A-Za-z]+)', istr)
     Z   = SymtoZ[res[1]]
     A   = int(res[0])
     return (Z, A-Z, A)

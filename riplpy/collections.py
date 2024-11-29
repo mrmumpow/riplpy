@@ -328,7 +328,7 @@ class Nuclide(NucleusBase):
         else:
             # Assume of the form '###El'
             lst = []
-            for i in _re.split('(\d+)', val):
+            for i in _re.split(r'(\d+)', val):
                 i = i.strip()
                 if len(i) > 0:
                     lst.append(i)

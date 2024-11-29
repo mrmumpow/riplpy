@@ -288,21 +288,21 @@ class Nuclide(NucleusBase):
             self.Z = Elements.element(nuc['sym'])
             self.N = A - self.Z
         elif 'sym' in nuc.keys() and 'n' in nuc.keys():
-            self.N = int(nuc['N'])
+            self.N = int(nuc['n'])
             self.Z = Elements.element(nuc['sym'])
         elif 'symbol' in nuc.keys() and 'a' in nuc.keys():
             A = int(nuc['a'])
             self.Z = Elements.element(nuc['symbol'])
             self.N = A - self.Z
         elif 'symbol' in nuc.keys() and 'n' in nuc.keys():
-            self.N = int(nuc['N'])
+            self.N = int(nuc['n'])
             self.Z = Elements.element(nuc['symbol'])
         elif 'name' in nuc.keys() and 'a' in nuc.keys():
             A = int(nuc['a'])
             self.Z = Elements.element(nuc['name'])
             self.N = A - self.Z
         elif 'name' in nuc.keys() and 'n' in nuc.keys():
-            self.N = int(nuc['N'])
+            self.N = int(nuc['n'])
             self.Z = Elements.element(nuc['name'])
         else:
             raise Exception("Nucleus is not valid (Z,A) or (Z,N) or (N,A) not given!")
@@ -409,8 +409,3 @@ class IsomericNucleus(Nucleus, NucleusBase):
     def __repr__(self, ) -> str:
         """Return a string representation of the object which can be used to initialize. """
         return f"IsomericNucleus(z={self.Z}, n={self.N}, m={self.m})"
-
-
-# class IsomericNuclide(Nuclide, metaclass=NucleusMeta):
-#     """A Nuclide-like object which handles the special case of isomeric states. """
-#     pass

@@ -41,7 +41,7 @@ def load(quick: bool = False) -> None:
 
 
 def in_ripl(x: Nuclide | Element) -> bool:
-   """Check if the given Nuclide (or Element) is in the RIPL database. Returns True if so, False otherwise. 
+   """Check if the given Nuclide (or Element) appears anywhere in the RIPL database. Returns True if so, False otherwise. 
       This method may only be used once riplpy.load() has been issued.
 
       Input:

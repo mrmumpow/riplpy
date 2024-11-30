@@ -414,6 +414,7 @@ class Nuclide(NucleusBase):
         """Return a string representation of the object which can be used to initialize. """
         return f"Nuclide(z={self.Z}, a={self.A})"
 
+
 @_dataclass
 class IsomericNucleus(Nucleus, NucleusBase):
     """An object representing a nucleus that also contains information about an isomeric state.

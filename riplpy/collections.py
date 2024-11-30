@@ -304,39 +304,44 @@ class Nuclide(NucleusBase):
         reserved_map = {k.lower(): k for k in kwargs.keys() if k.lower() in reserved_keys}
 
         # Retrieve reserved parameters, default to None if not present
-        z = int(kwargs.get(reserved_map.get('z'), 0))
-        n = int(kwargs.get(reserved_map.get('n'), 0))
-        a = int(kwargs.get(reserved_map.get('a'), 0))
+        z = kwargs.get(reserved_map.get('z'))
+        n = kwargs.get(reserved_map.get('n'))
+        a = kwargs.get(reserved_map.get('a'))
         symbol = kwargs.get(reserved_map.get('symbol'))
-        sym    = kwargs.get(reserved_map.get('sym'))
-        name   = kwargs.get(reserved_map.get('name'))
+        sym = kwargs.get(reserved_map.get('sym'))
+        name = kwargs.get(reserved_map.get('name'))
+
+        # Convert Z, N, A to integers if they are not None
+        z = int(z) if z is not None else None
+        n = int(n) if n is not None else None
+        a = int(a) if a is not None else None
 
         # Calculate Z and N based on input combinations
-        if z and a:
+        if z is not None and a is not None:
             self.Z = z
             self.N = a - z
-        elif z and n:
+        elif z is not None and n is not None:
             self.Z = z
             self.N = n
-        elif n and a:
+        elif n is not None and a is not None:
             self.N = n
             self.Z = a - n
-        elif sym and a:
+        elif sym is not None and a is not None:
             self.Z = Elements.element(sym)
             self.N = a - self.Z
-        elif sym and n:
+        elif sym is not None and n is not None:
             self.Z = Elements.element(sym)
             self.N = n
-        elif symbol and a:
+        elif symbol is not None and a is not None:
             self.Z = Elements.element(symbol)
             self.N = a - self.Z
-        elif symbol and n:
+        elif symbol is not None and n is not None:
             self.Z = Elements.element(symbol)
             self.N = n
-        elif name and a:
+        elif name is not None and a is not None:
             self.Z = Elements.element(name)
             self.N = a - self.Z
-        elif name and n:
+        elif name is not None and n is not None:
             self.Z = Elements.element(name)
             self.N = n
         else:

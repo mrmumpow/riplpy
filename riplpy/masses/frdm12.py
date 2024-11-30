@@ -4,14 +4,14 @@
 Python 3.10+ is expected to run this code properly.
 
 Examples:
-    (1) Load and print the FRDM1995 database::
+    (1) Load and print the FRDM2012 database::
        $ import riplpy.masses as masses
-       $ frdm1995 = masses.frdm.load() # The FRDM1995 database
-       $ print(frdm1995.data)
+       $ frdm2012 = masses.frdm12.load() # The FRDM2012 database
+       $ print(frdm2012.data)
     (2) Access a particular entry of the mass database using the get method::
        $ from riplpy.collections import Nuclide
        $ n = Nuclide(z=82, a=208)
-       $ print(frdm1995.get(n))
+       $ print(frdm2012.get(n))
     (3) 
 Authors:
     * Matthew Mumpower {mumpower@lanl.gov}
@@ -91,7 +91,7 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An entry in the FRDM1995 mass database. """
+    """An entry in the FRDM2012 mass database. """
 
     n     : _c.Nuclide = None # Compound nucleus
     flag  : int        = None # flag corresponding to:
@@ -107,9 +107,13 @@ class Entry(_db.NuclideDatabaseEntry):
     beta4 : float      = None # Calculated hexadecapole deformation of the nuclear ground-state
     beta6 : float      = None # Calculated hexacontatetrapole deformation of the nuclear ground-state
 
+    @classmethod
+    def from_dict(cls, data: dict) -> "Entry":
+        """Create an entry from a dictionary."""
+        return cls(**data)
 
 class Database(_core.MassDatabase):
-    """The FRDM1995 ground state masses database. """
+    """The FRDM2012 ground state masses database. """
 
     reader: object = read_ascii_file
     entry : object = Entry
@@ -117,5 +121,5 @@ class Database(_core.MassDatabase):
 
 
 def load() -> Database:
-    """Load and return the FRDM1995 database. """
+    """Load and return the FRDM2012 database. """
     return _db.load(Database, db_file_path)

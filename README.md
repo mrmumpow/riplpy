@@ -109,3 +109,13 @@ import riplpy
 riplpy.fission.hfb.load()      # Load the database
 print(riplpy.fission.hfb.data) # Print all entries the database
 ```
+
+* Example: Access the empirical barrier database in the fission section of RIPL:
+
+```python
+import riplpy
+
+riplpy.fission.empirical.load()      # Load the database
+print(riplpy.fission.empirical.data) # Print all entries the database
+```
+

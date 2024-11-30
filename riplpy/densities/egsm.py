@@ -52,7 +52,7 @@ db_file_path = _os.path.join(__loc__, "data", "level-densities-egsm.dat")
 # ========================
 
 FILE_HEADER = "#           Level density parameters for the EGSM model\n#  Z  A  Sym Io   Bn       Do            dDo           Esh          +da      a       -da   \n#                [MeV]    [keV]         [keV]         [MeV]         [1/MeV] [1/MeV] [1/MeV]\n#-----------------------------------------------------------------------------------------------------"
-FORTRAN_FORMAT = '(2(i3,1x),a2,2x,f3.1,1x,f6.3,3(1x,e13.5),3(f8.4))'
+FORTRAN_FORMAT = '(1x,2(i3,1x),a2,2x,f3.1,1x,f6.3,3(1x,e13.5),3(f8.4))'
 reader = _ff.FortranRecordReader(FORTRAN_FORMAT)
 writer = _ff.FortranRecordWriter(FORTRAN_FORMAT)
 

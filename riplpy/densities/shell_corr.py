@@ -32,15 +32,14 @@ FILE_MS_HEADER = "#     Myers-Swiatecki shell corrections \n#  Z   A El     Shel
 FILE_MK_HEADER = ""
 FORTRAN_READ_MS_FORMAT  = '(2i4,1x,a2,2(1x,f8.3),2(f6.3))'
 FORTRAN_WRITE_MS_FORMAT = '(2i4,1x,a2,2(1x,f8.3),2(1x,f6.3))'
-FORTRAN_READ_MK_FORMAT  = '(2i4,1f8.3)'
-FORTRAN_WRITE_MK_FORMAT = '(2i4,1f8.3)'
+FORTRAN_READ_MK_FORMAT  = '(9x,i3,9x,i3,1x,1f8.3)'
+FORTRAN_WRITE_MK_FORMAT = '(9x,i3,9x,i3,1x,1f8.3)'
 reader_ms = _ff.FortranRecordReader(FORTRAN_READ_MS_FORMAT)
 writer_ms = _ff.FortranRecordWriter(FORTRAN_WRITE_MS_FORMAT)
 reader_mk = _ff.FortranRecordReader(FORTRAN_READ_MK_FORMAT)
 writer_mk = _ff.FortranRecordWriter(FORTRAN_WRITE_MK_FORMAT)
 
 # ========================
-
 
 def read_mk_ascii_file(fpath: str) -> dict:
     """Read Mengonina-Kajima shell correction data from an ASCII formatted file and return as a dictionary. """
@@ -54,9 +53,6 @@ def read_mk_ascii_file(fpath: str) -> dict:
             # Skip the header line(s)
             if "#" in line[0]:
                 continue
-            # data    = line.split()
-            # Z       = int(data[0])
-            # A       = int(data[1])
             data  = reader_mk.read(line)
             Z       = data[0]
             A       = data[1]

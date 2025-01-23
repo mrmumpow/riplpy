@@ -1,17 +1,17 @@
 
 # Local
+from riplpy.db import _DbAccessor
 from . import bsfg as bsfg
 from . import ct as ct
 from . import egsm as egsm
 from . import egsm_norm as egsm_norm
 from . import shell_corr as shell_corr
 
+# ========================
 
-class _Db:
-   """Database accessor. """
-   pass
-db = _Db()
+db = _DbAccessor()
 
+# ========================
 
 def load(directory: str) -> None:
     """Load the entire database of the Densities section of RIPL from a specified directory. 

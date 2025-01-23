@@ -37,7 +37,7 @@ from . import bsfg as _bsfg
 
 # ========================
 
-__all__ = ('db_file_path', 'FILE_HEADER', 'FORTRAN_FORMAT', 'reader', 'writer', 'read_ascii_file', 'write_ascii_file', 'Entry', 'Database', 'load')
+__all__ = ('local_file_path', 'FILE_HEADER', 'FORTRAN_FORMAT', 'reader', 'writer', 'read_ascii_file', 'write_ascii_file', 'Entry', 'Database', 'load')
 
 # Relative path to database file
 local_file_path = _os.path.join("densities", "level-densities-ctmeff.dat")

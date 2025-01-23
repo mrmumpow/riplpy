@@ -8,8 +8,12 @@ Usage:
 
         # At this point dens.db is not defined!
 
+        # Define the directory where the RIPL data resides
+        # Note that this directory is assumed to contain a standard structure based on RIPL sections
+        directory = "<path-to-your-directory>"
+
         # Load all of the databases
-        dens.load()
+        dens.load(directory=directory)
 
         # Print the ESGM database
         print(dens.db.egsm.data)

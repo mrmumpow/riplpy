@@ -40,15 +40,12 @@ import riplpy.collections as _c
 
 # ========================
 
-__all__ = ('db_file_path', 'FILE_HEADER', 'FORTRAN_FORMAT', 'reader', 'writer', 'read_ascii_file', 'write_ascii_file', 'Entry', 'Database', 'load')
+__all__ = ('local_file_path', 'FILE_HEADER', 'FORTRAN_FORMAT', 'reader', 'writer', 'read_ascii_file', 'write_ascii_file', 'Entry', 'Database', 'load')
 
 # ========================
 
-# Current location
-__loc__ = _os.path.dirname(_os.path.realpath(__file__))
-
-# Database file
-db_file_path = _os.path.join(__loc__, "data", "level-densities-bfmeff.dat")
+# Relative path to database file
+local_file_path = _os.path.join("densities", "level-densities-bfmeff.dat")
 
 # ========================
 
@@ -128,6 +125,10 @@ class Database(_db.NuclideDatabase):
     writer: object = write_ascii_file
 
 
-def load() -> Database:
+def load(directory: str = None, file_path: str = None) -> Database:
     """Load the database into memeory and return it. """
-    return _db.load(Database, db_file_path)
+    if file_path is not None:
+        return _db.load(Database, file_path)
+    elif directory is not None:
+        file_path = _os.path.join(directory, local_file_path)
+        return _db.load(Database, file_path)

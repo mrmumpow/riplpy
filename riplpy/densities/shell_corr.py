@@ -20,11 +20,9 @@ __all__ = ('db_ms_file_path', 'db_mk_file_path', 'FILE_MS_HEADER', 'FORTRAN_READ
 
 # ========================
 
-# Current location
-__loc__ = _os.path.dirname(_os.path.realpath(__file__))
-
-db_ms_file_path = _os.path.join(__loc__, "data", "shellcor-ms.dat")
-db_mk_file_path = _os.path.join(__loc__, "data", "shellmengoninakajima.dat")
+# Relative path to database files
+db_ms_file_path = _os.path.join("densities", "shellcor-ms.dat")
+db_mk_file_path = _os.path.join("densities", "shellmengoninakajima.dat")
 
 # ========================
 
@@ -141,11 +139,19 @@ class MK_Database(_db.NuclideDatabase):
     writer: object = write_mk_ascii_file
 
 
-def load_ms() -> MS_Database:
+def load_ms(directory: str = None, file_path: str = None) -> MS_Database:
     """Load the database into memeory and return it. """
-    return _db.load(MS_Database, db_ms_file_path)
+    if file_path is not None:
+        return _db.load(MS_Database, file_path)
+    elif directory is not None:
+        file_path = _os.path.join(directory, db_ms_file_path)
+        return _db.load(MS_Database, file_path)
 
 
-def load_mk() -> MK_Database:
+def load_mk(directory: str = None, file_path: str = None) -> MK_Database:
     """Load the database into memeory and return it. """
-    return _db.load(MK_Database, db_mk_file_path)
+    if file_path is not None:
+        return _db.load(MK_Database, file_path)
+    elif directory is not None:
+        file_path = _os.path.join(directory, db_mk_file_path)
+        return _db.load(MK_Database, file_path)

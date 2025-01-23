@@ -17,7 +17,7 @@ from . import resonances
 
 
 # Supported RIPL sections
-sections = ('densities', 'fission', 'gamma', 'levels', 'masses', 'resonances')
+sections = ('densities', )# 'fission', 'gamma', 'levels', 'masses', 'resonances')
 
 
 def _parallel_load(section: str) -> None:
@@ -25,8 +25,8 @@ def _parallel_load(section: str) -> None:
    i.load()
 
 
-def load(quick: bool = False) -> None:
-   """Load the entire RIPL database. 
+def load(directory: str, quick: bool = False) -> None:
+   """Load the entire RIPL database from a specified directory on the local machine. 
 
       Once this method is called, the databases cannot be unloaded.
    """
@@ -37,7 +37,7 @@ def load(quick: bool = False) -> None:
       _pool.map(_parallel_load, sections)
    else:
       for section in sections:
-         eval(f"{section}.load()")
+         eval(f"{section}.load(directory='{directory}')")
 
 
 def in_ripl(x: Nuclide | Element) -> bool:
@@ -80,7 +80,7 @@ def in_sections(x: Nuclide | Element) -> list:
          (1) Return the section names that the input is in::
             $ import riplpy
             $ riplpy.load() # This will take some time
-            $ n = riplpy.Nuclide(z=46, a=119)
+            $ n = riplpy.Nuclide(Z=46, a=119)
             $ riplpy.in_sections(n) # ['densities', 'gamma', 'levels', 'masses']
    """
    

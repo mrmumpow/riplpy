@@ -1,10 +1,14 @@
 
 # Local
+from riplpy.db import _DbAccessor
 from .core import *
-from . import empirical
+from . import empirical as emp
 from . import hfb
 
+# ========================
+
 _ripl_versions_ = ('3', )
+
 
 saddle_shorthand = {'S' : 'symmetric',
                     'GA': 'axially asymmetric (triaxial)',
@@ -12,11 +16,18 @@ saddle_shorthand = {'S' : 'symmetric',
                     '  ': '',
                    }
 
+db = _DbAccessor()
+
 # ========================
 
-def load() -> None:
-    """Load the entire database of the Gamma section of RIPL. 
+def load(directory: str) -> None:
+    """Load the entire database of the Fission section of RIPL from a specified directory. 
 
        Once this method is called, the databases cannot be unloaded.
     """
-    from .db import __all__
+
+    # The experimental fission barrier database
+    db.empirical_barriers = emp.load(directory=directory)
+
+    # The theoretical HFB fission barrier database
+    db.hfb_barriers = hfb.load(directory=directory)

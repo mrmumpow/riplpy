@@ -16,7 +16,7 @@ from dataclasses import fields as _fields
 # ========================
 
 @_dataclass
-class DatabaseEntry(object):
+class DatabaseEntry:
     """A generic database entry. This class is expected to be extended. """
 
     @property
@@ -51,7 +51,7 @@ class NuclideDatabaseEntry(DatabaseEntry):
         return tuple(lst)
 
 
-class Database(object):
+class Database:
     """A generic representation of a RIPL database that accesses information from a single ASCII file. 
     
        More complicated databases may have multiple reader and writer methods.
@@ -165,8 +165,13 @@ class ElementDatabase(Database):
             raise Exception("Entry object must have an element number!")
 
 
-def load(dbobj: object, db_file_path: str) -> object:
+class _DbAccessor:
+   """A pass through object which enables Database access. """
+   pass
+
+
+def load(db_obj: object, db_file_path: str) -> object:
     """Load the database into memeory and return it. """
-    db = dbobj()
+    db = db_obj()
     db.load(db_file_path)
     return db

@@ -32,14 +32,12 @@ from . import core as _core
 
 # ========================
 
-__all__ = ('db_file_path', 'FILE_HEADER', 'FORTRAN_FORMAT', 'reader', 'writer', 'read_ascii_file', 'write_ascii_file', 'Entry', 'Database', 'load')
+__all__ = ('local_data_dir', 'FILE_HEADER', 'FORTRAN_FORMAT', 'reader', 'writer', 'read_ascii_file', 'write_ascii_file', 'Entry', 'Database', 'load')
 
 # ========================
 
-# Current location
-__loc__  = _os.path.dirname(_os.path.realpath(__file__))
-# Database location
-data_dir = _os.path.join(__loc__, "data")
+# Relative path to database folder
+local_data_dir = "gamma"
 
 # ========================
 
@@ -110,10 +108,10 @@ class Database(_db.Database):
         for entry in _data.keys():
             self.data[entry] = _data[entry]
 
-    def load_all(self, ) -> None:
+    def load_all(self, directory: str) -> None:
         """Load the entire gamma-ray strength function (GSF) database. """
         # Loop over the element numbers
-        db_loc = _os.path.join(data_dir, 'gsf')
+        db_loc = _os.path.join(directory, local_data_dir, 'gsf')
         for fn in _os.listdir(db_loc):
             fpath = _os.path.join(db_loc, fn)
             self.load(fpath)
@@ -130,14 +128,15 @@ class Database(_db.Database):
             self.save(fpath, entry)
 
 
-def load_all() -> Database:
+def load_all(directory: str) -> Database:
     """Load and return the GSF database. """
     d = Database()
-    d.load_all()
+    d.load_all(directory)
     return d
 
-def load_nucleus(n: _c.Nuclide) -> Database:
+
+def load_nucleus(directory: str, n: _c.Nuclide) -> Database:
     d = Database()
-    fpath = _os.path.join(data_dir, 'gsf', f'gsf_Z{n.Z:03d}A{n.A:03d}.dat')
+    fpath = _os.path.join(directory, local_data_dir, 'gsf', f'gsf_Z{n.Z:03d}A{n.A:03d}.dat')
     d.load(fpath)
     return d

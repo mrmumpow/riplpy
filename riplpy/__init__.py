@@ -17,7 +17,7 @@ from . import resonances
 
 
 # Supported RIPL sections
-sections = ('densities', 'fission')#, 'gamma', 'levels', 'masses', 'resonances')
+sections = ('densities', 'fission', 'gamma')#, 'levels', 'masses', 'resonances')
 
 
 def _parallel_load(section: str) -> None:

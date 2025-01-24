@@ -169,14 +169,21 @@ class Theory_GDR_ParameterMarshaller(object):
 class Experimental_GDR_Parameter(Base_GDR_Parameter):
     """A representation of an experimental GDR parameter. """
 
-    CS1      : float = None # Peak cross section of the first peak [mb]
-    CS1_error: float = None # Standard deviation of the first peak cross section [mb]
-    E1_error : float = None # Standard deviation of the first peak energy [MeV]
-    W1_error : float = None # Full width half maximum of the first peak width [MeV]
-    CS2      : float = None # Peak cross section of the second peak [mb]
-    CS2_error: float = None # Standard deviation of the second peak cross section [mb]
-    E2_error : float = None # Standard deviation of the second peak energy [MeV]
-    W2_error : float = None # Full width half maximum of the second peak width [MeV]
+    Er1      : float = None # Energy of the first component of the GDR, MeV (the first line of the entry);
+    dEr1     : float = None # Uncertainty (one-sigma standard deviation, MeV) of the energy in the nearest upper line (the second line of the entry);
+    Wr1      : float = None # Width of the first component of the GDR, MeV (the first line of the entry);
+    dWr1     : float = None # Uncertainty (one-sigma standard deviation, MeV) of the width in the nearest upper line (the second line of the entry);
+    Sr1      : float = None # Strength of the first component of the GDR in units of the Thomas-Reiche-Kuhn (TRK) sum rule CS_TRK (the first line of the entry); the GDR strength Sr1 is related to the peak value CSr1 of the first cross-section component CSr1=2*CS_TRK*Sr1/Wr1/PI, CS_TRK= 60 NZ/A = 15 A (1-I^2)[mb], I=(N-Z)/A; (the values of CS_TRK for Zr-90 and Pb-208 are used for  Zr-0 and Pb-0);
+    dSr1     : float = None # Uncertainty (one-sigma standard deviation) of the strength in the nearest upper line (the second line of the entry);
+    Er2      : float = None # Energy of the second component of the GDR, MeV (the first line of the entry);
+    dEr2     : float = None # Uncertainty (one-sigma standard deviation, MeV) of the energy in the nearest upper line (the second line of the entry);
+    Wr2      : float = None # Width of the second component of the GDR, MeV (the first line of the entry);
+    dWr2     : float = None # Uncertainty (one-sigma standard deviation, MeV) of the width in the nearest upper line (the second line of the entry);
+    Sr2      : float = None # Strength of the second component of the GDR in units of the TRK sum rule (the first line of the entry); the GDR strength Sr2 is related to the peak value CSr2 of the second cross-section component CSr2=2*CS_TRK*Sr2/Wr2/PI; (the values of CS_TRK for Zr-90 and Pb-208 are used for  Zr-0 and Pb-0);
+    dSr2     : float = None # Uncertainty (one-sigma standard deviation) of the strength in the nearest upper line (the second line of the entry);
+    Sr       : float = None # Sum Sr=Sr1+Sr2 of strengths of the first and second component of the GDR in units of the TRK sum rule(the first line of the entry); Sr*CS_TRK is total integrated photoabsorpttion cross-section CS__int;
+    dSr      : float = None # Uncertainty (one-sigma standard deviation) of the total strength in the nearest upper line (the second line of the entry);
+    Id       : str   = None # Id providing more information
     Emin     : float = None # Lower energy limit of fitting interval [MeV]
     Emax     : float = None # Upper energy limit of fitting interval [MeV]
     reac     : int   = None # ?

@@ -1,6 +1,8 @@
 
-# Local
+# RIPLpy
 from riplpy.db import _DbAccessor
+
+# Local
 from .core import *
 from . import empirical as emp
 from . import hfb

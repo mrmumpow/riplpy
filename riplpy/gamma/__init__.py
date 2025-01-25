@@ -21,7 +21,7 @@ def load(directory: str) -> None:
     """
 
     # The theoretical GDR parameter database
-    db.theory_gdr = gdr.load(directory=directory)
+    db.theory_gdr = gdr.load(directory)
 
     # The experimental SLO parameter database
     db.experiment_slo = exp.load_slo(directory)

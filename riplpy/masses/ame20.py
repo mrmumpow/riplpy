@@ -36,14 +36,12 @@ from . import core as _core
 
 # ========================
 
-__all__ = ('db_file_path', 'FILE_HEADER', 'FORTRAN_FORMAT', 'reader', 'writer', 'read_ascii_file', 'write_ascii_file', 'Entry', 'Database', 'load')
+__all__ = ('local_file_path', 'FILE_HEADER', 'FORTRAN_FORMAT', 'reader', 'writer', 'read_ascii_file', 'write_ascii_file', 'Entry', 'Database', 'load')
 
 # ========================
 
-# Current location
-__loc__ = _os.path.dirname(_os.path.realpath(__file__))
-# Database location
-db_file_path = _os.path.join(__loc__, "data", "mass-ame20.dat")
+# Relative path to database file
+local_file_path = _os.path.join("masses", "mass-ame20.dat")
 
 # ========================
 
@@ -118,8 +116,6 @@ class Entry:
         )
 
 
-
-
 class Database(_core.MassDatabase):
     """The AME2020 ground state masses database. """
 
@@ -128,6 +124,10 @@ class Database(_core.MassDatabase):
     writer: object = write_ascii_file
 
 
-def load() -> Database:
-    """Load and return the AME2020 database. """
-    return _db.load(Database, db_file_path)
+def load(directory: str = None, file_path: str = None) -> Database:
+    """Load the database into memeory and return it. """
+    if file_path is not None:
+        return _db.load(Database, file_path)
+    elif directory is not None:
+        file_path = _os.path.join(directory, local_file_path)
+        return _db.load(Database, file_path)

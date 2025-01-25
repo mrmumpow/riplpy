@@ -26,14 +26,25 @@ nuclides.
 
 # ========================
 
+# RIPLpy
+from riplpy.db import _DbAccessor
+
 # Local
-from . import swave
-from . import pwave
+from . import swave as swave
+from . import pwave as pwave
 
+# ========================
 
-def load() -> None:
+db = _DbAccessor()
+
+# ========================
+
+def load(directory: str) -> None:
     """Load the entire database of the Resonances section of RIPL. 
 
        Once this method is called, the databases cannot be unloaded.
     """
-    from .db import __all__
+    
+    # The s-/p-wave resonance databases
+    db.swave = swave.load(directory)
+    db.pwave = pwave.load(directory)

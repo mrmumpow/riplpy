@@ -166,8 +166,22 @@ class ElementDatabase(Database):
 
 
 class _DbAccessor:
-   """A pass through object which enables Database access. """
-   pass
+    """A pass through object which enables dynamic Database access. """
+
+    def __init__(self, ) -> None:
+        """Store dynamically assigned attributes in a separate set. """
+        self._attributes = set()
+
+    def __setattr__(self, name, value):
+        """Set attribute so long as it isn't protected. """
+        if name not in ("_attributes", ) and not name.startswith("__"):
+            self._attributes.add(name)
+        super().__setattr__(name, value)
+
+    def __call__(self):
+        """Iterate over assigned attributes. """
+        for attr_name in self._attributes:
+            yield attr_name
 
 
 def load(db_obj: object, db_file_path: str) -> object:

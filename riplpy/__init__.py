@@ -17,7 +17,7 @@ from . import resonances
 
 
 # Supported RIPL sections
-sections = ('densities', 'fission', 'gamma', 'levels', 'masses')#, 'resonances')
+sections = ('densities', 'fission', 'gamma', 'levels', 'masses', 'resonances')
 
 
 def _parallel_load(section: str) -> None:
@@ -60,7 +60,7 @@ def in_ripl(x: Nuclide | Element) -> bool:
    # Loop over each section of RIPL
    for section in sections:
       # Check the databases in this section
-      for db in eval(f"{section}.db.__all__"):
+      for db in eval(f"{section}.db()"):
           if x in eval(f"{section}.db.{db}.data"):
               return True
    return False
@@ -88,7 +88,7 @@ def in_sections(x: Nuclide | Element) -> list:
    # Loop over each section of RIPL
    for section in sections:
       # Check the databases in this section
-      for db in eval(f"{section}.db.__all__"):
+      for db in eval(f"{section}.db()"):
           if x in eval(f"{section}.db.{db}.data"):
               _sections.append(section)
               break
@@ -109,7 +109,7 @@ def in_dbs(x: Nuclide | Element) -> list:
    # Loop over each section of RIPL
    for section in sections:
       # Check the databases in this section
-      for db in eval(f"{section}.db.__all__"):
+      for db in eval(f"{section}.db()"):
           if x in eval(f"{section}.db.{db}.data"):
               dbs.append((section, db))
    return dbs

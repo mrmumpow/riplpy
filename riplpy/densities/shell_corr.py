@@ -140,7 +140,7 @@ class MK_Database(_db.NuclideDatabase):
 
 
 def load_ms(directory: str = None, file_path: str = None) -> MS_Database:
-    """Load the database into memeory and return it. """
+    """Load the database into memory and return it. """
     if file_path is not None:
         return _db.load(MS_Database, file_path)
     elif directory is not None:
@@ -149,7 +149,7 @@ def load_ms(directory: str = None, file_path: str = None) -> MS_Database:
 
 
 def load_mk(directory: str = None, file_path: str = None) -> MK_Database:
-    """Load the database into memeory and return it. """
+    """Load the database into memory and return it. """
     if file_path is not None:
         return _db.load(MK_Database, file_path)
     elif directory is not None:

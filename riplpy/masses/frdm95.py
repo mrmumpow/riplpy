@@ -115,7 +115,7 @@ class Database(_core.MassDatabase):
 
 
 def load(directory: str = None, file_path: str = None) -> Database:
-    """Load the database into memeory and return it. """
+    """Load the database into memory and return it. """
     if file_path is not None:
         return _db.load(Database, file_path)
     elif directory is not None:

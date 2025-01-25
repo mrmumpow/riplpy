@@ -13,6 +13,9 @@ from . import hfb14 as hfb14
 from . import hfb27 as hfb27
 from . import ws4 as ws4
 from . import ab as ab
+from . import density_bskg3 as density_bskg3
+from . import density_d1m as density_d1m
+from . import deformations as deformations
 
 # ========================
 
@@ -48,3 +51,12 @@ def load(directory: str) -> None:
 
     # Natural abundance database
     db.natab = ab.load(directory)
+
+    # Density BSKG3
+    db.density_bskg3 = density_bskg3.load_all(directory)
+    
+    # Density D1M
+    db.density_d1m = density_d1m.load_all(directory)
+
+    # Ground state deformations
+    db.deformations = deformations.load(directory)

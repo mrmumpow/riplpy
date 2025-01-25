@@ -349,7 +349,7 @@ class MLO_Database(_db.Database):
 
 
 def load_slo(directory: str = None, file_path: str = None) -> SLO_Database:
-    """Load the database into memeory and return it. """
+    """Load the database into memory and return it. """
     if file_path is not None:
         return _db.load(SLO_Database, file_path)
     elif directory is not None:
@@ -358,7 +358,7 @@ def load_slo(directory: str = None, file_path: str = None) -> SLO_Database:
 
 
 def load_mlo(directory: str = None, file_path: str = None) -> MLO_Database:
-    """Load the database into memeory and return it. """
+    """Load the database into memory and return it. """
     if file_path is not None:
         return _db.load(MLO_Database, file_path)
     elif directory is not None:

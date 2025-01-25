@@ -171,7 +171,7 @@ class _DbAccessor:
 
 
 def load(db_obj: object, db_file_path: str) -> object:
-    """Load the database into memeory and return it. """
+    """Load the database into memory and return it. """
     db = db_obj()
     db.load(db_file_path)
     return db

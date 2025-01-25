@@ -23,8 +23,8 @@ db = _DbAccessor()
 
 # ========================
 
-def load(directory: str) -> None:
-    """Load the entire database of the Masses section of RIPL. 
+def load_only_masses(directory: str) -> None:
+    """Loads only the mass database of the Masses section of RIPL. 
 
        Once this method is called, the databases cannot be unloaded.
     """
@@ -48,6 +48,15 @@ def load(directory: str) -> None:
 
     # HFB27 mass database
     db.hfb27 = hfb27.load(directory)
+
+
+def load(directory: str) -> None:
+    """Load the entire database of the Masses section of RIPL. 
+
+       Once this method is called, the databases cannot be unloaded.
+    """
+    # Load masses
+    load_only_masses(directory)
 
     # Natural abundance database
     db.natab = ab.load(directory)

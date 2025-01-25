@@ -135,7 +135,7 @@ def load_all(directory: str) -> Database:
     return d
 
 
-def load_nucleus(directory: str, n: _c.Nuclide) -> Database:
+def load_nucleus(n: _c.Nuclide, directory: str) -> Database:
     d = Database()
     fpath = _os.path.join(directory, local_data_dir, 'gsf', f'gsf_Z{n.Z:03d}A{n.A:03d}.dat')
     d.load(fpath)

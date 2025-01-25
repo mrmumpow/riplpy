@@ -21,9 +21,13 @@ from . import core as _core
 
 # ========================
 
-# Current location
-__loc__  = _os.path.dirname(_os.path.realpath(__file__))
-data_dir = _os.path.join(__loc__, "data")
+__all__ = ('local_data_dir', 'IDENT_FORTRAN_FORMAT', 'LEVEL_FORTRAN_FORMAT', 'GAMMA_FORTRAN_FORMAT', 'ident_reader', 'level_reader', 'gamma_reader',
+           'read_ascii_file', 'parse_ascii_dict', 'GammaEntry', 'LevelEntry', 'Database', 'load_all', 'load_element')
+
+# ========================
+
+# Relative path to database folder
+local_data_dir = "levels"
 
 # ========================
 
@@ -188,16 +192,16 @@ class Database(_db.NuclideDatabase):
         for entry in _data.keys():
             self.data[entry] = _data[entry]
 
-    def load_all(self, ) -> None:
+    def load_all(self, directory: str) -> None:
         """Read the entire database into memory from many individual ASCII files. """
         # Loop over the element numbers
         for Z in range(1, 119):
-            fpath = _os.path.join(data_dir, "discrete", f"z{Z:03d}.dat")
+            fpath = _os.path.join(directory, local_data_dir, f"z{Z:03d}.dat")
             self.load(fpath)
 
-    def load_element(self, Z: int) -> None:
+    def load_element(self, Z: int, directory: str) -> None:
         """Read the database entry for element with proton number (Z). """
-        fpath = _os.path.join(data_dir, "discrete", f"z{Z:03d}.dat")
+        fpath = _os.path.join(directory, local_data_dir, f"z{Z:03d}.dat")
         self.load(fpath)
 
     def levels(self, n: _c.Nuclide) -> object:
@@ -246,15 +250,15 @@ class Database(_db.NuclideDatabase):
             self.data[n] = LevelEntry(n, new_level, [])
 
 
-def load_all() -> Database:
+def load_all(directory: str) -> Database:
     """Load and return the entire discrete level database. """
     d = Database()
-    d.load_all()
+    d.load_all(directory)
     return d
 
 
-def load_element(Z: int) -> Database:
+def load_element(Z: int, directory: str) -> Database:
     """Load and return the discrete level database for a given element (Z). """
     d = Database()
-    d.load_element(Z)
+    d.load_element(Z, directory)
     return d

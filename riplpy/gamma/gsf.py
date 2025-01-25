@@ -37,7 +37,7 @@ __all__ = ('local_data_dir', 'FILE_HEADER', 'FORTRAN_FORMAT', 'reader', 'writer'
 # ========================
 
 # Relative path to database folder
-local_data_dir = "gamma"
+local_data_dir = _os.path.join("gamma", "gamma-strength-micro")
 
 # ========================
 
@@ -58,19 +58,20 @@ def read_ascii_file(fpath: str) -> dict:
     # Read data from file
     with open(fpath, 'r') as fp:
         for i, line in enumerate(fp.readlines()):
-            if i == 0:
+            if "Z" in line and "A" in line:
                 line = line.split()
-                Z = int(line[0])
-                A = int(line[1])
+                Z = int(line[1])
+                A = int(line[3])
                 n = _c.Nuclide(z=Z, a=A)
+                package = {'U': [], 'fE1': []}
                 continue
             # Skip the header line(s)
-            elif "#" in line[0]:
+            elif "U[MeV]  fE1[mb/MeV]" in line:
                 continue
-            data  = reader.read(line)
-            U.append(data[0])
-            fE1.append(data[1])
-        package = {'U': U, 'fE1': fE1}
+            data = reader.read(line)
+            package['U'].append(data[0])
+            package['fE1'].append(data[1])
+        #package = {'U': U, 'fE1': fE1}
         d[n] = package
     return d
 
@@ -111,7 +112,7 @@ class Database(_db.Database):
     def load_all(self, directory: str) -> None:
         """Load the entire gamma-ray strength function (GSF) database. """
         # Loop over the element numbers
-        db_loc = _os.path.join(directory, local_data_dir, 'gsf')
+        db_loc = _os.path.join(directory, local_data_dir)
         for fn in _os.listdir(db_loc):
             fpath = _os.path.join(db_loc, fn)
             self.load(fpath)
@@ -137,6 +138,6 @@ def load_all(directory: str) -> Database:
 
 def load_nucleus(n: _c.Nuclide, directory: str) -> Database:
     d = Database()
-    fpath = _os.path.join(directory, local_data_dir, 'gsf', f'gsf_Z{n.Z:03d}A{n.A:03d}.dat')
+    fpath = _os.path.join(directory, local_data_dir, f'gsf_Z{n.Z:03d}A{n.A:03d}.dat')
     d.load(fpath)
     return d

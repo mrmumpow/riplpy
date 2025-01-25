@@ -20,6 +20,9 @@ def load(directory: str) -> None:
        Once this method is called, the databases cannot be unloaded.
     """
 
+    # Gamma strength function database
+    db.gsf = gsf.load_all(directory)
+
     # The theoretical GDR parameter database
     db.theory_gdr = gdr.load(directory)
 

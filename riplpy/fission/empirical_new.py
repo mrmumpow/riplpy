@@ -60,9 +60,7 @@ def read_ascii_file(fpath: str) -> dict:
             # Skip the header line(s)
             if "#" in line[0] or "a" in line or len(line.split()) == 0:
                 continue
-            print(line)
             data   = reader.read(line)
-            print(data)
 
             Z    = int(data[1])        # Atomic number
             A    = int(data[2])        # Mass number

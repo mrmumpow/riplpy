@@ -7,12 +7,10 @@ from .core import *
 from . import bskg3 as bskg3
 from . import empirical as emp
 from . import empirical_new as emp_new
+from . import empire as empire
 from . import hfb
 
 # ========================
-
-_ripl_versions_ = ('3', )
-
 
 saddle_shorthand = {'S' : 'symmetric',
                     'GA': 'axially asymmetric (triaxial)',
@@ -33,6 +31,7 @@ def load(directory: str) -> None:
     # The experimental fission barrier database
     db.empirical_barriers     = emp.load(directory)
     db.empirical_barriers_new = emp_new.load(directory)
+    db.empire_barriers        = empire.load(directory)
 
     # The theoretical BSKG3 fission barrier database
     db.bskg3_barriers = bskg3.load(directory)

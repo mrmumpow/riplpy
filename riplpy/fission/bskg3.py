@@ -51,7 +51,7 @@ writer = _ff.FortranRecordWriter(FORTRAN_FORMAT)
 
 def read_ascii_file(fpath: str) -> dict:
     """Read data from an ASCII file and return a dictionary. """
-# Placeholder dictionary
+    # Placeholder dictionary
     d = {}
 
     # Read data from file
@@ -60,7 +60,6 @@ def read_ascii_file(fpath: str) -> dict:
             # Skip header lines
             if line.startswith("#"):
                 continue
-            print(line)
 
             # Use FortranRecordReader to parse the line
             data = reader.read(line)

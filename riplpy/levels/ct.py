@@ -26,8 +26,8 @@ local_file_path = _os.path.join("levels", "levels-param.data")
 
 # ========================
 
-FILE_HEADER = "#Constant Temperature fit results; RIPL III discrete level library; December 2021\n#  Z   A El         T        dT        U0       dU0NlevNmax  N0  Nc     Umax       Uc     Chi Fit Flag NoX  Xm  EX   sigma\n#               [MeV]     [MeV]     [MeV]     [MeV]                    [MeV]    [MeV]                         [MeV]\n#-------------------------------------------------------------------------------------------------------------------------\n"
-FORTRAN_FORMAT   = '(2i4,1x,a2,4(1x,f9.5),4i4,1x,f8.5,1x,f8.5,(1x,e10.3),1x,A1,1x,A1,2i4,f7.4,1x,f6.3)'
+FILE_HEADER    = "#Constant Temperature fit results; RIPL III discrete level library; December 2021\n#  Z   A El         T        dT        U0       dU0NlevNmax  N0  Nc     Umax       Uc     Chi Fit Flag NoX  Xm  EX   sigma\n#               [MeV]     [MeV]     [MeV]     [MeV]                    [MeV]    [MeV]                         [MeV]\n#-------------------------------------------------------------------------------------------------------------------------\n"
+FORTRAN_FORMAT = '(2i4,1x,a2,4(1x,f9.5),4i4,1x,f8.5,1x,f8.5,(1x,e10.3),1x,A1,1x,A1,2i4,f7.4,1x,f6.3)'
 reader = _ff.FortranRecordReader(FORTRAN_FORMAT)
 writer = _ff.FortranRecordWriter(FORTRAN_FORMAT)
 

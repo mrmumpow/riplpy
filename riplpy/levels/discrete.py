@@ -8,9 +8,6 @@ import os as _os
 from dataclasses import dataclass as _dataclass
 from dataclasses import field as _field
 
-# Numpy
-import numpy as _np
-
 # Fortran format
 import fortranformat as _ff
 
@@ -243,7 +240,7 @@ class Database(_db.NuclideDatabase):
                 self.data[n].levels[i] = new_level
             else:
                 # Find the nearest energy level and insert there
-                i = _np.argmin(_np.abs(new_level.energy - _np.array(energies)))
+                i = min(range(len(energies)), key=lambda x: abs(new_level.energy - energies[x]))
                 self.data[n].levels.insert(i, new_level)
         else:
             # We can easily add since the nucleus is not in the database

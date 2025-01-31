@@ -5,6 +5,7 @@
 import os as _os
 
 # Collections
+from collections import defaultdict as _defaultdict
 from dataclasses import dataclass as _dataclass
 from dataclasses import field as _field
 
@@ -31,9 +32,14 @@ local_data_dir = "levels"
 IDENT_FORTRAN_FORMAT = '(a5,6i5,2f12.6)'
 LEVEL_FORTRAN_FORMAT = '(i3,1x,f10.6,1x,f5.1,i3,1x,(1pe10.2),i3,1x,a1,1x,a4,1x,a18,i3,10(1x,a2,1x,0pf10.4,1x,a7),f10.6,1x,3(i2))'
 GAMMA_FORTRAN_FORMAT = '(39x,i4,1x,f10.3,3(1x,e10.3))'
+
 ident_reader = _ff.FortranRecordReader(IDENT_FORTRAN_FORMAT)
 level_reader = _ff.FortranRecordReader(LEVEL_FORTRAN_FORMAT)
 gamma_reader = _ff.FortranRecordReader(GAMMA_FORTRAN_FORMAT)
+
+ident_writer = _ff.FortranRecordWriter(IDENT_FORTRAN_FORMAT)
+level_writer = _ff.FortranRecordWriter(LEVEL_FORTRAN_FORMAT)
+gamma_writer = _ff.FortranRecordWriter(GAMMA_FORTRAN_FORMAT)
 
 # ========================
 
@@ -62,14 +68,15 @@ def read_ascii_file(fpath: str) -> dict:
                 nucleus    = header[0]
                 num_levels = int(header[3])
                 levels     = []
-                gammas     = {}
+                gammas     = _defaultdict(list)
             except ValueError:
                 if "                                      " in line[0:40]:
                     # Find appropriate level to attach to
                     lvl = int(level[0])
                     # Parse data
                     gamma = gamma_reader.read(line)
-                    gammas[lvl] = gamma
+                    #print(nucleus, lvl, gamma)
+                    gammas[lvl].append(gamma)
                 else:
                     # Parse data
                     level = level_reader.read(line)
@@ -113,9 +120,10 @@ def parse_ascii_dict(data: dict) -> dict:
             recasted_levels.append(_core.DiscreteLevelInfo(e, spin, parity, t12, ng, jflag, unc, jpistr, modes))
 
         # Recast the gammas into objects
-        recasted_gammas = {}
+        recasted_gammas = _defaultdict(list)
         for lvl_id in gammas.keys():
-            recasted_gammas[lvl_id] = _core.DiscreteGamma(*gammas[lvl_id])
+            for gamma in gammas[lvl_id]:
+                recasted_gammas[lvl_id].append(_core.DiscreteGamma(*gamma))
 
         # Save for later
         output[n] = LevelEntry(n, recasted_levels, recasted_gammas)
@@ -124,10 +132,67 @@ def parse_ascii_dict(data: dict) -> dict:
 
 
 def write_ascii_file(fpath: str, data: dict) -> None:
-    """"Write the discrete level information to file. """
-    # @TODO: Finish this function
-    pass
+    """"Write the discrete level information to file. This method assumes parse_ascii_dict has been called on the dictionary. """
 
+    # Note: there is no file header
+    with open(fpath, 'w') as fp:
+
+        for nucleus, entry in data.items():
+            # Extract header information from LevelEntry
+            num_levels = entry.num_levels
+            num_gammas = entry.total_number_gammas  # Total gammas in all levels
+
+            # Construct the header record for this nucleus
+            header_record = [
+                str(nucleus.A)+nucleus.symbol, # Nucleus identifier
+                nucleus.A,
+                nucleus.Z,
+                num_levels,                    # Number of levels
+                num_gammas,                    # Number of gamma-rays
+                0, 0,                          #@TODO: Fix placeholder integers
+                0.0, 0.0                       #@TODO: Fix placeholder floats
+            ]
+            fp.write(ident_writer.write(header_record) + '\n')
+
+            # Write each nuclear level
+            for i,level in enumerate(entry.levels):
+                glist = list(entry.gammas.keys())
+                level_id = i + 1
+                level_data = [
+                    level_id,                 # Level index
+                    level.energy,             # Energy of the level
+                    level.spin,               # Spin value
+                    level.parity,             # Parity
+                    level.halflife,           # Half-life
+                    level.num_gammas,         # Number of gamma transitions
+                    level.jflag,              # J-flag
+                    level.unc,                # Uncertainty flag
+                    level.jpistr,             # Spin-parity string
+                    level.number_decay_modes, # Number of decay modes
+                ]
+
+                # Append decay modes
+                for dm in level.decay_modes:
+                    level_data.extend([
+                        dm.mode,    # Decay parent mode
+                        dm.percent, # Decay probability percentage
+                        dm.flag     # Decay mode description
+                    ])
+
+                # Write level record to file
+                fp.write(level_writer.write(level_data) + '\n')
+
+                if len(entry.gammas) > 0 and level_id in glist:
+                    for gamma in entry.gammas[level_id]:
+                        gamma_data = [
+                            gamma.to_level_numer,  # Gamma transition index
+                            gamma.energy,          # Gamma energy
+                            gamma.prob_g,          # Photon probability
+                            gamma.prob_em,         # Probability of the electromagnetic transition (photon, conversion electron, pair creation)
+                            gamma.cc               # Internal conversion coefficient of the transition
+                        ]
+                    
+                        fp.write(gamma_writer.write(gamma_data) + '\n')
 
 @_dataclass
 class GammaEntry(_core.DiscreteNuclearLevel, _db.NuclideDatabaseEntry):
@@ -170,6 +235,10 @@ class LevelEntry(_db.NuclideDatabaseEntry):
     def level_energies(self, ) -> list:
         """Return a list of the level energies. """
         return [lvl.energy for lvl in self.levels]
+
+    @property
+    def total_number_gammas(self, ) -> int:
+        return len((self.gammas.keys()))
 
 
 class Database(_db.NuclideDatabase):

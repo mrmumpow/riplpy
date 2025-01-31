@@ -118,6 +118,10 @@ class NucleusBase(Base):
     def sym(self, ) -> str:
         return self.element_symbol
 
+    @property
+    def symbol(self, ) -> str:
+        return self.element_symbol
+
     def __eq__(self, other) -> bool:
         """Return the equality (bool) of this object with another. """
         return self.Z == other.Z and self.N == other.N

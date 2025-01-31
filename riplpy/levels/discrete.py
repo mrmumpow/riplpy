@@ -67,6 +67,11 @@ def read_ascii_file(fpath: str) -> dict:
                 header     = ident_reader.read(line)
                 nucleus    = header[0]
                 num_levels = int(header[3])
+                num1       = header[5]
+                num2       = header[6]
+                num3       = header[7]
+                num4       = header[8]
+                extras     = [num1, num2, num3, num4]
                 levels     = []
                 gammas     = _defaultdict(list)
             except ValueError:
@@ -83,7 +88,7 @@ def read_ascii_file(fpath: str) -> dict:
                     levels.append(level)
             # Check if we save data to the dictionary
             if len(levels) == num_levels:
-                d[nucleus] = (header, levels, gammas)
+                d[nucleus] = (header, levels, gammas, extras)
 
         return d
 
@@ -98,7 +103,7 @@ def parse_ascii_dict(data: dict) -> dict:
     # Loop over the dictionary keys
     for nucleus in data.keys():
         n = _c.Nuclide.from_string(nucleus)
-        header, levels, gammas = data[nucleus]
+        header, levels, gammas, extras = data[nucleus]
         # Recast levels into objects
         recasted_levels = []
         for lvl in levels:
@@ -126,7 +131,7 @@ def parse_ascii_dict(data: dict) -> dict:
                 recasted_gammas[lvl_id].append(_core.DiscreteGamma(*gamma))
 
         # Save for later
-        output[n] = LevelEntry(n, recasted_levels, recasted_gammas)
+        output[n] = LevelEntry(n, recasted_levels, recasted_gammas, extras)
 
     return output
 
@@ -147,10 +152,10 @@ def write_ascii_file(fpath: str, data: dict) -> None:
                 str(nucleus.A)+nucleus.symbol, # Nucleus identifier
                 nucleus.A,
                 nucleus.Z,
-                num_levels,                    # Number of levels
-                num_gammas,                    # Number of gamma-rays
-                0, 0,                          #@TODO: Fix placeholder integers
-                0.0, 0.0                       #@TODO: Fix placeholder floats
+                num_levels,                       # Number of levels
+                num_gammas,                       # Number of gamma-rays
+                entry.extras[0], entry.extras[1], #@TODO: Fix placeholder integers
+                entry.extras[2], entry.extras[3]  #@TODO: Fix placeholder floats
             ]
             fp.write(ident_writer.write(header_record) + '\n')
 
@@ -225,7 +230,7 @@ class LevelEntry(_db.NuclideDatabaseEntry):
     nucleus: _c.Nuclide = None
     levels: list = _field(default_factory=list) # Order matters
     gammas: dict = _field(default_factory=dict) # Order matters
-
+    extras: list = _field(default_factory=list) # Unknowns
 
     @property
     def num_levels(self, ) -> int:

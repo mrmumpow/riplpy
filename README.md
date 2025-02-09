@@ -52,12 +52,12 @@ RIPLpy provides nearly complete access to the databases that comprise RIPL. The 
 import riplpy
 ```
 
-* Example: Load available databases in RIPLpy (warning this could take a long time if all databases are installed):
+* Example: Load available databases in RIPLpy from a local file system. You need to replace "<path-to-your-local-RIPL-folder>" with the relevant path on your system. Warning: this could take a long time if all databases are installed:
 
 ```python
 import riplpy
 
-riplpy.load()
+riplpy.load("<path-to-your-local-RIPL-folder>")
 ```
 
 * Example: Check if nucleus is in one of the RIPL databases (prints True): 
@@ -65,8 +65,8 @@ riplpy.load()
 ```python
 import riplpy
 
-riplpy.load()
-n = Nucleus(Z=50, N=82)
+riplpy.load("<path-to-your-local-RIPL-folder>")
+n = riplpy.Nucleus(Z=50, N=82)
 print(riplpy.in_ripl(n)) # Prints True
 ```
 
@@ -75,8 +75,8 @@ print(riplpy.in_ripl(n)) # Prints True
 ```python
 import riplpy
 
-riplpy.load()
-e = Element('tin')
+riplpy.load("<path-to-your-local-RIPL-folder>")
+e = riplpy.Element('tin')
 print(riplpy.in_ripl(e)) # Prints True
 ```
 
@@ -85,8 +85,8 @@ print(riplpy.in_ripl(e)) # Prints True
 ```python
 import riplpy
 
-riplpy.load()
-n = Nucleus(Z=50, N=82)
+riplpy.load("<path-to-your-local-RIPL-folder>")
+n = riplpy.Nucleus(Z=50, N=82)
 print(riplpy.in_sections(n)) # Prints ['densities', 'gamma', 'levels', 'masses']
 ```
 
@@ -95,8 +95,8 @@ print(riplpy.in_sections(n)) # Prints ['densities', 'gamma', 'levels', 'masses']
 ```python
 import riplpy
 
-riplpy.load()
-n = Nuclide(Z=50, A=132)
+riplpy.load("<path-to-your-local-RIPL-folder>")
+n = riplpy.Nuclide(Z=50, A=132)
 print(riplpy.in_dbs(n)) # Prints [('densities', 'shellcorr_ms'), ('gamma', 'theory_gdr'), ('levels', 'discrete_levels'), ('levels', 'constant_temperature'), ('masses', 'frdm1995'), ('masses', 'hfb14')]
 
 ### RIPLpy: Fission Section Usage
@@ -106,8 +106,8 @@ print(riplpy.in_dbs(n)) # Prints [('densities', 'shellcorr_ms'), ('gamma', 'theo
 ```python
 import riplpy
 
-riplpy.fission.hfb.load()      # Load the database
-print(riplpy.fission.hfb.data) # Print all entries the database
+riplpy.fission.hfb.load("<path-to-your-local-RIPL-folder>") # Load the database
+print(riplpy.fission.hfb.data)                              # Print all entries the database
 ```
 
 * Example: Access the empirical barrier database in the fission section of RIPL:
@@ -115,7 +115,7 @@ print(riplpy.fission.hfb.data) # Print all entries the database
 ```python
 import riplpy
 
-riplpy.fission.empirical.load()      # Load the database
-print(riplpy.fission.empirical.data) # Print all entries the database
+riplpy.fission.empirical.load("<path-to-your-local-RIPL-folder>") # Load the database
+print(riplpy.fission.empirical.data)                              # Print all entries the database
 ```
 

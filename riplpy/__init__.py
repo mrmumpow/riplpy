@@ -21,8 +21,10 @@ sections = ('densities', 'fission', 'gamma', 'levels', 'masses', 'resonances')
 
 
 def _parallel_load(section: str) -> None:
-   i = _im.import_module(f"riplpy.{section}")
-   i.load()
+   """An implicit method to load the given section in parallel. """
+   if section in sections:
+      i = _im.import_module(f"riplpy.{section}")
+      i.load()
 
 
 def load(directory: str, quick: bool = False) -> None:

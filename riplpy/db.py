@@ -8,8 +8,14 @@ Authors:
 
 """
 
+# OS
+import os as _os
+
+# Dataclasses
 from dataclasses import dataclass as _dataclass, fields as _fields
-from riplpy.exceptions import NucleusNotFoundError, ElementNotFoundError, FileFormatError
+
+# RIPLpy
+from riplpy.exceptions import NucleusNotFoundError, ElementNotFoundError, FileFormatError, RiplFileNotFoundError
 
 __all__ = ('DatabaseEntry', 'NuclideDatabaseEntry', 'Database', 'NuclideDatabase', 'ElementDatabase', '_DbAccessor', 'load')
 
@@ -217,8 +223,52 @@ class _DbAccessor:
             yield attr_name
 
 
-def load(db_obj: object, db_file_path: str) -> object:
-    """Load the database into memory and return it. """
+def load(db_obj: Database, db_file_path: str) -> "Database":
+    """Load the database into memory from a file path and return it. """
     db = db_obj()
     db.load(db_file_path)
     return db
+
+
+def loader(directory: str = None, file_path: str = None, config: object = None, db_obj: object = None, file_path_key: str = None) -> "Database":
+    """Load the database into memory from file path, directory, or configuration and return it.
+
+    This is a more complex loader method. 
+    The loading mechanism prioritizes the `file_path` argument first. If `file_path`
+    is not provided, it attempts to construct the path using the `directory` argument.
+    If neither is provided, it falls back to the default path from the configuration.
+
+    Arguments:
+        directory (str, optional): Path to the directory containing the data file.
+        file_path (str, optional): Direct path to the data file.
+        config (object, optional): Configuration object containing the data file path.
+        database (object, optional): Database object to load the data into.
+        file_path_key (str, optional): Key for the data file path in the configuration.
+    Returns:
+        Database: An instance of the Database class with the loaded data.
+
+    Raises:
+        FileFormatError: If the database file cannot be loaded.
+        RiplFileNotFoundError: If the database file cannot be found.
+    """
+    db_path = None
+    if file_path:
+        db_path = file_path
+    elif directory:
+        file_path = config.get_data_file_path(file_path_key)
+        db_path = _os.path.join(directory, file_path)
+    else:
+        try:
+            file_path = config.get_data_file_path(file_path_key)
+            db_path = _os.path.join(config.RIPL_PATH, file_path)
+        except (ImportError, KeyError):
+            # Fallback if config is not available or the key is missing
+            pass
+
+    if db_path and _os.path.exists(db_path):
+        try:
+            return load(db_obj, db_path)
+        except Exception as e:
+            raise FileFormatError(f"Failed to load {file_path_key} data from {db_path}: {e}")
+
+    raise RiplFileNotFoundError(f"Unable to find or load {file_path_key} data file. Please provide a valid path or set RIPL_LOCATION.")

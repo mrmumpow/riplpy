@@ -7,6 +7,7 @@ __version__ = "0.3.0"
 import importlib as _im
 
 # Local
+from . import config as config
 from .collections import *
 from . import densities
 from . import fission

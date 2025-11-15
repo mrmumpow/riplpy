@@ -39,7 +39,8 @@ def load(directory: str, quick: bool = False) -> None:
       _pool.map(_parallel_load, sections)
    else:
       for section in sections:
-         eval(f"{section}.load(directory='{directory}')")
+         module = globals()[section]
+         module.load(directory=directory)
 
 
 def in_ripl(x: Nuclide | Element) -> bool:
@@ -62,8 +63,8 @@ def in_ripl(x: Nuclide | Element) -> bool:
    # Loop over each section of RIPL
    for section in sections:
       # Check the databases in this section
-      for db in eval(f"{section}.db()"):
-          if x in eval(f"{section}.db.{db}.data"):
+      for db in getattr(globals()[section], 'db')():
+          if x in getattr(getattr(globals()[section], 'db'), db).data:
               return True
    return False
 
@@ -90,8 +91,8 @@ def in_sections(x: Nuclide | Element) -> list:
    # Loop over each section of RIPL
    for section in sections:
       # Check the databases in this section
-      for db in eval(f"{section}.db()"):
-          if x in eval(f"{section}.db.{db}.data"):
+      for db in getattr(globals()[section], 'db')():
+          if x in getattr(getattr(globals()[section], 'db'), db).data:
               _sections.append(section)
               break
    return _sections
@@ -111,7 +112,7 @@ def in_dbs(x: Nuclide | Element) -> list:
    # Loop over each section of RIPL
    for section in sections:
       # Check the databases in this section
-      for db in eval(f"{section}.db()"):
-          if x in eval(f"{section}.db.{db}.data"):
+      for db in getattr(globals()[section], 'db')():
+          if x in getattr(getattr(globals()[section], 'db'), db).data:
               dbs.append((section, db))
    return dbs

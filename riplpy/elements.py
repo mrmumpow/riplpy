@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """Python objects that provide quick access to element information.
 
-@TODO: Finish the longer description. Python 3.10+ is expected to run this code properly.
+This module defines mappings between proton numbers (Z), element symbols, and element names. It provides a singleton `Elements` class for convenient access to this information, including methods for retrieving element properties and validating input.
+
+Python 3.10+ is expected to run this code properly.
 
 Examples:
     (1) Print the symbol given a proton number::
@@ -28,8 +30,8 @@ Authors:
 # RegEx
 import re
 
-# ========================
-
+# Local
+from .exceptions import ElementNotFoundError
 # Map proton number to element symbol
 ZtoSym = {0  : 'Nn',
           1  : 'H',
@@ -384,11 +386,7 @@ class Elements(object, metaclass=ElementsMeta):
         """Return the element symbol given element proton number (Z). """
         return cls.ZtoSym[int(Z)]
 
-    @classmethod
-    def sym(cls, Z: int) -> str:
-        """Return the element symbol given element proton number (Z). """
-        return cls.symbol(Z)
-    
+
     @classmethod
     def symbols(cls, lst: list) -> list:
         """Return a list of element symbols given a collection of proton numbers. """
@@ -422,9 +420,10 @@ class Elements(object, metaclass=ElementsMeta):
             return cls.element_from_symbol(txt)
         except KeyError:
             # Next try to decipher the name
-            return cls.element_from_name(txt)
-        except Exception:
-            raise Exception(f"Element {txt} proton number not found!")
+            try:
+                return cls.element_from_name(txt)
+            except KeyError:
+                raise ElementNotFoundError(f"Element {txt} proton number not found!")
 
     @classmethod
     def elements(cls, lst: list) -> list:

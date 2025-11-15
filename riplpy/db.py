@@ -8,12 +8,10 @@ Authors:
 
 """
 
-# ========================
+from dataclasses import dataclass as _dataclass, fields as _fields
+from riplpy.exceptions import NucleusNotFoundError, ElementNotFoundError, FileFormatError
 
-from dataclasses import dataclass as _dataclass
-from dataclasses import fields as _fields
-
-# ========================
+__all__ = ('DatabaseEntry', 'NuclideDatabaseEntry', 'Database', 'NuclideDatabase', 'ElementDatabase', '_DbAccessor', 'load')
 
 @_dataclass
 class DatabaseEntry:
@@ -82,8 +80,28 @@ class Database:
         type(self).writer(fpath, self.data)
 
     def get(self, key: object) -> object:
-        """Return the entry from the database given the key. """
-        return self.data[key]
+        """Return the entry from the database given the key.
+
+        Args:
+            key (object): The key to retrieve the entry.
+
+        Returns:
+            object: The entry from the database.
+
+        Raises:
+            NucleusNotFoundError: If the key is not found in a NuclideDatabase.
+            ElementNotFoundError: If the key is not found in an ElementDatabase.
+            KeyError: If the key is not found in a generic Database.
+        """
+        try:
+            return self.data[key]
+        except KeyError:
+            if isinstance(self, NuclideDatabase):
+                raise NucleusNotFoundError(f"Nuclide with key {key} not found in database.")
+            elif isinstance(self, ElementDatabase):
+                raise ElementNotFoundError(f"Element with key {key} not found in database.")
+            else:
+                raise KeyError(f"Key {key} not found in database.")
 
     def set(self, key: object, value: object) -> None:
         """Set the entry in the database given the key and value. """
@@ -128,9 +146,12 @@ class NuclideDatabase(Database):
         """Remove an existing entry in the database. """
         # Check that a proper entry has been provided
         if hasattr(entry, 'n'):
-            self.data.pop(entry.n)
+            try:
+                self.data.pop(entry.n)
+            except KeyError:
+                raise NucleusNotFoundError(f"Nuclide {entry.n} not found in database.")
         else:
-            raise Exception("Entry object must have a nucleus property!")
+            raise TypeError("Entry object must have a nucleus property!")
 
 
 class ElementDatabase(Database):
@@ -154,15 +175,27 @@ class ElementDatabase(Database):
         """Remove an existing entry in the database. """
         # Check that a proper entry has been provided
         if hasattr(entry, 'Z'):
-            self.data.pop(entry.Z)
+            try:
+                self.data.pop(entry.Z)
+            except KeyError:
+                raise ElementNotFoundError(f"Element {entry.Z} not found in database.")
         elif hasattr(entry, 'sym'):
-            self.data.pop(entry.Z)
+            try:
+                self.data.pop(entry.Z)
+            except KeyError:
+                raise ElementNotFoundError(f"Element with symbol {entry.sym} not found in database.")
         elif hasattr(entry, 'symbol'):
-            self.data.pop(entry.Z)
+            try:
+                self.data.pop(entry.Z)
+            except KeyError:
+                raise ElementNotFoundError(f"Element with symbol {entry.symbol} not found in database.")
         elif hasattr(entry, 'name'):
-            self.data.pop(entry.Z)
+            try:
+                self.data.pop(entry.Z)
+            except KeyError:
+                raise ElementNotFoundError(f"Element with name {entry.name} not found in database.")
         else:
-            raise Exception("Entry object must have an element number!")
+            raise TypeError("Entry object must have an element number!")
 
 
 class _DbAccessor:

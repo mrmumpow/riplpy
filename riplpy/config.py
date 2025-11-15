@@ -7,10 +7,10 @@ read the RIPL database location from an environment variable and issues a
 warning if it is not set.
 
 Attributes:
-    RIPL_PATH (str): The local filesystem path to the RIPL database. This is 
-        determined by the `RIPL_LOCATION` environment variable. If the 
-        environment variable is not set, a warning is issued, and this 
-        is set to an empty string.
+    RIPL_PATH (str): The absolute path to the RIPL database on the local. 
+        filesystem. This is determined by the `RIPL_LOCATION` environment 
+        variable. If the environment variable is not set, a warning is 
+        issued, and this is set to an empty string. 
 """
 
 # OS

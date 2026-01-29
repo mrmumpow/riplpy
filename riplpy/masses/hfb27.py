@@ -100,13 +100,13 @@ def write_ascii_file(fpath: str, data: dict) -> None:
                     n.Z,
                     n.A,
                     n.symbol,
-                    entry['flag'],
-                    entry['Mexp'],
-                    entry['Err'],
-                    entry['Mth'],
-                    entry['beta20'],
-                    entry['beta40'],
-                    entry['Rch'],
+                    entry.flag,
+                    entry.Mexp,
+                    entry.Err,
+                    entry.Mth,
+                    entry.beta20,
+                    entry.beta40,
+                    entry.Rch,
                 )
                 fp.write(writer.write(line) + "\n")
             except Exception as e:

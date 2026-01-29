@@ -84,6 +84,11 @@ class Entry(_db.NuclideDatabaseEntry):
     Gerr  : float      = None # Uncertainty of Gam [meV]
     ref   : str        = None # Reference to the work in which the analysis was performed
 
+    @property
+    def as_tuple(self) -> tuple:
+        """Return a tuple representation matching the ASCII file format: Z, El, A, Io, Bn, D, Derr, Str, Serr, Gam, Gerr, ref"""
+        return (self.n.Z, self.n.element_symbol, self.n.A, self.Io, self.Bn, self.D, self.Derr, self.Str, self.Serr, self.Gam, self.Gerr, self.ref)
+
 
 class Database(_db.NuclideDatabase):
 

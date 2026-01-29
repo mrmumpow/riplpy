@@ -97,7 +97,11 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 class Entry(_core.Theory_GDR_Parameter, _db.NuclideDatabaseEntry):
     """An object which represents an entry in the theoretical GDR parameter database. """
-    pass
+
+    @property
+    def as_tuple(self) -> tuple:
+        """Return a tuple representation matching the ASCII file format: Z, A, El, eta, E1, W1, E2, W2"""
+        return (self.n.Z, self.n.A, self.n.element_symbol, self.eta, self.E1, self.W1, self.E2, self.W2)
 
 
 class Database(_db.Database):

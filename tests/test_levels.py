@@ -64,6 +64,57 @@ class TestLevelsCT:
         assert len(db.data) == len(db2.data)
 
 
+class TestDiscreteLevels:
+    """Tests for the discrete nuclear levels database."""
+
+    def test_load_element(self, ripl_path):
+        """Test loading discrete levels for a single element."""
+        db = levels.discrete.load_element(Z=26, directory=ripl_path)
+        assert db is not None
+        assert len(db.data) > 0
+
+    def test_fe56_levels(self, ripl_path):
+        """Test discrete levels for Fe-56 (well-studied nucleus)."""
+        db = levels.discrete.load_element(Z=26, directory=ripl_path)
+        n = Nuclide(Z=26, A=56)
+        if n in db.data:
+            entry = db.get(n)
+            assert entry is not None
+            # Fe-56 should have many known levels
+            assert entry.num_levels > 0
+            # Check ground state energy
+            level_energies = entry.level_energies
+            assert level_energies[0] == 0.0 or level_energies[0] < 0.01
+
+    def test_levels_have_spin_parity(self, ripl_path):
+        """Test that levels have spin and parity information."""
+        db = levels.discrete.load_element(Z=26, directory=ripl_path)
+        for n, entry in list(db.data.items())[:5]:
+            for level in entry.levels[:3]:
+                # Should have spin and parity attributes
+                assert hasattr(level, 'spin')
+                assert hasattr(level, 'parity')
+
+    def test_gamma_transitions(self, ripl_path):
+        """Test that levels have associated gamma transitions."""
+        db = levels.discrete.load_element(Z=26, directory=ripl_path)
+        # Look for a nucleus with gamma transitions
+        for n, entry in db.data.items():
+            if entry.total_number_gammas > 0:
+                # Should have gamma transition data
+                assert len(entry.gammas) > 0
+                break
+
+    def test_level_energies_increasing(self, ripl_path):
+        """Test that level energies are in increasing order."""
+        db = levels.discrete.load_element(Z=26, directory=ripl_path)
+        for n, entry in list(db.data.items())[:10]:
+            energies = entry.level_energies
+            # Energies should be roughly increasing (within tolerance for isomers)
+            for i in range(1, len(energies)):
+                assert energies[i] >= energies[i-1] - 0.01, f"Non-increasing energy at level {i} for {n}"
+
+
 class TestLevelsCoverage:
     """Tests for level data coverage."""
 

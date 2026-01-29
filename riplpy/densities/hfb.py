@@ -1,0 +1,292 @@
+# -*- coding: utf-8 -*-
+"""Python objects which provide access to the HFB (Hartree-Fock-Bogoliubov) level densities
+from the Reference Input Parameter Library (RIPL).
+
+The HFB level densities provide spin-dependent nuclear level densities for both
+positive and negative parities. The data is stored in per-element files (zXXX.tab).
+
+Python 3.10+ is expected to run this code properly.
+
+Examples:
+    (1) Load HFB level densities for iron:
+        $ import riplpy.densities.hfb as hfb
+        $ db = hfb.load_element(Z=26, directory='/path/to/RIPL-4')
+        $ print(db.data)
+
+Authors:
+    * Matthew Mumpower {mumpower@lanl.gov}
+
+"""
+
+# ========================
+
+# OS
+import os as _os
+
+# Dataclasses
+from dataclasses import dataclass as _dataclass
+from dataclasses import field as _field
+
+# Logging
+import logging as _logging
+
+# RIPLpy
+import riplpy.collections as _c
+import riplpy.db as _db
+
+# Module logger
+_logger = _logging.getLogger(__name__)
+
+# ========================
+
+__all__ = ('local_data_dir', 'read_ascii_file', 'Entry', 'Database', 'load_all', 'load_element')
+
+# ========================
+
+# Relative path to database folder
+local_data_dir = _os.path.join("densities", "total", "level-densities-hfb")
+
+# Maximum spin value in the data files
+MAX_SPIN = 50
+
+# ========================
+
+
+def parse_header(line: str) -> tuple:
+    """Parse the header line to extract Z, A, and parity information.
+
+    Header format: '*  Z= 26 A= 42: Positive-Parity Spin-dependent Level Density...'
+    """
+    # Extract Z value
+    z_start = line.find('Z=') + 2
+    z_end = line.find('A=') - 1
+    Z = int(line[z_start:z_end].strip())
+
+    # Extract A value
+    a_start = line.find('A=') + 2
+    a_end = line.find(':')
+    A = int(line[a_start:a_end].strip())
+
+    # Determine parity
+    parity = 1 if 'Positive' in line else -1
+
+    return Z, A, parity
+
+
+def read_ascii_file(fpath: str) -> dict:
+    """Read HFB level density data from an ASCII file and return a dictionary.
+
+    Each file contains data for multiple isotopes of a given element, with both
+    positive and negative parity blocks for each isotope.
+    """
+    d = {}
+
+    current_nuclide = None
+    current_parity = None
+    current_data = None
+    in_data_section = False
+
+    with open(fpath, 'r') as fp:
+        for line in fp:
+            line_stripped = line.strip()
+
+            # Skip empty lines
+            if not line_stripped:
+                continue
+
+            # Check for header block start/end
+            if line_stripped.startswith('*') and 'Z=' in line_stripped and 'A=' in line_stripped:
+                # Parse the header
+                Z, A, parity = parse_header(line_stripped)
+                current_nuclide = _c.Nuclide(Z=Z, A=A)
+                current_parity = parity
+
+                # Initialize nuclide entry if not exists
+                if current_nuclide not in d:
+                    d[current_nuclide] = {
+                        'n': current_nuclide,
+                        'positive_parity': None,
+                        'negative_parity': None
+                    }
+
+                # Initialize parity data structure
+                current_data = {
+                    'U': [],       # Excitation energy [MeV]
+                    'T': [],       # Temperature [MeV]
+                    'Ncumul': [],  # Cumulative level count
+                    'rho_obs': [], # Observed level density
+                    'rho_tot': [], # Total level density
+                    'rho_J': []    # Spin-dependent densities (list of lists)
+                }
+                in_data_section = False
+                continue
+
+            # Skip asterisk-only lines and column headers
+            if line_stripped.startswith('*'):
+                continue
+            if 'U[MeV]' in line_stripped or 'RHOTOT' in line_stripped:
+                in_data_section = True
+                continue
+
+            # Parse data lines
+            if in_data_section and current_data is not None:
+                try:
+                    values = line.split()
+                    if len(values) >= 5:
+                        current_data['U'].append(float(values[0]))
+                        current_data['T'].append(float(values[1]))
+                        current_data['Ncumul'].append(float(values[2]))
+                        current_data['rho_obs'].append(float(values[3]))
+                        current_data['rho_tot'].append(float(values[4]))
+
+                        # Spin-dependent densities (remaining columns)
+                        spin_densities = [float(v) for v in values[5:]]
+                        current_data['rho_J'].append(spin_densities)
+                except (ValueError, IndexError) as e:
+                    _logger.debug(f"Skipping malformed line: {line.strip()}")
+                    continue
+
+            # Check if we've reached the end of a parity block
+            # This happens when we encounter a new header or end of file
+            if current_data is not None and len(current_data['U']) > 0:
+                if current_parity == 1:
+                    d[current_nuclide]['positive_parity'] = current_data.copy()
+                else:
+                    d[current_nuclide]['negative_parity'] = current_data.copy()
+
+    # Finalize the last block
+    if current_data is not None and len(current_data['U']) > 0 and current_nuclide is not None:
+        if current_parity == 1:
+            d[current_nuclide]['positive_parity'] = current_data
+        else:
+            d[current_nuclide]['negative_parity'] = current_data
+
+    return d
+
+
+@_dataclass
+class ParityData:
+    """Level density data for a single parity."""
+
+    U: list = _field(default_factory=list)        # Excitation energy [MeV]
+    T: list = _field(default_factory=list)        # Temperature [MeV]
+    Ncumul: list = _field(default_factory=list)   # Cumulative level count
+    rho_obs: list = _field(default_factory=list)  # Observed level density [MeV^-1]
+    rho_tot: list = _field(default_factory=list)  # Total level density [MeV^-1]
+    rho_J: list = _field(default_factory=list)    # Spin-dependent densities [MeV^-1]
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ParityData":
+        """Create a ParityData object from a dictionary."""
+        if data is None:
+            return None
+        return cls(
+            U=data.get('U', []),
+            T=data.get('T', []),
+            Ncumul=data.get('Ncumul', []),
+            rho_obs=data.get('rho_obs', []),
+            rho_tot=data.get('rho_tot', []),
+            rho_J=data.get('rho_J', [])
+        )
+
+    def get_density_at_energy(self, energy: float) -> dict:
+        """Get level density data at a specific excitation energy."""
+        if not self.U:
+            return None
+
+        # Find the closest energy point
+        closest_idx = min(range(len(self.U)), key=lambda i: abs(self.U[i] - energy))
+
+        return {
+            'U': self.U[closest_idx],
+            'T': self.T[closest_idx],
+            'Ncumul': self.Ncumul[closest_idx],
+            'rho_obs': self.rho_obs[closest_idx],
+            'rho_tot': self.rho_tot[closest_idx],
+            'rho_J': self.rho_J[closest_idx] if self.rho_J else []
+        }
+
+
+@_dataclass
+class Entry(_db.NuclideDatabaseEntry):
+    """An entry in the HFB level density database."""
+
+    n: _c.Nuclide = None
+    positive_parity: ParityData = None
+    negative_parity: ParityData = None
+
+    def get_total_density(self, energy: float, parity: int = None) -> float:
+        """Get total level density at a given excitation energy.
+
+        Args:
+            energy: Excitation energy in MeV
+            parity: +1 for positive, -1 for negative, None for sum of both
+
+        Returns:
+            Total level density in MeV^-1
+        """
+        result = 0.0
+
+        if parity is None or parity == 1:
+            if self.positive_parity is not None:
+                data = self.positive_parity.get_density_at_energy(energy)
+                if data:
+                    result += data['rho_tot']
+
+        if parity is None or parity == -1:
+            if self.negative_parity is not None:
+                data = self.negative_parity.get_density_at_energy(energy)
+                if data:
+                    result += data['rho_tot']
+
+        return result
+
+
+class Database(_db.NuclideDatabase):
+    """The HFB level density database."""
+
+    reader: object = read_ascii_file
+    entry: object = Entry
+    writer: object = None  # Writer not implemented for this complex format
+
+    def load(self, fpath: str) -> None:
+        """Load HFB level density data from an ASCII file."""
+        _data = type(self).reader(fpath)
+        for n, data in _data.items():
+            positive = ParityData.from_dict(data.get('positive_parity'))
+            negative = ParityData.from_dict(data.get('negative_parity'))
+            self.data[n] = Entry(n=n, positive_parity=positive, negative_parity=negative)
+
+    def load_all(self, directory: str) -> None:
+        """Load HFB level densities from all element files."""
+        db_loc = _os.path.join(directory, local_data_dir)
+        if not _os.path.exists(db_loc):
+            _logger.warning(f"HFB level density directory not found: {db_loc}")
+            return
+
+        for fn in _os.listdir(db_loc):
+            if fn.endswith('.tab'):
+                fpath = _os.path.join(db_loc, fn)
+                self.load(fpath)
+
+    def load_element(self, Z: int, directory: str) -> None:
+        """Load HFB level densities for a specific element."""
+        fpath = _os.path.join(directory, local_data_dir, f"z{Z:03d}.tab")
+        if _os.path.exists(fpath):
+            self.load(fpath)
+        else:
+            _logger.warning(f"HFB level density file not found: {fpath}")
+
+
+def load_all(directory: str) -> Database:
+    """Load and return the entire HFB level density database."""
+    db = Database()
+    db.load_all(directory)
+    return db
+
+
+def load_element(Z: int, directory: str) -> Database:
+    """Load and return HFB level densities for a specific element."""
+    db = Database()
+    db.load_element(Z, directory)
+    return db

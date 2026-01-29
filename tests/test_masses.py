@@ -165,6 +165,57 @@ class TestDeformations:
             assert entry.beta2 > 0
 
 
+class TestAbundances:
+    """Tests for the natural abundances database."""
+
+    def test_load_from_directory(self, ripl_path):
+        """Test loading abundances database from RIPL directory."""
+        db = masses.ab.load(directory=ripl_path)
+        assert db is not None
+        assert len(db.data) > 0
+
+    def test_get_hydrogen_abundance(self, ripl_path):
+        """Test retrieving H-1 abundance (most abundant isotope)."""
+        db = masses.ab.load(directory=ripl_path)
+        n = Nuclide(Z=1, A=1)
+        entry = db.get(n)
+        assert entry is not None
+        # H-1 is about 99.98% abundant
+        assert entry.abundance > 99.0
+
+    def test_abundance_sum_for_element(self, ripl_path):
+        """Test that abundances for an element sum to approximately 100%."""
+        db = masses.ab.load(directory=ripl_path)
+        # Get all carbon isotopes (Z=6)
+        carbon_isotopes = [n for n in db.data.keys() if n.Z == 6]
+        total = sum(db.get(n).abundance for n in carbon_isotopes)
+        # Should sum to 100% within small tolerance
+        assert 99.9 < total < 100.1
+
+    def test_all_abundances_positive(self, ripl_path):
+        """Test that all abundances are non-negative."""
+        db = masses.ab.load(directory=ripl_path)
+        for n, entry in db.data.items():
+            assert entry.abundance >= 0, f"Negative abundance for {n}"
+
+    def test_write_and_read_roundtrip(self, ripl_path, temp_output_dir):
+        """Test that writing and re-reading produces identical data."""
+        db = masses.ab.load(directory=ripl_path)
+
+        # Write to temp file
+        output_path = os.path.join(temp_output_dir, "test_abundance.dat")
+        db.save(output_path)
+
+        # Read back
+        db2 = masses.ab.load(file_path=output_path)
+
+        # Compare entries
+        for n in list(db.data.keys())[:20]:
+            orig = db.get(n)
+            new = db2.get(n)
+            assert orig.abundance == pytest.approx(new.abundance, rel=1e-4)
+
+
 class TestMassComparison:
     """Tests comparing different mass models."""
 

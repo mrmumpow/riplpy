@@ -43,15 +43,22 @@ DATA_FILES = {
     # Densities section
     # =================
 
-    # Densities
+    # Level densities
     'densities': os.path.join('densities', 'data', 'densities.dat'),
+    'densities_bsfg': os.path.join('densities', 'level-densities-bfmeff.dat'),
+    'densities_ct': os.path.join('densities', 'level-densities-ctmeff.dat'),
+    'densities_egsm': os.path.join('densities', 'level-densities-egsm.dat'),
+    'densities_egsm_norm': os.path.join('densities', 'level-densities-egsm-norm.dat'),
 
     # Fission section
     # ===============
 
     # Fission Barriers
-    'fission_barriers_empirical': os.path.join('fission', 'data', 'empirical-barriers.dat'),
-    'fission_barriers_hfb': os.path.join('fission', 'data', 'empirical-hfb-barriers.dat'),
+    'fission_barriers_empirical': os.path.join('fission', 'empirical-barriers.dat'),
+    'fission_barriers_empirical_new': os.path.join('fission', 'empirical-barriers-new.dat'),
+    'fission_barriers_empire': os.path.join('fission', 'empirical-barriers-new-EMPIRE.dat'),
+    'fission_barriers_hfb': os.path.join('fission', 'empirical-hfb-barriers.dat'),
+    'fission_barriers_bskg3': os.path.join('fission', 'barriers-bskg3.dat'),
 
     # Gamma section
     # =============
@@ -59,13 +66,13 @@ DATA_FILES = {
     # Gamma-ray strength functions
     'gsf_data': os.path.join('gamma', 'data', 'gsf', 'gsf_Z{Z:03d}A{A:03d}.dat'),
     'gdr_parameters_exp': os.path.join('gamma', 'data', 'ripl3-gdr-parameters&errors-exp-SLO.dat'),
-    'gdr_parameters_theor': os.path.join('gamma', 'data', 'ripl3_gdr-parameters-theor.dat'),
+    'gdr_parameters_theor': os.path.join('gamma', 'gdr-parameters-theor.dat'),
 
     # Levels section
     # ==============
 
     # Levels
-    'levels_param': os.path.join('levels', 'data', 'levels-param.data'),
+    'levels_param': os.path.join('levels', 'levels-param.data'),
     'discrete_levels': os.path.join('levels', 'data', 'discrete', 'z{Z:03d}.dat'),
 
     # Masses section
@@ -80,7 +87,7 @@ DATA_FILES = {
     'mass_hfb14': os.path.join('masses', 'mass-hfb14.dat'),
     'mass_hfb27': os.path.join('masses', 'mass-hfb27.dat'),
     'mass_ws4': os.path.join('masses', 'mass-ws4.dat'),
-    
+
     # Deformations
     'deformations_gs_exp': os.path.join('masses', 'gs-deformations-exp.dat'),
 
@@ -98,8 +105,8 @@ DATA_FILES = {
     # ==================
 
     # Resonances
-    'resonances0': os.path.join('resonances', 'data', 'resonances0.dat'),
-    'resonances1': os.path.join('resonances', 'data', 'resonances1.dat'),
+    'resonances_swave': os.path.join('resonances', 'resonances0.dat'),
+    'resonances_pwave': os.path.join('resonances', 'resonances1.dat'),
 }
 
 def get_data_file_path(key: str, **kwargs) -> str:

@@ -1,23 +1,25 @@
 
 # ========================
 
-# OS
-import os as _os
-
 # Dataclass
 from dataclasses import dataclass as _dataclass
+
+# Functools
+from functools import partial as _partial
 
 # Fortran format
 import fortranformat as _ff
 
 # RIPLpy
+import riplpy.config as _config
 import riplpy.collections as _c
 import riplpy.db as _db
 
 # ========================
 
-# Relative path to database file
-local_file_path = _os.path.join('resonances', 'resonances1.dat')
+# Path key of the database file as defined in config.py
+FILE_PATH_KEY = 'resonances_pwave'
+LOCAL_FILE_PATH = _config.get_data_file_path(FILE_PATH_KEY)
 
 # ========================
 
@@ -90,10 +92,5 @@ class Database(_db.NuclideDatabase):
     writer: object = write_ascii_file
 
 
-def load(directory: str = None, file_path: str = None) -> Database:
-    """Load the database into memory and return it. """
-    if file_path is not None:
-        return _db.load(Database, file_path)
-    elif directory is not None:
-        file_path = _os.path.join(directory, local_file_path)
-        return _db.load(Database, file_path)
+# Create the local 'load' function with config, database object, and file_path_key pre-filled
+load = _partial(_db.loader, config=_config, db_obj=Database, file_path_key=FILE_PATH_KEY)

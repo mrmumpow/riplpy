@@ -1,7 +1,14 @@
 
 
-# Code version 
+# Code version
 __version__ = "0.4.0"
+
+# Logging
+import logging as _logging
+
+# Set up library-level logger with NullHandler (users can configure their own handlers)
+logger = _logging.getLogger(__name__)
+logger.addHandler(_logging.NullHandler())
 
 # Importlib
 import importlib as _im

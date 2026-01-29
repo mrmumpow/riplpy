@@ -26,6 +26,9 @@ from dataclasses import dataclass as _dataclass
 # Functools
 from functools import partial as _partial
 
+# Logging
+import logging as _logging
+
 # Fortran format
 import fortranformat as _ff
 
@@ -34,6 +37,9 @@ import riplpy.config as _config
 import riplpy.collections as _c
 import riplpy.db as _db
 from . import core as _core
+
+# Module logger
+_logger = _logging.getLogger(__name__)
 
 # ========================
 
@@ -83,7 +89,7 @@ def read_ascii_file(fpath: str) -> dict:
                 }
                 data_dict[n] = package
             except Exception as e:
-                print(f"Failed to parse line: {line.strip()}. Error: {e}")
+                _logger.warning("Failed to parse line: %s. Error: %s", line.strip(), e)
     return data_dict
 
 
@@ -112,7 +118,7 @@ def write_ascii_file(fpath: str, data: dict) -> None:
                 )
                 fp.write(writer.write(line) + "\n")
             except Exception as e:
-                print(f"Failed to write entry: {entry}. Error: {e}")
+                _logger.warning("Failed to write entry: %s. Error: %s", entry, e)
 
 
 @_dataclass

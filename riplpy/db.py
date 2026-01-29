@@ -65,9 +65,9 @@ class Database:
     entry : object = None # The object which represents an entry in the database
     writer: object = None # The method to write data to a specified ASCII file
 
-    def __init__(self, data: dict = {}) -> None:
+    def __init__(self, data: dict | None = None) -> None:
         """Initialize the object. """
-        self.data = data
+        self.data = data if data is not None else {}
 
     def load(self, fpath: str) -> None:
         """A generic function for Loading the database from an ASCII file into the data dictionary. 

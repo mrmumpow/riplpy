@@ -2,6 +2,13 @@
 import os
 import subprocess
 
+# Logging
+import logging as _logging
+
+# Module logger
+_logger = _logging.getLogger(__name__)
+
+
 def run_unit_test(cmd: list, test_name: str) -> int:
     """Run the unit test script and capture the return status."""
     try:
@@ -10,18 +17,18 @@ def run_unit_test(cmd: list, test_name: str) -> int:
             capture_output=True,
             text=True
         )
-        # Print the output of the test
-        #print("STDOUT:\n", result.stdout)
-        #print("STDERR:\n", result.stderr)
-
         # Return the exit code
         return result.returncode
     except Exception as e:
-        print(f"Error running the {test_name} unit test: {e}")
+        _logger.error("Error running the %s unit test: %s", test_name, e)
         return 1  # Non-zero status to indicate failure
+
 
 if __name__ == "__main__":
     
+    # Argparse
+    import argparse
+
     # Overall check
     status = 0
 

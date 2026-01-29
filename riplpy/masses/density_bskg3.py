@@ -21,12 +21,18 @@ from collections import defaultdict as _defaultdict
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Logging
+import logging as _logging
+
 # Fortran format
 import fortranformat as _ff
 
 # RIPLpy
 import riplpy.collections as _c
 import riplpy.db as _db
+
+# Module logger
+_logger = _logging.getLogger(__name__)
 
 # ========================
 
@@ -117,15 +123,15 @@ def read_ascii_file(filepath: str) -> dict:
                     density_data[n] = density_entry
 
                 except StopIteration:
-                    print("Unexpected end of file while reading density points.")
+                    _logger.warning("Unexpected end of file while reading density points.")
                     break
                 except Exception as e:
-                    print(f"Failed to parse line: {line}. Error: {e}")
+                    _logger.warning("Failed to parse line: %s. Error: %s", line, e)
 
     except FileNotFoundError:
-        print(f"File not found: {filepath}")
+        _logger.error("File not found: %s", filepath)
     except IOError as e:
-        print(f"Error reading file {filepath}: {e}")
+        _logger.error("Error reading file %s: %s", filepath, e)
 
     return density_data
 
@@ -153,7 +159,7 @@ def write_ascii_file(filepath: str, data: dict) -> None:
                     fp.write(density_line + '\n')
 
     except IOError as e:
-        print(f"Error writing to file {filepath}: {e}")
+        _logger.error("Error writing to file %s: %s", filepath, e)
 
     
 class Database(_db.Database):

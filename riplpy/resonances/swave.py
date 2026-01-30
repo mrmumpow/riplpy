@@ -22,7 +22,7 @@ LOCAL_FILE_PATH = _config.get_data_file_path(FILE_PATH_KEY)
 # ========================
 
 FILE_HEADER = "#                 Resonance data for s-wave resonances \n# Z El  A   Io     Bn        D0        dD      S0    dS    Gg   dG   Com.\n#                 [MeV]     [keV]     [keV]  [1E-4][1E-4][meV][meV]  &Ref\n#========================================================================\n"
-FORTRAN_FORMAT   = '(i3,1x,a2,1x,i3,2x,f3.1,2x,f6.3,2x,2(e8.2,2x),1x,2(f4.2,2x),2(f4.1,1x),2x,a4)'
+FORTRAN_FORMAT   = '(i3,1x,a2,1x,i3,2x,f3.1,2x,f6.3,2x,2(e8.2,2x),1x,2(f4.2,2x),2(f5.1,1x),1x,a4)'
 reader = _ff.FortranRecordReader(FORTRAN_FORMAT)
 writer = _ff.FortranRecordWriter(FORTRAN_FORMAT)
 

@@ -24,19 +24,31 @@ LOCAL_FILE_PATH = _config.get_data_file_path(FILE_PATH_KEY)
 # ========================
 
 FILE_HEADER = "#                 Resonance data for p-wave resonances \n# Z El  A   Io     Bn        D1        dD      S1    dS    Gg   dG   Com.\n#                 [MeV]     [keV]     [keV]  [1E-4][1E-4][meV][meV]  &Ref\n#========================================================================\n"
-FORTRAN_FORMAT   = '(i3,1x,a2,1x,i3,2x,f3.1,2x,f6.3,2x,2(e8.2,2x),1x,2(f4.2,2x),2(f4.1,1x),2x,a4)'
+FORTRAN_FORMAT   = '(i3,1x,a2,1x,i3,2x,f3.1,2x,f6.3,2x,2(e8.2,2x),1x,2(f4.2,2x),2(f5.1,1x),1x,a4)'
 reader = _ff.FortranRecordReader(FORTRAN_FORMAT)
 writer = _ff.FortranRecordWriter(FORTRAN_FORMAT)
 
 # ========================
 
+def _parse_float(value):
+    """Parse a float value, returning None for empty/invalid values."""
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value) if value == value else None  # NaN check
+    s = str(value).strip()
+    if s == '' or s == '****' or s == '*':
+        return None
+    try:
+        return float(s)
+    except (ValueError, TypeError):
+        return None
+
+
 def read_ascii_file(fpath: str) -> dict:
     """Read P-wave data from an ASCII file and return a dictionary. """
     # Placeholder dictionary
     d = {}
-
-    # Skip this many header lines
-    skiprows = 1
 
     # Read data from file
     with open(fpath, 'r') as fp:
@@ -49,11 +61,43 @@ def read_ascii_file(fpath: str) -> dict:
             # @TODO: Inconsistent column ordering; this needs to be fixed in the ASCII file
             A = data[2]
             n       = _c.Nuclide(Z=Z, A=A)
-            package = {'n': n, 'Io': data[3], 'Bn': data[4], 'D': data[5], 'Derr': data[6], 'Str': data[7], 'Serr': data[8],
-                       'Gam': data[9], 'Gerr': data[10], 'ref': data[11],
-                      }
+            package = {
+                'n': n,
+                'Io': _parse_float(data[3]),
+                'Bn': _parse_float(data[4]),
+                'D': _parse_float(data[5]),
+                'Derr': _parse_float(data[6]),
+                'Str': _parse_float(data[7]),
+                'Serr': _parse_float(data[8]),
+                'Gam': _parse_float(data[9]),
+                'Gerr': _parse_float(data[10]),
+                'ref': data[11].strip() if data[11] else '',
+            }
             d[n] = package
     return d
+
+
+def _format_value(value, fmt_type, width, decimals=None):
+    """Format a value for writing, handling None as blank spaces.
+
+    Args:
+        value: The value to format
+        fmt_type: 'i' for integer, 'f' for float, 'e' for exponential, 'a' for string
+        width: Total field width
+        decimals: Number of decimal places (for float/exponential)
+    """
+    if value is None:
+        return ' ' * width
+
+    if fmt_type == 'i':
+        return f"{int(value):>{width}d}"
+    elif fmt_type == 'f':
+        return f"{float(value):>{width}.{decimals}f}"
+    elif fmt_type == 'e':
+        return f"{float(value):>{width}.{decimals}E}"
+    elif fmt_type == 'a':
+        return f"{str(value):<{width}}"
+    return str(value)
 
 
 def write_ascii_file(fpath: str, data: dict) -> None:
@@ -65,8 +109,37 @@ def write_ascii_file(fpath: str, data: dict) -> None:
         fp.write(FILE_HEADER)
         # Loop over data
         for n in data.keys():
-            line = data[n].as_tuple
-            fp.write(writer.write(line)+"\n")
+            entry = data[n]
+            # Format: Z El A  Io  Bn  D  Derr  Str Serr Gam Gerr ref
+            # Build line manually to handle None values
+            line_parts = [
+                _format_value(entry.n.Z, 'i', 3),           # Z
+                ' ',                                         # 1x
+                f"{entry.n.element_symbol:>2}",             # El (a2)
+                ' ',                                         # 1x
+                _format_value(entry.n.A, 'i', 3),           # A
+                '  ',                                        # 2x
+                _format_value(entry.Io, 'f', 3, 1),         # Io (f3.1)
+                '  ',                                        # 2x
+                _format_value(entry.Bn, 'f', 6, 3),         # Bn (f6.3)
+                '  ',                                        # 2x
+                _format_value(entry.D, 'e', 8, 2),          # D (e8.2)
+                '  ',                                        # 2x
+                _format_value(entry.Derr, 'e', 8, 2),       # Derr (e8.2)
+                '  ',                                        # 2x
+                ' ',                                         # 1x
+                _format_value(entry.Str, 'f', 4, 2),        # Str (f4.2)
+                '  ',                                        # 2x
+                _format_value(entry.Serr, 'f', 4, 2),       # Serr (f4.2)
+                '  ',                                        # 2x
+                _format_value(entry.Gam, 'f', 5, 1),        # Gam (f5.1)
+                ' ',                                         # 1x
+                _format_value(entry.Gerr, 'f', 5, 1),       # Gerr (f5.1)
+                ' ',                                         # 1x
+                ' ',                                         # 1x
+                _format_value(entry.ref, 'a', 4),           # ref (a4)
+            ]
+            fp.write(''.join(line_parts) + "\n")
 
 
 @_dataclass

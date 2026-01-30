@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""The base objects which define access to RIPL databases. 
+"""The base objects which define access to RIPL databases.
 
 Python 3.10+ is expected to run this code properly.
 
@@ -11,8 +11,14 @@ Authors:
 # OS
 import os as _os
 
+# CSV
+import csv as _csv
+
+# JSON
+import json as _json
+
 # Dataclasses
-from dataclasses import dataclass as _dataclass, fields as _fields
+from dataclasses import dataclass as _dataclass, fields as _fields, is_dataclass as _is_dataclass
 
 # RIPLpy
 from riplpy.exceptions import NucleusNotFoundError, ElementNotFoundError, FileFormatError, RiplFileNotFoundError
@@ -125,6 +131,179 @@ class Database:
         """Clear the database. """
         del self.data
         self.data = {}
+
+    def _serialize_value(self, value: object) -> object:
+        """Serialize a value for export to JSON/CSV.
+
+        Handles Nuclide/Nucleus objects, nested dicts, lists, and dataclasses.
+        """
+        if value is None:
+            return None
+        elif isinstance(value, (int, float, str, bool)):
+            return value
+        elif hasattr(value, 'Z') and hasattr(value, 'A'):
+            # Nucleus-like object
+            return {'Z': value.Z, 'A': value.A, 'symbol': value.element_symbol}
+        elif _is_dataclass(value) and not isinstance(value, type):
+            # Dataclass instance
+            return {f.name: self._serialize_value(getattr(value, f.name)) for f in _fields(value)}
+        elif isinstance(value, dict):
+            return {k: self._serialize_value(v) for k, v in value.items()}
+        elif isinstance(value, (list, tuple)):
+            return [self._serialize_value(v) for v in value]
+        else:
+            return str(value)
+
+    def _flatten_entry(self, entry: object, prefix: str = '') -> dict:
+        """Flatten an entry into a single-level dictionary for CSV export.
+
+        Nested structures are flattened with dot notation (e.g., 'inner.E[MeV]').
+        """
+        flat = {}
+        entry_dict = entry.as_dict if hasattr(entry, 'as_dict') else vars(entry)
+
+        for key, value in entry_dict.items():
+            full_key = f"{prefix}{key}" if prefix else key
+
+            if value is None:
+                flat[full_key] = None
+            elif isinstance(value, (int, float, str, bool)):
+                flat[full_key] = value
+            elif hasattr(value, 'Z') and hasattr(value, 'A'):
+                # Nucleus-like object - expand to Z, A, symbol
+                flat[f"{full_key}.Z"] = value.Z
+                flat[f"{full_key}.A"] = value.A
+                flat[f"{full_key}.symbol"] = value.element_symbol
+            elif isinstance(value, dict):
+                for k, v in value.items():
+                    flat[f"{full_key}.{k}"] = v
+            elif isinstance(value, (list, tuple)):
+                # For lists, store as JSON string
+                flat[full_key] = _json.dumps(value)
+            elif _is_dataclass(value) and not isinstance(value, type):
+                # Recursively flatten dataclass
+                nested = self._flatten_entry(value, prefix=f"{full_key}.")
+                flat.update(nested)
+            else:
+                flat[full_key] = str(value)
+
+        return flat
+
+    def to_csv(self, fpath: str) -> None:
+        """Export the database to a CSV file.
+
+        Args:
+            fpath: Path to the output CSV file.
+        """
+        if not self.data:
+            return
+
+        # Collect all rows and determine all column names
+        rows = []
+        all_columns = set()
+
+        for key, entry in self.data.items():
+            row = self._flatten_entry(entry)
+            rows.append(row)
+            all_columns.update(row.keys())
+
+        # Sort columns for consistent output
+        # Put Z, A, symbol first if present, then sort alphabetically
+        priority_cols = ['n.Z', 'n.A', 'n.symbol', 'Z', 'A', 'symbol']
+        sorted_cols = []
+        for col in priority_cols:
+            if col in all_columns:
+                sorted_cols.append(col)
+                all_columns.discard(col)
+        sorted_cols.extend(sorted(all_columns))
+
+        # Write CSV
+        with open(fpath, 'w', newline='') as fp:
+            writer = _csv.DictWriter(fp, fieldnames=sorted_cols, extrasaction='ignore')
+            writer.writeheader()
+            for row in rows:
+                writer.writerow(row)
+
+    def to_json(self, fpath: str, indent: int = 2) -> None:
+        """Export the database to a JSON file.
+
+        Args:
+            fpath: Path to the output JSON file.
+            indent: Number of spaces for indentation (default: 2).
+        """
+        if not self.data:
+            with open(fpath, 'w') as fp:
+                _json.dump([], fp)
+            return
+
+        # Serialize all entries
+        entries = []
+        for key, entry in self.data.items():
+            serialized = self._serialize_value(entry.as_dict if hasattr(entry, 'as_dict') else vars(entry))
+            entries.append(serialized)
+
+        with open(fpath, 'w') as fp:
+            _json.dump(entries, fp, indent=indent)
+
+    def to_dataframe(self) -> "pandas.DataFrame":
+        """Export the database to a pandas DataFrame.
+
+        Returns:
+            pandas.DataFrame: A DataFrame with flattened entry data.
+
+        Raises:
+            ImportError: If pandas is not installed.
+        """
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError("pandas is required for to_dataframe(). Install with: pip install pandas")
+
+        if not self.data:
+            return pd.DataFrame()
+
+        # Collect all rows
+        rows = []
+        for key, entry in self.data.items():
+            row = self._flatten_entry(entry)
+            rows.append(row)
+
+        # Create DataFrame
+        df = pd.DataFrame(rows)
+
+        # Reorder columns: Z, A, symbol first
+        priority_cols = ['n.Z', 'n.A', 'n.symbol', 'Z', 'A', 'symbol']
+        existing_priority = [col for col in priority_cols if col in df.columns]
+        other_cols = sorted([col for col in df.columns if col not in priority_cols])
+        df = df[existing_priority + other_cols]
+
+        return df
+
+    def to_list(self) -> list:
+        """Export the database as a list of serialized entry dictionaries.
+
+        Returns:
+            list: A list of dictionaries, one per entry.
+        """
+        entries = []
+        for key, entry in self.data.items():
+            serialized = self._serialize_value(entry.as_dict if hasattr(entry, 'as_dict') else vars(entry))
+            entries.append(serialized)
+        return entries
+
+    def to_flat_list(self) -> list:
+        """Export the database as a list of flattened entry dictionaries.
+
+        Nested structures are flattened with dot notation (e.g., 'inner.E[MeV]').
+
+        Returns:
+            list: A list of flattened dictionaries, one per entry.
+        """
+        rows = []
+        for key, entry in self.data.items():
+            row = self._flatten_entry(entry)
+            rows.append(row)
+        return rows
 
     def __iter__(self, ) -> iter:
         """Return the list of keys for the data property as an iterable. """

@@ -39,7 +39,7 @@ _logger = _logging.getLogger(__name__)
 
 # ========================
 
-__all__ = ('local_data_dir', 'read_ascii_file', 'Entry', 'Database', 'load_all', 'load_element')
+__all__ = ('local_data_dir', 'MAX_SPIN', 'parse_header', 'read_ascii_file', 'ParityData', 'Entry', 'Database', 'load', 'load_all', 'load_element')
 
 # ========================
 
@@ -278,15 +278,32 @@ class Database(_db.NuclideDatabase):
             _logger.warning(f"HFB level density file not found: {fpath}")
 
 
+def load(directory: str = None, file_path: str = None, Z: int = None) -> Database:
+    """Load and return HFB level density data.
+
+    Args:
+        directory: Path to the RIPL directory. If provided without Z, loads all elements.
+        file_path: Direct path to a specific zXXX.tab file.
+        Z: Element number. If provided with directory, loads only that element.
+
+    Returns:
+        Database: An instance of the Database class with the loaded data.
+    """
+    db = Database()
+    if file_path is not None:
+        db.load(file_path)
+    elif directory is not None and Z is not None:
+        db.load_element(Z, directory)
+    elif directory is not None:
+        db.load_all(directory)
+    return db
+
+
 def load_all(directory: str) -> Database:
     """Load and return the entire HFB level density database."""
-    db = Database()
-    db.load_all(directory)
-    return db
+    return load(directory=directory)
 
 
 def load_element(Z: int, directory: str) -> Database:
     """Load and return HFB level densities for a specific element."""
-    db = Database()
-    db.load_element(Z, directory)
-    return db
+    return load(directory=directory, Z=Z)

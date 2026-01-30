@@ -223,12 +223,17 @@ references = set_references(references_string)
 
 def line1_as_tuple(entry: object, ) -> tuple:
     """Return line1 in the ASCII file as a tuple. """
-    return (entry.n.Z, entry.n.A, entry.n.symbol, entry.reac, entry.E1, entry.CS1, entry.W1, entry.E2, entry.CS2, entry.W2, entry.Emin, entry.Emax, entry.reference)
+    # Format: Z A El Id Er1 Wr1 Sr1 Er2 Wr2 Sr2 Sr "Emin - Emax Ref"
+    energy_range_ref = f"{entry.Emin:6.2f} - {entry.Emax:6.2f} {entry.reference}"
+    return (entry.n.Z, entry.n.A, entry.n.element_symbol, entry.Id,
+            entry.Er1, entry.Wr1, entry.Sr1, entry.Er2, entry.Wr2, entry.Sr2, entry.Sr,
+            energy_range_ref)
 
 
 def line2_as_tuple(entry: object, ) -> tuple:
     """Return line2 in the ASCII file as a tuple. """
-    return (entry.E1_error, entry.CS1_error, entry.W1_error, entry.E2_error, entry.CS2_error, entry.W2_error)
+    # Format: dEr1 dWr1 dSr1 dEr2 dWr2 dSr2 dSr
+    return (entry.dEr1, entry.dWr1, entry.dSr1, entry.dEr2, entry.dWr2, entry.dSr2, entry.dSr)
 
 
 def read_ascii_file(fpath: str) -> dict:

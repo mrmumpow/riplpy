@@ -94,7 +94,9 @@ def read_ascii_file(fpath: str) -> dict:
             }
 
             # Create a dictionary entry
+            n = _c.Nuclide(Z=Z, N=N)
             package = {
+                'n': n,
                 'inner': inner,
                 'outer1': outer1,
                 'outer2': outer2,
@@ -102,7 +104,6 @@ def read_ascii_file(fpath: str) -> dict:
             }
 
             # Use Z, N as the key
-            n = _c.Nuclide(Z=Z, N=N)
             d[n] = package
     return d
 
@@ -122,12 +123,22 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An object which represents an entry in the empirical fission barrier database. """
-    
+    """An object which represents an entry in the BSkG3 fission barrier database. """
+
+    n     : _c.Nuclide = None  # Compound nucleus
     inner : dict = None  # Inner fission barrier
-    outer1: dict = None # Outer 1 fission barrier
-    outer2: dict = None # Outer 2 fission barrier
-    isomer: dict = None # Isomer 
+    outer1: dict = None  # Outer 1 fission barrier
+    outer2: dict = None  # Outer 2 fission barrier
+    isomer: dict = None  # Isomer
+
+    @property
+    def as_tuple(self) -> tuple:
+        """Return a tuple representation matching the ASCII file format."""
+        return (self.n.Z, self.n.N,
+                self.inner['E[MeV]'], self.inner['B20'], self.inner['B22'], self.inner['B30'],
+                self.outer1['E[MeV]'], self.outer1['B20'], self.outer1['B22'], self.outer1['B30'],
+                self.outer2['E[MeV]'], self.outer2['B20'], self.outer2['B22'], self.outer2['B30'],
+                self.isomer['E[MeV]'], self.isomer['B20'], self.isomer['B22'], self.isomer['B30']) 
 
 
 class Database(_db.Database):

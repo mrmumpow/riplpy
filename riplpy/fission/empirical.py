@@ -75,6 +75,7 @@ def read_ascii_file(fpath: str) -> dict:
             deltaf = data[9]
 
             package = {
+                       'n': n,
                        'Ea': Ea, 'hwa': hwa, 'syma': syma,
                        'Eb': Eb, 'hwb': hwb, 'symb': symb,
                        'deltaf': deltaf
@@ -99,7 +100,8 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
     """An object which represents an entry in the empirical fission barrier database. """
-    
+
+    n     : _c.Nuclide = None # Compound nucleus
     Ea    : float = None # Generally in [MeV]
     hwa   : float = None # Generally in [MeV]
     syma  : str   = None # shorthand notation for saddle
@@ -107,6 +109,11 @@ class Entry(_db.NuclideDatabaseEntry):
     hwb   : float = None # Generally in [MeV]
     symb  : str   = None # shorthand notation for saddle
     deltaf: float = None # Generally in [MeV]
+
+    @property
+    def as_tuple(self) -> tuple:
+        """Return a tuple representation matching the ASCII file format."""
+        return (self.n.Z, self.n.A, self.n.element_symbol, self.syma, self.Ea, self.hwa, self.symb, self.Eb, self.hwb, self.deltaf)
 
 
 class Database(_db.Database):

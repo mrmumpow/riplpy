@@ -80,7 +80,7 @@ def read_ascii_file(fpath: str) -> dict:
             alphaout2 = data[14]
             deltaout2 = data[15]
 
-            package = {'Bin': Bin, 'hwin': hwin, 'alphain': alphain, 'deltain': deltain,
+            package = {'n': n, 'Bin': Bin, 'hwin': hwin, 'alphain': alphain, 'deltain': deltain,
                        'Bout': Bout, 'hwout': hwout, 'alphaout': alphaout, 'deltaout': deltaout,
                        'Bout2': Bout2, 'hwout2': hwout2, 'alphaout2': alphaout2, 'deltaout2': deltaout2,
                       }
@@ -104,19 +104,28 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
     """An object which represents an entry in the HFB fission barrier database. """
-    
-    Bin      : float = None # Comment
-    hwin     : float = None # Comment
-    alphain  : float = None # Comment
-    deltain  : float = None # Comment
-    Bout     : float = None # Comment
-    hwout    : float = None # Comment
-    alphaout : float = None # Comment
-    deltaout : float = None # Comment
-    Bout2    : float = None # Comment
-    hwout2   : float = None # Comment
-    alphaout2: float = None # Comment
-    deltaout2: float = None # Comment
+
+    n        : _c.Nuclide = None # Compound nucleus
+    Bin      : float = None # Inner barrier height [MeV]
+    hwin     : float = None # Inner barrier width [MeV]
+    alphain  : float = None # Inner barrier alpha [MeV^-1/2]
+    deltain  : float = None # Inner barrier delta [MeV]
+    Bout     : float = None # Outer barrier height [MeV]
+    hwout    : float = None # Outer barrier width [MeV]
+    alphaout : float = None # Outer barrier alpha [MeV^-1/2]
+    deltaout : float = None # Outer barrier delta [MeV]
+    Bout2    : float = None # Second outer barrier height [MeV]
+    hwout2   : float = None # Second outer barrier width [MeV]
+    alphaout2: float = None # Second outer barrier alpha [MeV^-1/2]
+    deltaout2: float = None # Second outer barrier delta [MeV]
+
+    @property
+    def as_tuple(self) -> tuple:
+        """Return a tuple representation matching the ASCII file format."""
+        return (self.n.Z, self.n.N, self.n.A, self.n.element_symbol,
+                self.Bin, self.hwin, self.alphain, self.deltain,
+                self.Bout, self.hwout, self.alphaout, self.deltaout,
+                self.Bout2, self.hwout2, self.alphaout2, self.deltaout2)
 
 
 class Database(_db.Database):

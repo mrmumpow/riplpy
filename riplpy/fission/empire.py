@@ -77,7 +77,7 @@ def read_ascii_file(fpath: str) -> dict:
             Deltaf = data[11] if len(data) > 11 else None
 
             # Create an entry
-            package = {'symmetry': symmetry, 'Va': Va, 'hwa': hwa, 'Symb': Symb, 'Vb': Vb, 'hwb': hwb, 'Vc': Vc, 'Deltaf': Deltaf}
+            package = {'n': n, 'symmetry': symmetry, 'Va': Va, 'hwa': hwa, 'Symb': Symb, 'Vb': Vb, 'hwb': hwb, 'Vc': Vc, 'Deltaf': Deltaf}
             d[n] = package
 
             #except ValueError as e:
@@ -104,6 +104,7 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 class Entry(_db.NuclideDatabaseEntry):
     """An object which represents an entry in the empirical fission barrier database. """
 
+    n       : _c.Nuclide = None
     symmetry: str   = None
     Va      : float = None
     hwa     : float = None
@@ -112,6 +113,13 @@ class Entry(_db.NuclideDatabaseEntry):
     hwb     : float = None
     Vc      : float = None
     Deltaf  : float = None
+
+    @property
+    def as_tuple(self) -> tuple:
+        """Return a tuple representation matching the ASCII file format."""
+        marker = '*' if self.Vc is not None else ' '
+        return (marker, self.n.Z, self.n.A, self.n.element_symbol, self.symmetry, self.Va, self.hwa,
+                self.Symb, self.Vb, self.hwb, self.Vc, self.Deltaf)
 
 
 class Database(_db.Database):

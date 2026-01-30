@@ -84,7 +84,7 @@ def read_ascii_file(fpath: str) -> dict:
             dwc  = None if (data[17] is None or str(data[17]).strip() == "") else float(data[17]) # Uncertainty in width C
 
             # Create an entry
-            package = {'s': s, 'syma': syma, 'Va': Va, 'dVa': dVa, 'hwa': hwa, 'dwa': dwa,
+            package = {'n': n, 's': s, 'syma': syma, 'Va': Va, 'dVa': dVa, 'hwa': hwa, 'dwa': dwa,
                        'symb': symb, 'Vb': Vb, 'dVb': dVb, 'hwb': hwb, 'dwb': dwb,
                        'Vc': Vc, 'Dvc': Dvc, 'hwc': hwc, 'dwc': dwc}
 
@@ -110,7 +110,8 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
     """An object which represents an entry in the empirical fission barrier database. """
-    
+
+    n: _c.Nuclide = None  # Compound nucleus
     s: str     = None  # Symbol
     syma: str  = None  # Symmetry for barrier A
     Va: float  = None  # Barrier height A
@@ -126,6 +127,14 @@ class Entry(_db.NuclideDatabaseEntry):
     Dvc: float = None  # Uncertainty in Vc
     hwc: float = None  # Barrier width C
     dwc: float = None  # Uncertainty in width C
+
+    @property
+    def as_tuple(self) -> tuple:
+        """Return a tuple representation matching the ASCII file format."""
+        # First character is blank or '*' for triaxial
+        marker = '*' if self.Vc is not None else ' '
+        return (marker, self.n.Z, self.n.A, self.s, self.syma, self.Va, self.dVa, self.hwa, self.dwa,
+                self.symb, self.Vb, self.dVb, self.hwb, self.dwb, self.Vc, self.Dvc, self.hwc, self.dwc)
 
 
 class Database(_db.Database):

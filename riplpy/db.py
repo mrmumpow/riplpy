@@ -20,6 +20,9 @@ import json as _json
 # Dataclasses
 from dataclasses import dataclass as _dataclass, fields as _fields, is_dataclass as _is_dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # RIPLpy
 from riplpy.exceptions import NucleusNotFoundError, ElementNotFoundError, FileFormatError, RiplFileNotFoundError
 
@@ -28,6 +31,10 @@ __all__ = ('DatabaseEntry', 'NuclideDatabaseEntry', 'Database', 'NuclideDatabase
 @_dataclass
 class DatabaseEntry:
     """A generic database entry. This class is expected to be extended. """
+
+    # Class-level metadata for field descriptions (override in subclasses)
+    # Format: {'field_name': 'description with [units]'}
+    _field_info: _ClassVar[dict] = {}
 
     @property
     def as_list(self, ) -> list:
@@ -46,6 +53,71 @@ class DatabaseEntry:
         for f in _fields(self.__class__):
             d[f.name] = getattr(self, f.name)
         return d
+
+    def __repr__(self) -> str:
+        """Return a pretty string representation of the entry."""
+        class_name = type(self).__name__
+        field_strs = []
+        for f in _fields(self.__class__):
+            value = getattr(self, f.name)
+            # Format based on type
+            if isinstance(value, float):
+                field_strs.append(f"{f.name}={value:.4g}")
+            elif isinstance(value, str) and len(value) > 20:
+                field_strs.append(f"{f.name}='{value[:17]}...'")
+            elif hasattr(value, 'Z') and hasattr(value, 'A'):
+                # Nucleus-like object
+                field_strs.append(f"{f.name}={value.element_symbol}-{value.A}")
+            else:
+                field_strs.append(f"{f.name}={value!r}")
+        return f"{class_name}({', '.join(field_strs)})"
+
+    def summary(self) -> str:
+        """Return a formatted summary of the entry with field descriptions."""
+        lines = [f"Entry: {type(self).__name__}"]
+        lines.append("-" * 40)
+
+        # Get field info if available
+        field_info = getattr(type(self), '_field_info', None) or {}
+
+        for f in _fields(self.__class__):
+            value = getattr(self, f.name)
+            desc = field_info.get(f.name, '')
+
+            # Format value
+            if isinstance(value, float):
+                val_str = f"{value:.6g}"
+            elif hasattr(value, 'Z') and hasattr(value, 'A'):
+                val_str = f"{value.element_symbol}-{value.A} (Z={value.Z}, N={value.N})"
+            else:
+                val_str = repr(value)
+
+            # Build line
+            if desc:
+                lines.append(f"  {f.name}: {val_str}")
+                lines.append(f"       {desc}")
+            else:
+                lines.append(f"  {f.name}: {val_str}")
+
+        return "\n".join(lines)
+
+    @classmethod
+    def fields(cls) -> list:
+        """Return list of field names for this entry type."""
+        return [f.name for f in _fields(cls)]
+
+    @classmethod
+    def field_info(cls) -> dict:
+        """Return field information including types and descriptions."""
+        info = {}
+        field_descriptions = getattr(cls, '_field_info', None) or {}
+
+        for f in _fields(cls):
+            info[f.name] = {
+                'type': str(f.type) if f.type else 'Any',
+                'description': field_descriptions.get(f.name, ''),
+            }
+        return info
 
 
 @_dataclass
@@ -100,6 +172,144 @@ class Database:
                     z_info = f", Z={z_min}-{z_max}"
 
         return f"<{class_name}: {module_name} ({count} entries{z_info})>"
+
+    def info(self) -> str:
+        """Return detailed information about this database.
+
+        Returns:
+            A formatted string with database statistics and metadata.
+
+        Examples:
+            >>> print(db.info())
+            Database: masses.ame20
+            ----------------------------------------
+            Type: Database
+            Entries: 3558
+            Z range: 0 - 118
+            Entry type: Entry
+            Fields: n, flag, Mexp, Err
+        """
+        lines = []
+        class_name = type(self).__name__
+        module_name = type(self).__module__
+        if module_name.startswith('riplpy.'):
+            module_name = module_name[7:]
+
+        lines.append(f"Database: {module_name}")
+        lines.append("-" * 40)
+        lines.append(f"Type: {class_name}")
+        lines.append(f"Entries: {len(self.data)}")
+
+        # Z/A range for nuclide databases
+        if self.data:
+            keys = list(self.data.keys())
+            if hasattr(keys[0], 'Z'):
+                z_values = [k.Z for k in keys if hasattr(k, 'Z')]
+                a_values = [k.A for k in keys if hasattr(k, 'A')]
+                if z_values:
+                    lines.append(f"Z range: {min(z_values)} - {max(z_values)}")
+                if a_values:
+                    lines.append(f"A range: {min(a_values)} - {max(a_values)}")
+
+        # Entry type info
+        if self.entry:
+            entry_name = self.entry.__name__ if hasattr(self.entry, '__name__') else str(self.entry)
+            lines.append(f"Entry type: {entry_name}")
+
+            # Field names
+            if hasattr(self.entry, 'fields') and callable(self.entry.fields):
+                fields = self.entry.fields()
+                lines.append(f"Fields: {', '.join(fields)}")
+
+        return "\n".join(lines)
+
+    def describe(self) -> str:
+        """Return detailed field descriptions for entries in this database.
+
+        Returns:
+            A formatted string describing each field in the entry type.
+
+        Examples:
+            >>> print(db.describe())
+            Entry Fields for: Entry
+            ----------------------------------------
+            n          : Nuclide - Target nucleus
+            Mexp       : float   - Experimental mass excess [MeV]
+            Err        : float   - Mass excess uncertainty [MeV]
+        """
+        lines = []
+
+        if not self.entry:
+            return "No entry type defined for this database."
+
+        entry_name = self.entry.__name__ if hasattr(self.entry, '__name__') else str(self.entry)
+        lines.append(f"Entry Fields for: {entry_name}")
+        lines.append("-" * 40)
+
+        # Get field info if available
+        if hasattr(self.entry, 'field_info') and callable(self.entry.field_info):
+            field_info = self.entry.field_info()
+            for name, info in field_info.items():
+                type_str = info.get('type', 'Any')
+                # Simplify type strings
+                type_str = type_str.replace("<class '", "").replace("'>", "")
+                type_str = type_str.replace("riplpy.collections.", "")
+                desc = info.get('description', '')
+
+                if desc:
+                    lines.append(f"  {name:12}: {type_str:10} - {desc}")
+                else:
+                    lines.append(f"  {name:12}: {type_str}")
+        elif hasattr(self.entry, 'fields') and callable(self.entry.fields):
+            # Fallback: just list field names
+            for name in self.entry.fields():
+                lines.append(f"  {name}")
+
+        return "\n".join(lines)
+
+    def sample(self, n: int = 1) -> object | list:
+        """Return sample entry/entries from the database.
+
+        Args:
+            n: Number of samples to return (default: 1)
+
+        Returns:
+            Single entry if n=1, otherwise list of entries
+
+        Examples:
+            >>> entry = db.sample()
+            >>> entries = db.sample(5)
+        """
+        if not self.data:
+            return None if n == 1 else []
+
+        import itertools
+        keys = list(itertools.islice(self.data.keys(), n))
+
+        if n == 1:
+            return self.data[keys[0]]
+        return [self.data[k] for k in keys]
+
+    def head(self, n: int = 5) -> None:
+        """Print the first n entries in a formatted table.
+
+        Args:
+            n: Number of entries to display (default: 5)
+
+        Examples:
+            >>> db.head()
+            >>> db.head(10)
+        """
+        if not self.data:
+            print("(empty database)")
+            return
+
+        keys = list(self.data.keys())[:n]
+        for key in keys:
+            entry = self.data[key]
+            print(entry)
+        if len(self.data) > n:
+            print(f"... ({len(self.data) - n} more entries)")
 
     def load(self, fpath: str) -> None:
         """A generic function for Loading the database from an ASCII file into the data dictionary. 

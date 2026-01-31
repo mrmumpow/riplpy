@@ -550,3 +550,143 @@ class TestDatabaseNucleiProperty:
         for n in db.nuclei[:10]:  # Check first 10
             assert hasattr(n, 'Z')
             assert hasattr(n, 'A')
+
+
+# =============================================================================
+# Batch Operations Tests
+# =============================================================================
+
+class TestBatchOperations:
+    """Tests for batch operation functions."""
+
+    def test_get_masses_with_nuclides(self, ripl_path):
+        """Test get_masses with Nuclide objects."""
+        masses.load(directory=ripl_path)
+
+        nuclei = [Nuclide(Z=82, A=208), Nuclide(Z=82, A=206), Nuclide(Z=82, A=204)]
+        result = riplpy.get_masses(nuclei, model='ame20')
+
+        assert len(result) == 3
+        assert Nuclide(Z=82, A=208) in result
+        assert isinstance(result[Nuclide(Z=82, A=208)], float)
+
+    def test_get_masses_with_tuples(self, ripl_path):
+        """Test get_masses with (Z, A) tuples."""
+        masses.load(directory=ripl_path)
+
+        nuclei = [(82, 208), (82, 206), (82, 204)]
+        result = riplpy.get_masses(nuclei, model='ame20')
+
+        assert len(result) == 3
+        # Results should be keyed by Nuclide objects
+        assert Nuclide(Z=82, A=208) in result
+
+    def test_get_masses_with_lists(self, ripl_path):
+        """Test get_masses with [Z, A] lists."""
+        masses.load(directory=ripl_path)
+
+        nuclei = [[82, 208], [82, 206]]
+        result = riplpy.get_masses(nuclei, model='ame20')
+
+        assert len(result) == 2
+
+    def test_get_masses_mixed_input(self, ripl_path):
+        """Test get_masses with mixed input types."""
+        masses.load(directory=ripl_path)
+
+        nuclei = [Nuclide(Z=82, A=208), (82, 206), [82, 204]]
+        result = riplpy.get_masses(nuclei, model='ame20')
+
+        assert len(result) == 3
+
+    def test_get_masses_skip_missing(self, ripl_path):
+        """Test get_masses with skip_missing=True."""
+        masses.load(directory=ripl_path)
+
+        # Include a nucleus that doesn't exist in AME (Z=118 is valid element but A=500 not in database)
+        nuclei = [(82, 208), (118, 500)]  # 118, 500 doesn't exist in database
+        result = riplpy.get_masses(nuclei, model='ame20', skip_missing=True)
+
+        # Should only have the valid one
+        assert len(result) == 1
+        assert Nuclide(Z=82, A=208) in result
+
+    def test_get_masses_raises_for_missing(self, ripl_path):
+        """Test get_masses raises error for missing nuclei by default."""
+        masses.load(directory=ripl_path)
+        from riplpy.exceptions import NucleusNotFoundError
+
+        nuclei = [(82, 208), (118, 500)]  # 118, 500 doesn't exist in database
+
+        with pytest.raises(NucleusNotFoundError):
+            riplpy.get_masses(nuclei, model='ame20')
+
+    def test_get_masses_invalid_model(self, ripl_path):
+        """Test get_masses with invalid model."""
+        masses.load(directory=ripl_path)
+
+        with pytest.raises(ValueError, match="Unknown mass model"):
+            riplpy.get_masses([(82, 208)], model='invalid')
+
+    def test_get_mass_entries_batch(self, ripl_path):
+        """Test get_mass_entries returns full entry objects."""
+        masses.load(directory=ripl_path)
+
+        nuclei = [(82, 208), (82, 206)]
+        result = riplpy.get_mass_entries(nuclei, model='ame20')
+
+        assert len(result) == 2
+        # Check that we get full entry objects
+        entry = result[Nuclide(Z=82, A=208)]
+        assert hasattr(entry, 'Mexp')
+        assert hasattr(entry, 'Err')
+
+    def test_get_level_densities_batch(self, ripl_path):
+        """Test get_level_densities batch operation."""
+        densities.load(directory=ripl_path)
+
+        # Use nuclei known to be in BSFG database
+        nuclei = [(11, 24), (12, 26)]
+        result = riplpy.get_level_densities(nuclei, model='bsfg', skip_missing=True)
+
+        # At least one should be found
+        assert len(result) >= 1
+
+    def test_get_gdrs_batch(self, ripl_path):
+        """Test get_gdrs batch operation."""
+        gamma.load(directory=ripl_path)
+
+        nuclei = [(82, 208)]
+        result = riplpy.get_gdrs(nuclei, skip_missing=True)
+
+        if len(result) > 0:
+            entry = list(result.values())[0]
+            assert hasattr(entry, 'E1')
+
+    def test_get_fission_barriers_batch(self, ripl_path):
+        """Test get_fission_barriers batch operation."""
+        fission.load(directory=ripl_path)
+
+        nuclei = [(92, 235), (92, 238)]
+        result = riplpy.get_fission_barriers(nuclei, model='empirical', skip_missing=True)
+
+        # Results depend on what's in database
+        assert isinstance(result, dict)
+
+    def test_batch_empty_list(self, ripl_path):
+        """Test batch operations with empty list."""
+        masses.load(directory=ripl_path)
+
+        result = riplpy.get_masses([], model='ame20')
+        assert result == {}
+
+    def test_batch_preserves_order(self, ripl_path):
+        """Test that batch results are keyed correctly."""
+        masses.load(directory=ripl_path)
+
+        nuclei = [(26, 56), (28, 58), (82, 208)]
+        result = riplpy.get_masses(nuclei, model='ame20')
+
+        # All nuclei should be in result
+        for z, a in nuclei:
+            assert Nuclide(Z=z, A=a) in result

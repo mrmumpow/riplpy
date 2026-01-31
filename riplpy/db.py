@@ -75,6 +75,32 @@ class Database:
         """Initialize the object. """
         self.data = data if data is not None else {}
 
+    def __repr__(self) -> str:
+        """Return a string representation of the database."""
+        class_name = type(self).__name__
+        module_name = type(self).__module__
+
+        # Try to get a short module path (e.g., 'masses.ame20' from 'riplpy.masses.ame20')
+        if module_name.startswith('riplpy.'):
+            module_name = module_name[7:]  # Remove 'riplpy.' prefix
+
+        count = len(self.data)
+
+        if count == 0:
+            return f"<{class_name}: {module_name} (empty)>"
+
+        # Try to get Z range for nuclide databases
+        z_info = ""
+        if self.data:
+            keys = list(self.data.keys())
+            if hasattr(keys[0], 'Z'):
+                z_values = [k.Z for k in keys if hasattr(k, 'Z')]
+                if z_values:
+                    z_min, z_max = min(z_values), max(z_values)
+                    z_info = f", Z={z_min}-{z_max}"
+
+        return f"<{class_name}: {module_name} ({count} entries{z_info})>"
+
     def load(self, fpath: str) -> None:
         """A generic function for Loading the database from an ASCII file into the data dictionary. 
            This method may need to be extended; it may not work in every case. 

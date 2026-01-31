@@ -22,6 +22,17 @@ db = _DbAccessor()
 
 # ========================
 
+# Model map: user-friendly name -> db attribute name
+BARRIER_MODELS = {
+    'empirical': 'empirical_barriers',
+    'empirical_new': 'empirical_barriers_new',
+    'empire': 'empire_barriers',
+    'hfb': 'hfb_barriers',
+    'bskg3': 'bskg3_barriers',
+}
+
+# ========================
+
 def load(directory: str) -> None:
     """Load the entire database of the Fission section of RIPL from a specified directory. 
 

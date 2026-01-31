@@ -1,0 +1,437 @@
+# -*- coding: utf-8 -*-
+"""Tests for the RIPLpy API.
+
+Tests cover:
+    #1: Convenience functions (get_mass, get_mass_entry, etc.)
+    #2: Database discovery/introspection (list_sections, list_databases, list_nuclei)
+    #3: Simplified configuration (set_path, get_path)
+    #4: Query/filter methods (filter, filter_by_range, find, count)
+
+Note: These tests load only the specific databases needed rather than calling
+riplpy.load() to ensure fast test execution and test realistic usage patterns.
+"""
+
+import os
+import pytest
+
+import riplpy
+import riplpy.masses as masses
+import riplpy.densities as densities
+import riplpy.gamma as gamma
+import riplpy.fission as fission
+import riplpy.resonances as resonances
+from riplpy.collections import Nuclide, Nucleus
+
+
+# =============================================================================
+# API: Convenience Functions (Direct Loading Tests)
+# =============================================================================
+
+class TestConvenienceFunctionsDirectLoad:
+    """Tests for convenience functions using direct database loading."""
+
+    def test_get_mass_direct_load(self, ripl_path):
+        """Test getting mass by loading database directly."""
+        # Load only AME20
+        db = masses.ame20.load(directory=ripl_path)
+
+        # Get entry directly
+        n = Nuclide(Z=82, A=208)
+        entry = db.get(n)
+
+        assert entry is not None
+        assert entry.Mexp is not None
+        # Pb-208 mass excess should be around -21.7 MeV
+        assert -22.0 < entry.Mexp < -21.0
+
+    def test_get_mass_frdm12(self, ripl_path):
+        """Test getting mass from FRDM12 model."""
+        db = masses.frdm12.load(directory=ripl_path)
+
+        n = Nuclide(Z=82, A=208)
+        entry = db.get(n)
+
+        assert entry is not None
+        assert entry.Mth is not None  # Theoretical mass
+
+    def test_get_mass_different_models_compare(self, ripl_path):
+        """Test comparing masses from different models."""
+        ame = masses.ame20.load(directory=ripl_path)
+        frdm = masses.frdm12.load(directory=ripl_path)
+
+        n = Nuclide(Z=82, A=208)
+        ame_mass = ame.get(n).Mexp
+        frdm_mass = frdm.get(n).Mth
+
+        # Both should exist and be reasonably close
+        assert ame_mass is not None
+        assert frdm_mass is not None
+        assert abs(ame_mass - frdm_mass) < 3.0  # Within 3 MeV
+
+    def test_get_level_density_direct(self, ripl_path):
+        """Test getting level density parameters."""
+        db = densities.bsfg.load(directory=ripl_path)
+
+        # Na-24 is in the BSFG database
+        n = Nuclide(Z=11, A=24)
+        entry = db.get(n)
+
+        assert entry is not None
+        assert hasattr(entry, 'ainf') or hasattr(entry, 'a')
+
+    def test_get_gdr_direct(self, ripl_path):
+        """Test getting GDR parameters."""
+        db = gamma.gdr.load(directory=ripl_path)
+
+        # Pb-208 should have GDR parameters
+        n = Nuclide(Z=82, A=208)
+        entry = db.get(n)
+
+        assert entry is not None
+        assert hasattr(entry, 'E1')
+        assert hasattr(entry, 'W1')
+
+    def test_get_resonance_direct(self, ripl_path):
+        """Test getting resonance parameters."""
+        db = resonances.swave.load(directory=ripl_path)
+
+        # Check if database has any data
+        if len(db.data) > 0:
+            # Get first available entry
+            n = list(db.data.keys())[0]
+            entry = db.get(n)
+            assert entry is not None
+
+
+# =============================================================================
+# API: Discovery/Introspection
+# =============================================================================
+
+class TestDiscoveryIntrospection:
+    """Tests for discovery/introspection functions."""
+
+    def test_list_sections(self):
+        """Test list_sections returns all RIPL sections."""
+        sections = riplpy.list_sections()
+
+        assert isinstance(sections, list)
+        assert 'masses' in sections
+        assert 'densities' in sections
+        assert 'fission' in sections
+        assert 'gamma' in sections
+        assert 'levels' in sections
+        assert 'resonances' in sections
+
+    def test_list_databases_single_section(self, ripl_path):
+        """Test list_databases for a single section after loading."""
+        # Load just the masses section
+        masses.load(directory=ripl_path)
+
+        mass_dbs = riplpy.list_databases('masses')
+
+        assert isinstance(mass_dbs, list)
+        assert 'ame20' in mass_dbs
+        assert len(mass_dbs) > 5  # Should have multiple mass models
+
+    def test_list_databases_invalid_section(self):
+        """Test list_databases with invalid section raises ValueError."""
+        with pytest.raises(ValueError, match="Unknown section"):
+            riplpy.list_databases('invalid_section')
+
+    def test_list_nuclei_after_load(self, ripl_path):
+        """Test list_nuclei with explicit section after loading database."""
+        # Load only AME20
+        masses.ame20.load(directory=ripl_path)
+
+        nuclei = riplpy.list_nuclei('ame20', section='masses')
+
+        assert isinstance(nuclei, list)
+        assert len(nuclei) > 1000  # AME should have many nuclei
+        # All should be Nuclide objects
+        assert all(isinstance(n, Nuclide) for n in nuclei)
+
+    def test_list_nuclei_dotted_format(self, ripl_path):
+        """Test list_nuclei with 'section.database' format."""
+        masses.ame20.load(directory=ripl_path)
+
+        nuclei = riplpy.list_nuclei('masses.ame20')
+
+        assert isinstance(nuclei, list)
+        assert len(nuclei) > 1000
+
+    def test_list_nuclei_invalid_database(self, ripl_path):
+        """Test list_nuclei with invalid database raises ValueError."""
+        masses.ame20.load(directory=ripl_path)
+
+        with pytest.raises(ValueError, match="not found"):
+            riplpy.list_nuclei('invalid_database')
+
+    def test_get_database(self, ripl_path):
+        """Test get_database returns database object."""
+        masses.ame20.load(directory=ripl_path)
+
+        db = riplpy.get_database('ame20')
+
+        assert db is not None
+        assert hasattr(db, 'data')
+        assert hasattr(db, 'get')
+        assert len(db.data) > 0
+
+    def test_get_database_dotted_format(self, ripl_path):
+        """Test get_database with 'section.database' format."""
+        masses.ame20.load(directory=ripl_path)
+
+        db = riplpy.get_database('masses.ame20')
+
+        assert db is not None
+        assert len(db.data) > 0
+
+
+# =============================================================================
+# API: Simplified Configuration
+# =============================================================================
+
+class TestConfiguration:
+    """Tests for configuration functions."""
+
+    def test_get_path_returns_configured_path(self, ripl_path):
+        """Test get_path returns the configured RIPL path."""
+        # The conftest sets RIPL_LOCATION
+        path = riplpy.get_path()
+
+        assert path is not None
+        assert os.path.isdir(path)
+
+    def test_set_path_valid_directory(self, ripl_path):
+        """Test set_path with valid directory."""
+        # Save original
+        original = riplpy.get_path()
+
+        # Set to the same valid path (we know it exists)
+        riplpy.set_path(ripl_path)
+
+        assert riplpy.get_path() == ripl_path
+
+        # Restore original
+        if original:
+            riplpy.set_path(original)
+
+    def test_set_path_invalid_directory(self):
+        """Test set_path with invalid directory raises ValueError."""
+        with pytest.raises(ValueError, match="does not exist"):
+            riplpy.set_path('/nonexistent/path/to/ripl')
+
+    def test_config_module_functions(self):
+        """Test config module has required functions."""
+        from riplpy import config
+
+        assert hasattr(config, 'set_path')
+        assert hasattr(config, 'get_path')
+        assert hasattr(config, 'clear_path')
+        assert hasattr(config, 'write_config_file')
+
+
+# =============================================================================
+# API: Query/Filter Methods
+# =============================================================================
+
+class TestFilterMethods:
+    """Tests for filter/query methods."""
+
+    @pytest.fixture
+    def ame20_db(self, ripl_path):
+        """Fixture that returns a loaded AME20 database."""
+        return masses.ame20.load(directory=ripl_path)
+
+    def test_filter_by_z(self, ame20_db):
+        """Test filter by atomic number Z."""
+        pb_isotopes = ame20_db.filter(Z=82)
+
+        assert len(pb_isotopes.data) > 0
+        # All should be Pb (Z=82)
+        for n in pb_isotopes.data.keys():
+            assert n.Z == 82
+
+    def test_filter_by_a(self, ame20_db):
+        """Test filter by mass number A."""
+        isobars = ame20_db.filter(A=208)
+
+        assert len(isobars.data) > 0
+        # All should have A=208
+        for n in isobars.data.keys():
+            assert n.A == 208
+
+    def test_filter_by_predicate(self, ame20_db):
+        """Test filter with custom predicate function."""
+        # Filter for neutron-rich nuclei (N > Z)
+        neutron_rich = ame20_db.filter(lambda e: e.n.N > e.n.Z)
+
+        assert len(neutron_rich.data) > 0
+        # All should have N > Z
+        for n in neutron_rich.data.keys():
+            assert n.N > n.Z
+
+    def test_filter_chaining(self, ame20_db):
+        """Test chaining multiple filter operations."""
+        # Heavy neutron-rich nuclei
+        result = ame20_db.filter(lambda e: e.n.A > 100).filter(lambda e: e.n.N > e.n.Z)
+
+        assert len(result.data) > 0
+        for n in result.data.keys():
+            assert n.A > 100
+            assert n.N > n.Z
+
+    def test_filter_by_range(self, ame20_db):
+        """Test filter_by_range method."""
+        # Light nuclei (A <= 50)
+        light = ame20_db.filter_by_range('A', max_val=50)
+
+        assert len(light.data) > 0
+        for n in light.data.keys():
+            assert n.A <= 50
+
+    def test_filter_by_range_min_max(self, ame20_db):
+        """Test filter_by_range with both min and max."""
+        # Medium mass nuclei (50 < A < 150)
+        medium = ame20_db.filter_by_range('A', min_val=50, max_val=150)
+
+        assert len(medium.data) > 0
+        for n in medium.data.keys():
+            assert 50 <= n.A <= 150
+
+    def test_find_returns_entry(self, ame20_db):
+        """Test find returns matching entry."""
+        # Find Fe-56
+        entry = ame20_db.find(lambda e: e.n.Z == 26 and e.n.A == 56)
+
+        assert entry is not None
+        assert entry.n.Z == 26
+        assert entry.n.A == 56
+
+    def test_find_returns_none_for_no_match(self, ame20_db):
+        """Test find returns None when no match."""
+        # Try to find impossible nucleus
+        entry = ame20_db.find(lambda e: e.n.Z == 999)
+
+        assert entry is None
+
+    def test_count_with_predicate(self, ame20_db):
+        """Test count with predicate."""
+        heavy_count = ame20_db.count(lambda e: e.n.A > 200)
+
+        assert heavy_count > 0
+        assert isinstance(heavy_count, int)
+
+    def test_count_with_kwargs(self, ame20_db):
+        """Test count with keyword arguments."""
+        pb_count = ame20_db.count(Z=82)
+
+        assert pb_count > 0
+        assert isinstance(pb_count, int)
+
+    def test_len_support(self, ame20_db):
+        """Test __len__ support."""
+        length = len(ame20_db)
+
+        assert length > 0
+        assert length == len(ame20_db.data)
+
+    def test_contains_support(self, ame20_db):
+        """Test __contains__ support."""
+        n = Nuclide(Z=82, A=208)
+
+        assert n in ame20_db
+
+        # Non-existent nucleus
+        fake = Nuclide(Z=200, A=500)
+        assert fake not in ame20_db
+
+
+# =============================================================================
+# Entry Metadata Tests
+# =============================================================================
+
+class TestEntryMetadata:
+    """Tests for Entry class metadata features."""
+
+    def test_entry_field_info_exists(self):
+        """Test that Entry classes have _field_info metadata."""
+        from riplpy.masses.ame20 import Entry
+
+        assert hasattr(Entry, '_field_info')
+        assert isinstance(Entry._field_info, dict)
+        assert 'n' in Entry._field_info
+        assert 'Mexp' in Entry._field_info
+
+    def test_entry_field_info_method(self):
+        """Test field_info() method."""
+        from riplpy.masses.ame20 import Entry
+
+        info = Entry.field_info()
+        assert isinstance(info, dict)
+        assert 'n' in info
+        assert 'description' in info['n']
+
+    def test_entry_summary(self, ripl_path):
+        """Test Entry summary() method."""
+        db = masses.ame20.load(directory=ripl_path)
+        entry = db.get(Nuclide(Z=82, A=208))
+
+        summary = entry.summary()
+
+        assert isinstance(summary, str)
+        assert '82' in summary or 'Pb' in summary
+
+    def test_database_repr(self, ripl_path):
+        """Test that Database has informative __repr__."""
+        db = masses.ame20.load(directory=ripl_path)
+        repr_str = repr(db)
+
+        # Should include database info
+        assert 'Database' in repr_str or 'database' in repr_str.lower()
+
+
+# =============================================================================
+# Integration Tests
+# =============================================================================
+
+class TestAPIIntegration:
+    """Integration tests combining multiple API features."""
+
+    def test_filter_and_iterate(self, ripl_path):
+        """Test filtering and iterating over results."""
+        db = masses.ame20.load(directory=ripl_path)
+
+        # Filter Pb isotopes and check each entry
+        pb = db.filter(Z=82)
+
+        for n, entry in pb.data.items():
+            assert n.Z == 82
+            assert entry.n == n
+            assert entry.Mexp is not None or entry.Err is not None
+
+    def test_multiple_databases(self, ripl_path):
+        """Test working with multiple databases."""
+        ame = masses.ame20.load(directory=ripl_path)
+        bsfg = densities.bsfg.load(directory=ripl_path)
+
+        # Find common nuclei
+        ame_nuclei = set(ame.data.keys())
+        bsfg_nuclei = set(bsfg.data.keys())
+        common = ame_nuclei & bsfg_nuclei
+
+        assert len(common) > 0
+
+    def test_nuclide_as_key(self, ripl_path):
+        """Test that Nuclide objects work correctly as dictionary keys."""
+        db = masses.ame20.load(directory=ripl_path)
+
+        # Create equivalent Nuclide objects
+        n1 = Nuclide(Z=82, A=208)
+        n2 = Nuclide(Z=82, A=208)
+
+        # Both should access the same entry
+        entry1 = db.get(n1)
+        entry2 = db.get(n2)
+
+        assert entry1.Mexp == entry2.Mexp

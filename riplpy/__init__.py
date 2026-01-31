@@ -126,9 +126,178 @@ def in_dbs(x: Nuclide | Element) -> list:
    return dbs
 
 
-# ========================
-# Convenience Functions
-# ========================
+def list_sections() -> list:
+    """List all available RIPL sections.
+
+    Returns:
+        List of section names (strings)
+
+    Examples:
+        >>> riplpy.list_sections()
+        ['densities', 'fission', 'gamma', 'levels', 'masses', 'resonances']
+    """
+    return list(sections)
+
+
+def list_databases(section: str = None) -> list | dict:
+    """List available databases, optionally filtered by section.
+
+    Args:
+        section: Section name to filter by (e.g., 'masses', 'densities').
+                 If None, returns a dict of all sections and their databases.
+
+    Returns:
+        If section is provided: List of database names in that section
+        If section is None: Dict mapping section names to lists of database names
+
+    Examples:
+        >>> riplpy.list_databases('masses')
+        ['ame20', 'bskg3', 'd1m', 'frdm1995', 'frdm2012', ...]
+        >>> riplpy.list_databases()
+        {'densities': ['bsfg', 'ct', ...], 'masses': ['ame20', ...], ...}
+
+    Raises:
+        ValueError: If the section name is not recognized
+
+    Note:
+        Databases must be loaded first via riplpy.load() for this to return results.
+    """
+    if section is not None:
+        if section not in sections:
+            raise ValueError(f"Unknown section '{section}'. Available: {list(sections)}")
+        module = globals()[section]
+        return list(getattr(module, 'db')())
+
+    # Return all sections
+    result = {}
+    for sec in sections:
+        module = globals()[sec]
+        result[sec] = list(getattr(module, 'db')())
+    return result
+
+
+def list_nuclei(database: str, section: str = None) -> list:
+    """List all nuclei available in a specific database.
+
+    Args:
+        database: Database name (e.g., 'ame20', 'bsfg'). Can also use
+                  'section.database' format (e.g., 'masses.ame20').
+        section: Section name. Required if database name is ambiguous
+                 across sections, optional if using 'section.database' format.
+
+    Returns:
+        List of Nuclide objects available in the database
+
+    Examples:
+        >>> riplpy.list_nuclei('ame20')  # Unambiguous
+        [Nuclide(Z=1, A=1), Nuclide(Z=1, A=2), ...]
+        >>> riplpy.list_nuclei('masses.ame20')  # Explicit section
+        [Nuclide(Z=1, A=1), Nuclide(Z=1, A=2), ...]
+        >>> riplpy.list_nuclei('ct', section='densities')  # Disambiguate
+        [Nuclide(Z=11, A=24), ...]
+
+    Raises:
+        ValueError: If the database is not found or is ambiguous
+
+    Note:
+        Databases must be loaded first via riplpy.load() for this to return results.
+    """
+    # Handle 'section.database' format
+    if '.' in database:
+        parts = database.split('.', 1)
+        section = parts[0]
+        database = parts[1]
+
+    # If section is specified, use it directly
+    if section is not None:
+        if section not in sections:
+            raise ValueError(f"Unknown section '{section}'. Available: {list(sections)}")
+        module = globals()[section]
+        db_accessor = getattr(module, 'db')
+        if database not in list(db_accessor()):
+            available = list(db_accessor())
+            raise ValueError(f"Database '{database}' not found in section '{section}'. Available: {available}")
+        db = getattr(db_accessor, database)
+        return list(db.data.keys())
+
+    # Search all sections for the database
+    found_in = []
+    for sec in sections:
+        module = globals()[sec]
+        db_accessor = getattr(module, 'db')
+        if database in list(db_accessor()):
+            found_in.append(sec)
+
+    if len(found_in) == 0:
+        raise ValueError(f"Database '{database}' not found in any section")
+    elif len(found_in) > 1:
+        raise ValueError(f"Database '{database}' is ambiguous, found in sections: {found_in}. "
+                         f"Please specify section, e.g., list_nuclei('{found_in[0]}.{database}')")
+
+    # Unambiguous - return the nuclei
+    module = globals()[found_in[0]]
+    db = getattr(getattr(module, 'db'), database)
+    return list(db.data.keys())
+
+
+def get_database(database: str, section: str = None) -> object:
+    """Get a database object by name.
+
+    Args:
+        database: Database name (e.g., 'ame20', 'bsfg'). Can also use
+                  'section.database' format (e.g., 'masses.ame20').
+        section: Section name. Required if database name is ambiguous
+                 across sections, optional if using 'section.database' format.
+
+    Returns:
+        The database object
+
+    Examples:
+        >>> db = riplpy.get_database('ame20')
+        >>> db = riplpy.get_database('masses.ame20')
+        >>> db = riplpy.get_database('ct', section='levels')
+
+    Raises:
+        ValueError: If the database is not found or is ambiguous
+
+    Note:
+        Databases must be loaded first via riplpy.load() for this to return results.
+    """
+    # Handle 'section.database' format
+    if '.' in database:
+        parts = database.split('.', 1)
+        section = parts[0]
+        database = parts[1]
+
+    # If section is specified, use it directly
+    if section is not None:
+        if section not in sections:
+            raise ValueError(f"Unknown section '{section}'. Available: {list(sections)}")
+        module = globals()[section]
+        db_accessor = getattr(module, 'db')
+        if database not in list(db_accessor()):
+            available = list(db_accessor())
+            raise ValueError(f"Database '{database}' not found in section '{section}'. Available: {available}")
+        return getattr(db_accessor, database)
+
+    # Search all sections for the database
+    found_in = []
+    for sec in sections:
+        module = globals()[sec]
+        db_accessor = getattr(module, 'db')
+        if database in list(db_accessor()):
+            found_in.append(sec)
+
+    if len(found_in) == 0:
+        raise ValueError(f"Database '{database}' not found in any section")
+    elif len(found_in) > 1:
+        raise ValueError(f"Database '{database}' is ambiguous, found in sections: {found_in}. "
+                         f"Please specify section, e.g., get_database('{found_in[0]}.{database}')")
+
+    # Unambiguous - return the database
+    module = globals()[found_in[0]]
+    return getattr(getattr(module, 'db'), database)
+
 
 def _resolve_nucleus(Z_or_nuclide, A=None) -> Nuclide:
     """Resolve input to a Nuclide object.

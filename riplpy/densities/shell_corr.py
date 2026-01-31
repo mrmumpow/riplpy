@@ -28,10 +28,10 @@ db_mk_file_path = _os.path.join("densities", "shellmengoninakajima.dat")
 
 FILE_MS_HEADER = "#     Myers-Swiatecki shell corrections \n#  Z   A El     Shell   Defcor  bet2  bet4\n#               [MeV]    [MeV]\n#========================================== \n"
 FILE_MK_HEADER = ""
-FORTRAN_READ_MS_FORMAT  = '(2i4,1x,a2,2(1x,f8.3),2(f6.3))'
-FORTRAN_WRITE_MS_FORMAT = '(2i4,1x,a2,2(1x,f8.3),2(1x,f6.3))'
-FORTRAN_READ_MK_FORMAT  = '(9x,i3,9x,i3,1x,1f8.3)'
-FORTRAN_WRITE_MK_FORMAT = '(9x,i3,9x,i3,1x,1f8.3)'
+FORTRAN_READ_MS_FORMAT  = '(2i4,1x,a2,2(1x,f8.3),2(1x,f7.3))'
+FORTRAN_WRITE_MS_FORMAT = '(2i4,1x,a2,2(1x,f8.3),2(1x,f7.3))'
+FORTRAN_READ_MK_FORMAT  = '(9x,i3,9x,i3,1x,f8.3)'
+FORTRAN_WRITE_MK_FORMAT = '(9x,i3,9x,i3,1x,f8.3)'
 reader_ms = _ff.FortranRecordReader(FORTRAN_READ_MS_FORMAT)
 writer_ms = _ff.FortranRecordWriter(FORTRAN_WRITE_MS_FORMAT)
 reader_mk = _ff.FortranRecordReader(FORTRAN_READ_MK_FORMAT)
@@ -99,12 +99,13 @@ def write_mk_ascii_file(fpath: str, data: dict) -> None:
 
     # Write data to file
     with open(fpath, 'w') as fp:
-        # Write header line
+        # Write header line (empty for MK format)
         fp.write(FILE_MK_HEADER)
-        # Loop over data
+        # Loop over data - use format matching the reader: (9x,i3,9x,i3,1x,f8.3)
         for n in data.keys():
-            line = data[n].as_tuple
-            line = f"{line[0]} {line[1]} {line[3]}"
+            entry = data[n]
+            # Format: 9 spaces, Z (3 chars), 9 spaces, A (3 chars), 1 space, shell (8.3 float)
+            line = f"         {entry.n.Z:3d}         {entry.n.A:3d} {entry.shell:8.3f}"
             fp.write(line+"\n")
 
 

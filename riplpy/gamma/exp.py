@@ -224,16 +224,31 @@ references = set_references(references_string)
 def line1_as_tuple(entry: object, ) -> tuple:
     """Return line1 in the ASCII file as a tuple. """
     # Format: Z A El Id Er1 Wr1 Sr1 Er2 Wr2 Sr2 Sr "Emin - Emax Ref"
-    energy_range_ref = f"{entry.Emin:6.2f} - {entry.Emax:6.2f} {entry.reference}"
+    emin_str = f"{entry.Emin:6.2f}" if entry.Emin is not None else "      "
+    emax_str = f"{entry.Emax:6.2f}" if entry.Emax is not None else "      "
+    ref_str = entry.reference if entry.reference is not None else ""
+    energy_range_ref = f"{emin_str} - {emax_str} {ref_str}"
     return (entry.n.Z, entry.n.A, entry.n.element_symbol, entry.Id,
-            entry.Er1, entry.Wr1, entry.Sr1, entry.Er2, entry.Wr2, entry.Sr2, entry.Sr,
+            entry.Er1 if entry.Er1 is not None else 0.0,
+            entry.Wr1 if entry.Wr1 is not None else 0.0,
+            entry.Sr1 if entry.Sr1 is not None else 0.0,
+            entry.Er2 if entry.Er2 is not None else 0.0,
+            entry.Wr2 if entry.Wr2 is not None else 0.0,
+            entry.Sr2 if entry.Sr2 is not None else 0.0,
+            entry.Sr if entry.Sr is not None else 0.0,
             energy_range_ref)
 
 
 def line2_as_tuple(entry: object, ) -> tuple:
     """Return line2 in the ASCII file as a tuple. """
     # Format: dEr1 dWr1 dSr1 dEr2 dWr2 dSr2 dSr
-    return (entry.dEr1, entry.dWr1, entry.dSr1, entry.dEr2, entry.dWr2, entry.dSr2, entry.dSr)
+    return (entry.dEr1 if entry.dEr1 is not None else 0.0,
+            entry.dWr1 if entry.dWr1 is not None else 0.0,
+            entry.dSr1 if entry.dSr1 is not None else 0.0,
+            entry.dEr2 if entry.dEr2 is not None else 0.0,
+            entry.dWr2 if entry.dWr2 is not None else 0.0,
+            entry.dSr2 if entry.dSr2 is not None else 0.0,
+            entry.dSr if entry.dSr is not None else 0.0)
 
 
 def read_ascii_file(fpath: str) -> dict:
@@ -314,8 +329,9 @@ def write_slo_ascii_file(fpath: str, data: dict) -> None:
         for n in data.keys():
             line1 = line1_as_tuple(data[n])
             line2 = line2_as_tuple(data[n])
-            fp.write(line1_writer.write(line1)+"\n")
-            fp.write(line2_writer.write(line2)+"\n")
+            # Combine line1 and line2 tuples for the multi-line Fortran format
+            combined = line1 + line2
+            fp.write(line1_writer.write(combined)+"\n")
 
 
 def write_mlo_ascii_file(fpath: str, data: dict) -> None:
@@ -329,8 +345,9 @@ def write_mlo_ascii_file(fpath: str, data: dict) -> None:
         for n in data.keys():
             line1 = line1_as_tuple(data[n])
             line2 = line2_as_tuple(data[n])
-            fp.write(line1_writer.write(line1)+"\n")
-            fp.write(line2_writer.write(line2)+"\n")
+            # Combine line1 and line2 tuples for the multi-line Fortran format
+            combined = line1 + line2
+            fp.write(line1_writer.write(combined)+"\n")
 
 
 class Entry(_core.Experimental_GDR_Parameter, _db.NuclideDatabaseEntry):

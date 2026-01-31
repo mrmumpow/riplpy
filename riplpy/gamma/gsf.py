@@ -41,7 +41,7 @@ local_data_dir = _os.path.join("gamma", "gamma-strength-micro")
 
 # ========================
 
-FILE_HEADER = "#-----------------------\n#  U[MeV]  fE1[mb/MeV]\n#-----------------------\n"
+FILE_HEADER = "  U[MeV]  fE1[mb/MeV]\n"
 FORTRAN_FORMAT = '(f9.3,e12.3)'
 reader   = _ff.FortranRecordReader(FORTRAN_FORMAT)
 writer   = _ff.FortranRecordWriter(FORTRAN_FORMAT)
@@ -50,44 +50,82 @@ writer   = _ff.FortranRecordWriter(FORTRAN_FORMAT)
 
 def read_ascii_file(fpath: str) -> dict:
     """Read data from an ASCII file and return a dictionary. """
-    # Placeholder dictionary
     d = {}
+    current_nuclide = None
+    package = None
 
-    U, fE1 = [], []
-
-    # Read data from file
     with open(fpath, 'r') as fp:
-        for i, line in enumerate(fp.readlines()):
-            if "Z" in line and "A" in line:
-                line = line.split()
-                Z = int(line[1])
-                A = int(line[3])
-                n = _c.Nuclide(z=Z, a=A)
+        for line in fp:
+            line_stripped = line.strip()
+
+            # Skip empty lines and comment lines
+            if not line_stripped or line_stripped.startswith('#'):
+                continue
+
+            # Check for nucleus header: "Z= XX A= YY"
+            if "Z=" in line and "A=" in line:
+                # Save previous isotope if exists
+                if current_nuclide is not None and package is not None:
+                    d[current_nuclide] = package
+
+                # Parse new nucleus
+                parts = line.split()
+                Z = int(parts[1])
+                A = int(parts[3])
+                current_nuclide = _c.Nuclide(z=Z, a=A)
                 package = {'U': [], 'fE1': []}
                 continue
-            # Skip the header line(s)
-            elif "U[MeV]  fE1[mb/MeV]" in line:
+
+            # Skip header line
+            if "U[MeV]" in line or "fE1" in line:
                 continue
-            data = reader.read(line)
-            package['U'].append(data[0])
-            package['fE1'].append(data[1])
-        #package = {'U': U, 'fE1': fE1}
-        d[n] = package
+
+            # Parse data line
+            if current_nuclide is not None:
+                try:
+                    data = reader.read(line)
+                    package['U'].append(data[0])
+                    package['fE1'].append(data[1])
+                except:
+                    continue
+
+    # Save the last isotope
+    if current_nuclide is not None and package is not None:
+        d[current_nuclide] = package
+
     return d
 
 
-def write_ascii_file(fpath: str, data: dict, n: _c.Nuclide) -> None:
-    """Write ASCII file given a filename, data dictionary and entry (n). """
+def write_ascii_file(fpath: str, data: dict, n: _c.Nuclide = None) -> None:
+    """Write ASCII file given a filename and data dictionary.
 
-    # Write data to file
+    Args:
+        fpath: Path to output file.
+        data: Dictionary of entries keyed by Nuclide.
+        n: If provided, write only this nucleus. Otherwise write all.
+    """
     with open(fpath, 'w') as fp:
-        fp.write(f"{n.Z} {n.A}\n")
-        # Write header line
-        fp.write(FILE_HEADER)
-        # Loop over data (only one entry per file)
-        for u,fE1 in zip(data[n]['U'], data[n]['fE1']):
-            line = (u,fE1)
-            fp.write(writer.write(line)+"\n")
+        # Determine which entries to write
+        if n is not None:
+            entries = [(n, data[n])]
+        else:
+            # Sort by Z then A
+            entries = sorted(data.items(), key=lambda x: (x[0].Z, x[0].A))
+
+        for nuclide, entry in entries:
+            # Write nucleus header
+            fp.write(f" Z=  {nuclide.Z:2d} A=  {nuclide.A:2d} {nuclide.element_symbol}\n")
+            # Write column header
+            fp.write(FILE_HEADER)
+            # Write data
+            if hasattr(entry, 'U'):
+                # Entry object
+                for u, fE1 in zip(entry.U, entry.fE1):
+                    fp.write(writer.write((u, fE1)) + "\n")
+            else:
+                # Dict from reader
+                for u, fE1 in zip(entry['U'], entry['fE1']):
+                    fp.write(writer.write((u, fE1)) + "\n")
 
 
 class Entry(_core.GammaStrengthFunction, _db.NuclideDatabaseEntry):
@@ -95,11 +133,16 @@ class Entry(_core.GammaStrengthFunction, _db.NuclideDatabaseEntry):
     pass
 
 
+def _write_for_db(fpath: str, data: dict) -> None:
+    """Wrapper for write_ascii_file that matches the base class save() signature."""
+    write_ascii_file(fpath, data)
+
+
 class Database(_db.Database):
 
     reader: object = read_ascii_file
     entry : object = Entry
-    writer: object = write_ascii_file
+    writer: object = _write_for_db
 
     def load(self, fpath: str) -> None:
         """Read gamma-ray strength (GSF) information from an ASCII file for a single entry. 
@@ -117,12 +160,32 @@ class Database(_db.Database):
             fpath = _os.path.join(db_loc, fn)
             self.load(fpath)
 
-    def save(self, fpath: str, entry: _c.Nuclide) -> None:
-        """Save a single entry in the database. """
+    def save(self, fpath: str, entry: _c.Nuclide = None) -> None:
+        """Save entries to a file.
+
+        Args:
+            fpath: Path to output file.
+            entry: If provided, save only this nucleus. Otherwise save all.
+        """
         write_ascii_file(fpath, self.data, entry)
 
     def save_all(self, directory: str) -> None:
-        """Save all entries in the database to a directory in individual files. """
+        """Save all entries to per-element files in a directory. """
+        _os.makedirs(directory, exist_ok=True)
+        # Group by Z
+        elements = set(n.Z for n in self.data.keys())
+        for Z in sorted(elements):
+            element_data = {k: v for k, v in self.data.items() if k.Z == Z}
+            if element_data:
+                fpath = _os.path.join(directory, f"z{Z:03d}.dat")
+                write_ascii_file(fpath, element_data)
+
+    def save_entry(self, fpath: str, entry: _c.Nuclide) -> None:
+        """Save a single entry to a file. """
+        write_ascii_file(fpath, self.data, entry)
+
+    def save_entries_by_Z(self, directory: str) -> None:
+        """Save entries grouped by element to separate files. """
         for entry in self.data.keys():
             fn = f"gsf_Z{entry.Z:03d}A{entry.A:03d}.dat"
             fpath = _os.path.join(directory, fn)

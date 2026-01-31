@@ -242,12 +242,72 @@ class Entry(_db.NuclideDatabaseEntry):
         return result
 
 
+def write_ascii_file(fpath: str, data: dict) -> None:
+    """Write HFB level density data to an ASCII file.
+
+    Args:
+        fpath: Path to the output file.
+        data: Dictionary of Entry objects keyed by Nuclide.
+    """
+    with open(fpath, 'w') as fp:
+        # Sort entries by Z then A
+        sorted_entries = sorted(data.values(), key=lambda e: (e.n.Z, e.n.A))
+
+        for entry in sorted_entries:
+            Z, A = entry.n.Z, entry.n.A
+            symbol = entry.n.element_symbol
+
+            # Write positive parity block if present
+            if entry.positive_parity is not None:
+                _write_parity_block(fp, Z, A, symbol, entry.positive_parity, parity=1)
+
+            # Write negative parity block if present
+            if entry.negative_parity is not None:
+                _write_parity_block(fp, Z, A, symbol, entry.negative_parity, parity=-1)
+
+
+def _write_parity_block(fp, Z: int, A: int, symbol: str, parity_data: "ParityData", parity: int) -> None:
+    """Write a single parity block to file."""
+    parity_str = "Positive" if parity == 1 else "Negative"
+
+    # Write header
+    header = f"*  Z= {Z:2d} A= {A:3d}: {parity_str}-Parity Spin-dependent Level Density [MeV-1] for {symbol:2s} {A:3d}  *"
+    border = "*" * (len(header))
+    fp.write(f"                    {border}\n")
+    fp.write(f"                    {header}\n")
+    fp.write(f"                    {border}\n")
+
+    # Write column header
+    header_cols = " U[MeV]  T[MeV]  NCUMUL   RHOOBS   RHOTOT"
+    for j in range(MAX_SPIN):
+        header_cols += f"     J={j:02d}"
+    fp.write(header_cols + "\n")
+
+    # Write data lines
+    for i in range(len(parity_data.U)):
+        line = f"{parity_data.U[i]:7.2f}{parity_data.T[i]:7.3f}"
+        line += f"{parity_data.Ncumul[i]:10.2E}{parity_data.rho_obs[i]:10.2E}{parity_data.rho_tot[i]:10.2E}"
+
+        # Spin-dependent densities
+        if parity_data.rho_J and i < len(parity_data.rho_J):
+            for rho in parity_data.rho_J[i]:
+                line += f"{rho:10.2E}"
+            # Pad with zeros if needed
+            for _ in range(MAX_SPIN - len(parity_data.rho_J[i])):
+                line += f"{0.0:10.2E}"
+        else:
+            for _ in range(MAX_SPIN):
+                line += f"{0.0:10.2E}"
+
+        fp.write(line + "\n")
+
+
 class Database(_db.NuclideDatabase):
     """The HFB level density database."""
 
     reader: object = read_ascii_file
     entry: object = Entry
-    writer: object = None  # Writer not implemented for this complex format
+    writer: object = write_ascii_file
 
     def load(self, fpath: str) -> None:
         """Load HFB level density data from an ASCII file."""
@@ -276,6 +336,22 @@ class Database(_db.NuclideDatabase):
             self.load(fpath)
         else:
             _logger.warning(f"HFB level density file not found: {fpath}")
+
+    def save_element(self, Z: int, directory: str) -> None:
+        """Save HFB level densities for a specific element to a file."""
+        fpath = _os.path.join(directory, f"z{Z:03d}.tab")
+        # Filter entries for this element
+        element_data = {k: v for k, v in self.data.items() if v.n.Z == Z}
+        if element_data:
+            type(self).writer(fpath, element_data)
+
+    def save_all(self, directory: str) -> None:
+        """Save HFB level densities to per-element files."""
+        _os.makedirs(directory, exist_ok=True)
+        # Group entries by Z
+        elements = set(entry.n.Z for entry in self.data.values())
+        for Z in sorted(elements):
+            self.save_element(Z, directory)
 
 
 def load(directory: str = None, file_path: str = None, Z: int = None) -> Database:

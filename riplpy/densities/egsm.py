@@ -51,7 +51,7 @@ LOCAL_FILE_PATH = _config.get_data_file_path(FILE_PATH_KEY)
 
 # ========================
 
-FILE_HEADER = "#           Level density parameters for the EGSM model\n#  Z  A  Sym Io   Bn       Do            dDo           Esh          +da      a       -da   \n#                [MeV]    [keV]         [keV]         [MeV]         [1/MeV] [1/MeV] [1/MeV]\n#-----------------------------------------------------------------------------------------------------"
+FILE_HEADER = "#           Level density parameters for the EGSM model\n#  Z  A  Sym Io   Bn       Do            dDo           Esh          +da      a       -da   \n#                [MeV]    [keV]         [keV]         [MeV]         [1/MeV] [1/MeV] [1/MeV]\n#-----------------------------------------------------------------------------------------------------\n"
 FORTRAN_FORMAT = '(1x,2(i3,1x),a2,2x,f3.1,1x,f6.3,3(1x,e13.5),3(f8.4))'
 reader = _ff.FortranRecordReader(FORTRAN_FORMAT)
 writer = _ff.FortranRecordWriter(FORTRAN_FORMAT)

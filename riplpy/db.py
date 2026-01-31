@@ -305,6 +305,173 @@ class Database:
             rows.append(row)
         return rows
 
+    def filter(self, predicate=None, **kwargs) -> "Database":
+        """Filter database entries and return a new database with matching entries.
+
+        Can filter using a predicate function or keyword arguments for common filters.
+
+        Args:
+            predicate: A callable that takes an entry and returns True/False.
+                       If provided, kwargs are ignored.
+            **kwargs: Keyword filters. Supported filters depend on entry type:
+                - Z: Filter by atomic number (for nuclide databases)
+                - A: Filter by mass number (for nuclide databases)
+                - N: Filter by neutron number (for nuclide databases)
+                - Any entry attribute: Filter by exact value match
+
+        Returns:
+            A new Database instance containing only matching entries
+
+        Examples:
+            >>> # Filter by Z (all lead isotopes)
+            >>> pb_db = db.filter(Z=82)
+
+            >>> # Filter by predicate (neutron-rich nuclei)
+            >>> neutron_rich = db.filter(lambda e: e.n.N > e.n.Z)
+
+            >>> # Filter by multiple criteria
+            >>> heavy_pb = db.filter(Z=82, A=lambda a: a > 200)
+
+            >>> # Chain filters
+            >>> result = db.filter(Z=82).filter(lambda e: e.Mth < -10)
+        """
+        # Create a new database of the same type
+        result = type(self)()
+
+        for key, entry in self.data.items():
+            # If predicate is provided, use it directly
+            if predicate is not None:
+                if callable(predicate) and predicate(entry):
+                    result.data[key] = entry
+                continue
+
+            # Otherwise, apply keyword filters
+            if self._matches_filters(key, entry, **kwargs):
+                result.data[key] = entry
+
+        return result
+
+    def _matches_filters(self, key, entry, **kwargs) -> bool:
+        """Check if an entry matches the given keyword filters."""
+        for filter_key, filter_value in kwargs.items():
+            # Handle nucleus-related filters (Z, A, N)
+            if filter_key in ('Z', 'A', 'N'):
+                # Get the nucleus from either the key or entry
+                nucleus = None
+                if hasattr(key, filter_key):
+                    nucleus = key
+                elif hasattr(entry, 'n') and hasattr(entry.n, filter_key):
+                    nucleus = entry.n
+
+                if nucleus is None:
+                    return False
+
+                actual_value = getattr(nucleus, filter_key)
+
+                # Support callable filter values
+                if callable(filter_value):
+                    if not filter_value(actual_value):
+                        return False
+                elif actual_value != filter_value:
+                    return False
+
+            # Handle entry attribute filters
+            elif hasattr(entry, filter_key):
+                actual_value = getattr(entry, filter_key)
+
+                # Support callable filter values
+                if callable(filter_value):
+                    if not filter_value(actual_value):
+                        return False
+                elif actual_value != filter_value:
+                    return False
+
+            else:
+                # Filter key not found on entry
+                return False
+
+        return True
+
+    def filter_by_range(self, attr: str, min_val=None, max_val=None) -> "Database":
+        """Filter entries where an attribute falls within a range.
+
+        Args:
+            attr: Attribute name to filter on (can use 'Z', 'A', 'N' for nucleus attrs)
+            min_val: Minimum value (inclusive). If None, no lower bound.
+            max_val: Maximum value (inclusive). If None, no upper bound.
+
+        Returns:
+            A new Database instance containing only matching entries
+
+        Examples:
+            >>> # Nuclei with Z between 80 and 90
+            >>> db.filter_by_range('Z', 80, 90)
+
+            >>> # Entries with mass excess less than 0
+            >>> db.filter_by_range('Mth', max_val=0)
+        """
+        def in_range(entry):
+            # Try to get value from nucleus first, then from entry
+            value = None
+            if attr in ('Z', 'A', 'N') and hasattr(entry, 'n'):
+                value = getattr(entry.n, attr, None)
+            if value is None:
+                value = getattr(entry, attr, None)
+
+            if value is None:
+                return False
+
+            if min_val is not None and value < min_val:
+                return False
+            if max_val is not None and value > max_val:
+                return False
+            return True
+
+        return self.filter(in_range)
+
+    def find(self, predicate) -> object | None:
+        """Find the first entry matching the predicate.
+
+        Args:
+            predicate: A callable that takes an entry and returns True/False
+
+        Returns:
+            The first matching entry, or None if no match found
+
+        Examples:
+            >>> # Find the first nucleus with A > 250
+            >>> entry = db.find(lambda e: e.n.A > 250)
+        """
+        for entry in self.data.values():
+            if predicate(entry):
+                return entry
+        return None
+
+    def count(self, predicate=None, **kwargs) -> int:
+        """Count entries matching the filter criteria.
+
+        Args:
+            predicate: A callable that takes an entry and returns True/False
+            **kwargs: Keyword filters (same as filter())
+
+        Returns:
+            Number of matching entries
+
+        Examples:
+            >>> # Count lead isotopes
+            >>> db.count(Z=82)
+            41
+        """
+        return len(self.filter(predicate, **kwargs).data)
+
+    def __len__(self) -> int:
+        """Return the number of entries in the database."""
+        return len(self.data)
+
+    def __contains__(self, key) -> bool:
+        """Check if a key exists in the database."""
+        return key in self.data
+
     def __iter__(self, ) -> iter:
         """Return the list of keys for the data property as an iterable. """
         return iter(self.data.keys())

@@ -435,3 +435,118 @@ class TestAPIIntegration:
         entry2 = db.get(n2)
 
         assert entry1.Mexp == entry2.Mexp
+
+
+# =============================================================================
+# Models Enum Tests
+# =============================================================================
+
+class TestModelsEnum:
+    """Tests for the Models enum constants."""
+
+    def test_models_import(self):
+        """Test that Models can be imported from riplpy."""
+        from riplpy import Models
+        assert hasattr(Models, 'Mass')
+        assert hasattr(Models, 'Density')
+        assert hasattr(Models, 'Fission')
+        assert hasattr(Models, 'Wave')
+
+    def test_mass_model_values(self):
+        """Test MassModel enum values."""
+        from riplpy import Models
+        assert Models.Mass.AME20 == 'ame20'
+        assert Models.Mass.FRDM12 == 'frdm12'
+        assert Models.Mass.HFB27 == 'hfb27'
+
+    def test_density_model_values(self):
+        """Test DensityModel enum values."""
+        from riplpy import Models
+        assert Models.Density.BSFG == 'bsfg'
+        assert Models.Density.CT == 'ct'
+
+    def test_fission_model_values(self):
+        """Test FissionModel enum values."""
+        from riplpy import Models
+        assert Models.Fission.EMPIRICAL == 'empirical'
+        assert Models.Fission.HFB == 'hfb'
+
+    def test_wave_values(self):
+        """Test ResonanceWave enum values."""
+        from riplpy import Models
+        assert Models.Wave.S == 's'
+        assert Models.Wave.P == 'p'
+
+    def test_enum_usable_as_string(self):
+        """Test that enum values work as strings in API calls."""
+        from riplpy import Models
+        # Enum values should equal their string values
+        assert Models.Mass.AME20 == 'ame20'
+        assert str(Models.Mass.AME20) == 'MassModel.AME20'
+
+
+# =============================================================================
+# Database Contains Method Tests
+# =============================================================================
+
+class TestDatabaseContains:
+    """Tests for the contains() method on databases."""
+
+    def test_contains_method_exists(self, ripl_path):
+        """Test that contains() method exists on Database."""
+        db = masses.ame20.load(directory=ripl_path)
+        assert hasattr(db, 'contains')
+        assert callable(db.contains)
+
+    def test_contains_returns_true_for_existing(self, ripl_path):
+        """Test contains() returns True for existing nucleus."""
+        db = masses.ame20.load(directory=ripl_path)
+        n = Nuclide(Z=82, A=208)
+        assert db.contains(n) is True
+
+    def test_contains_returns_false_for_missing(self, ripl_path):
+        """Test contains() returns False for non-existent nucleus."""
+        db = masses.ame20.load(directory=ripl_path)
+        fake = Nuclide(Z=200, A=500)
+        assert db.contains(fake) is False
+
+    def test_contains_matches_in_operator(self, ripl_path):
+        """Test contains() gives same result as 'in' operator."""
+        db = masses.ame20.load(directory=ripl_path)
+        n = Nuclide(Z=82, A=208)
+        fake = Nuclide(Z=200, A=500)
+
+        assert db.contains(n) == (n in db)
+        assert db.contains(fake) == (fake in db)
+
+
+# =============================================================================
+# Database Nuclei Property Tests
+# =============================================================================
+
+class TestDatabaseNucleiProperty:
+    """Tests for the nuclei property on NuclideDatabase."""
+
+    def test_nuclei_property_exists(self, ripl_path):
+        """Test that nuclei property exists on NuclideDatabase."""
+        db = masses.ame20.load(directory=ripl_path)
+        assert hasattr(db, 'nuclei')
+
+    def test_nuclei_returns_list(self, ripl_path):
+        """Test nuclei returns a list."""
+        db = masses.ame20.load(directory=ripl_path)
+        nuclei = db.nuclei
+        assert isinstance(nuclei, list)
+        assert len(nuclei) > 0
+
+    def test_nuclei_matches_data_keys(self, ripl_path):
+        """Test nuclei matches data.keys()."""
+        db = masses.ame20.load(directory=ripl_path)
+        assert db.nuclei == list(db.data.keys())
+
+    def test_nuclei_contains_nuclide_objects(self, ripl_path):
+        """Test nuclei contains Nuclide objects."""
+        db = masses.ame20.load(directory=ripl_path)
+        for n in db.nuclei[:10]:  # Check first 10
+            assert hasattr(n, 'Z')
+            assert hasattr(n, 'A')

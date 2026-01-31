@@ -2,15 +2,17 @@
 """A configuration file for RIPL database access.
 
 This file provides a centralized location for managing file paths and other
-configuration settings for the RIPLpy library. It includes a mechanism to
-read the RIPL database location from an environment variable and issues a
-warning if it is not set.
+configuration settings for the RIPLpy library.
+
+Path Resolution Priority:
+    1. Programmatically set via set_path()
+    2. Environment variable RIPL_LOCATION
+    3. Config file ~/.riplpyrc
+    4. Auto-detected common locations
 
 Attributes:
-    RIPL_PATH (str): The absolute path to the RIPL database on the local. 
-        filesystem. This is determined by the `RIPL_LOCATION` environment 
-        variable. If the environment variable is not set, a warning is 
-        issued, and this is set to an empty string. 
+    RIPL_PATH (str): The absolute path to the RIPL database on the local
+        filesystem. Use get_path() to retrieve and set_path() to modify.
 """
 
 # OS
@@ -19,14 +21,175 @@ import os
 # Warnings
 import warnings
 
-# Environment Variable for RIPL Database Location
-RIPL_PATH = os.environ.get('RIPL_LOCATION', '')
+# ========================
+# Path Management
+# ========================
 
+# Internal storage for the RIPL path (set programmatically)
+_ripl_path_override = None
+
+# Common locations to check for RIPL database
+_COMMON_RIPL_LOCATIONS = [
+    '/usr/local/share/RIPL',
+    '/usr/share/RIPL',
+    '/opt/RIPL',
+    os.path.expanduser('~/RIPL'),
+    os.path.expanduser('~/ripl'),
+    os.path.expanduser('~/Data/RIPL'),
+    os.path.expanduser('~/data/RIPL'),
+]
+
+# Config file location
+_CONFIG_FILE = os.path.expanduser('~/.riplpyrc')
+
+
+def _read_config_file() -> str | None:
+    """Read RIPL path from config file if it exists."""
+    if os.path.exists(_CONFIG_FILE):
+        try:
+            with open(_CONFIG_FILE, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    # Skip comments and empty lines
+                    if not line or line.startswith('#'):
+                        continue
+                    # Look for RIPL_PATH = /path/to/ripl or just /path/to/ripl
+                    if '=' in line:
+                        key, value = line.split('=', 1)
+                        if key.strip().upper() == 'RIPL_PATH':
+                            path = value.strip().strip('"').strip("'")
+                            if os.path.isdir(path):
+                                return path
+                    elif os.path.isdir(line):
+                        return line
+        except (IOError, OSError):
+            pass
+    return None
+
+
+def _auto_detect_ripl_path() -> str | None:
+    """Try to auto-detect RIPL installation in common locations."""
+    for location in _COMMON_RIPL_LOCATIONS:
+        if os.path.isdir(location):
+            # Verify it looks like a RIPL directory (has expected subdirs)
+            expected_subdirs = ['masses', 'levels', 'densities']
+            if all(os.path.isdir(os.path.join(location, subdir)) for subdir in expected_subdirs):
+                return location
+    return None
+
+
+def _resolve_ripl_path() -> str:
+    """Resolve RIPL path from available sources in priority order.
+
+    Priority:
+        1. Programmatically set via set_path()
+        2. Environment variable RIPL_LOCATION
+        3. Config file ~/.riplpyrc
+        4. Auto-detected common locations
+    """
+    # 1. Check programmatic override
+    if _ripl_path_override is not None:
+        return _ripl_path_override
+
+    # 2. Check environment variable
+    env_path = os.environ.get('RIPL_LOCATION', '')
+    if env_path and os.path.isdir(env_path):
+        return env_path
+
+    # 3. Check config file
+    config_path = _read_config_file()
+    if config_path:
+        return config_path
+
+    # 4. Try auto-detection
+    auto_path = _auto_detect_ripl_path()
+    if auto_path:
+        return auto_path
+
+    # Nothing found
+    return ''
+
+
+def set_path(path: str) -> None:
+    """Set the RIPL database path programmatically.
+
+    This takes highest priority over environment variables and config files.
+
+    Args:
+        path: Absolute path to the RIPL database directory
+
+    Raises:
+        ValueError: If the path does not exist or is not a directory
+
+    Examples:
+        >>> import riplpy
+        >>> riplpy.config.set_path('/path/to/RIPL-4')
+        >>> riplpy.load()
+    """
+    global _ripl_path_override, RIPL_PATH
+
+    if not os.path.isdir(path):
+        raise ValueError(f"Path does not exist or is not a directory: {path}")
+
+    _ripl_path_override = os.path.abspath(path)
+    RIPL_PATH = _ripl_path_override
+
+
+def get_path() -> str:
+    """Get the current RIPL database path.
+
+    Returns:
+        The resolved RIPL path, or empty string if not configured
+
+    Examples:
+        >>> import riplpy
+        >>> print(riplpy.config.get_path())
+        '/usr/local/share/RIPL-4'
+    """
+    return _resolve_ripl_path()
+
+
+def clear_path() -> None:
+    """Clear the programmatically set path, reverting to other sources."""
+    global _ripl_path_override, RIPL_PATH
+    _ripl_path_override = None
+    RIPL_PATH = _resolve_ripl_path()
+
+
+def write_config_file(path: str) -> None:
+    """Write the RIPL path to the config file for persistence.
+
+    Args:
+        path: Path to write to the config file
+
+    Examples:
+        >>> import riplpy
+        >>> riplpy.config.write_config_file('/path/to/RIPL-4')
+        # Creates ~/.riplpyrc with the path
+    """
+    path = os.path.abspath(path)
+    if not os.path.isdir(path):
+        raise ValueError(f"Path does not exist or is not a directory: {path}")
+
+    with open(_CONFIG_FILE, 'w') as f:
+        f.write(f"# RIPLpy configuration file\n")
+        f.write(f"# Generated automatically\n")
+        f.write(f"RIPL_PATH = {path}\n")
+
+
+# Initialize RIPL_PATH
+# ========================
+# Resolve the path on module load
+RIPL_PATH = _resolve_ripl_path()
+
+# Only warn if no path could be resolved
 if not RIPL_PATH:
     warnings.warn(
-        "The 'RIPL_LOCATION' environment variable is not set. "
-        "Without this, RIPLpy may not be able to locate the necessary data files. "
-        "Please set this variable to the root directory of your RIPL database.",
+        "RIPL database path not configured. Options to set it:\n"
+        "  1. riplpy.set_path('/path/to/RIPL')\n"
+        "  2. Set RIPL_LOCATION environment variable\n"
+        "  3. Create ~/.riplpyrc with: RIPL_PATH = /path/to/RIPL\n"
+        "  4. Install RIPL to a standard location (~/RIPL, /usr/local/share/RIPL)",
         UserWarning
     )
 

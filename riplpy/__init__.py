@@ -28,6 +28,40 @@ from . import resonances
 sections = ('densities', 'fission', 'gamma', 'levels', 'masses', 'resonances')
 
 
+def set_path(path: str) -> None:
+    """Set the RIPL database path.
+
+    This is the recommended way to configure RIPLpy if the RIPL_LOCATION
+    environment variable is not set.
+
+    Args:
+        path: Absolute path to the RIPL database directory
+
+    Raises:
+        ValueError: If the path does not exist or is not a directory
+
+    Examples:
+        >>> import riplpy
+        >>> riplpy.set_path('/path/to/RIPL-4')
+        >>> riplpy.load()
+    """
+    config.set_path(path)
+
+
+def get_path() -> str:
+    """Get the current RIPL database path.
+
+    Returns:
+        The resolved RIPL path, or empty string if not configured
+
+    Examples:
+        >>> import riplpy
+        >>> print(riplpy.get_path())
+        '/usr/local/share/RIPL-4'
+    """
+    return config.get_path()
+
+
 def _parallel_load(section: str) -> None:
    """An implicit method to load the given section in parallel. """
    if section in sections:
@@ -35,11 +69,39 @@ def _parallel_load(section: str) -> None:
       i.load()
 
 
-def load(directory: str, quick: bool = False) -> None:
-   """Load the entire RIPL database from a specified directory on the local machine. 
+def load(directory: str = None, quick: bool = False) -> None:
+   """Load the entire RIPL database from a specified directory on the local machine.
 
-      Once this method is called, the databases cannot be unloaded.
+   Args:
+       directory: Path to the RIPL database. If not provided, uses the
+                  configured path (from set_path(), RIPL_LOCATION env var,
+                  ~/.riplpyrc, or auto-detected location).
+       quick: If True, load sections in parallel using multiprocessing.
+
+   Raises:
+       ValueError: If no directory is provided and no path is configured.
+
+   Examples:
+       >>> import riplpy
+       >>> riplpy.load('/path/to/RIPL')  # Explicit path
+       >>> # Or configure first, then load
+       >>> riplpy.set_path('/path/to/RIPL')
+       >>> riplpy.load()
+
+   Note:
+       Once this method is called, the databases cannot be unloaded.
    """
+   if directory is None:
+      directory = config.get_path()
+      if not directory:
+         raise ValueError(
+            "No RIPL directory specified and no path configured. "
+            "Either pass a directory to load(), or configure the path first:\n"
+            "  - riplpy.set_path('/path/to/RIPL')\n"
+            "  - Set RIPL_LOCATION environment variable\n"
+            "  - Create ~/.riplpyrc config file"
+         )
+
    if quick:
       # @TODO: Re-evaluate the usefulness of this feature once database is complete
       import multiprocessing as _mp

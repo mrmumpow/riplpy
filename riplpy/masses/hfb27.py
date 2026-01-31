@@ -23,6 +23,9 @@ Authors:
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -114,16 +117,42 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 
 @_dataclass
-class Entry:
-    """An entry in the HFB27 mass database."""
-    n      : _c.Nuclide  # Compound nucleus
-    flag   : int         # Data flag
-    Mexp   : float       # Experimental or recommended atomic mass excess [MeV]
-    Err    : float       # Error on the experimental or recommended mass excess [MeV]
-    Mth    : float       # Calculated HFB27 atomic mass excess [MeV]
-    beta20 : float       # Calculated quadrupole deformation
-    beta40 : float       # Calculated hexadecapole deformation
-    Rch    : float       # Charge radius [fm]
+class Entry(_db.NuclideDatabaseEntry):
+    """An entry in the HFB27 mass database.
+
+    Contains theoretical atomic masses from the HFB-27 model along with
+    experimental reference values and nuclear structure parameters.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        flag: Data quality flag
+        Mexp: Experimental mass excess [MeV]
+        Err: Uncertainty on mass excess [MeV]
+        Mth: Calculated HFB-27 mass excess [MeV]
+        beta20: Quadrupole deformation
+        beta40: Hexadecapole deformation
+        Rch: Charge radius [fm]
+    """
+    n      : _c.Nuclide = None
+    flag   : int = None
+    Mexp   : float = None
+    Err    : float = None
+    Mth    : float = None
+    beta20 : float = None
+    beta40 : float = None
+    Rch    : float = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'flag': 'Data quality flag',
+        'Mexp': 'Experimental mass excess [MeV]',
+        'Err': 'Uncertainty on mass excess [MeV]',
+        'Mth': 'Calculated HFB-27 mass excess [MeV]',
+        'beta20': 'Quadrupole deformation',
+        'beta40': 'Hexadecapole deformation',
+        'Rch': 'Charge radius [fm]',
+    }
 
     @classmethod
     def from_dict(cls, data: dict) -> "Entry":

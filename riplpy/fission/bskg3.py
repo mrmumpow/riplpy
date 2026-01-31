@@ -21,6 +21,9 @@ Authors:
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -123,13 +126,33 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An object which represents an entry in the BSkG3 fission barrier database. """
+    """An entry in the BSkG3 fission barrier database.
 
-    n     : _c.Nuclide = None  # Compound nucleus
-    inner : dict = None  # Inner fission barrier
-    outer1: dict = None  # Outer 1 fission barrier
-    outer2: dict = None  # Outer 2 fission barrier
-    isomer: dict = None  # Isomer
+    Contains microscopic HFB-based fission barrier parameters from BSkG3,
+    including inner, outer, and isomer saddle points with deformation.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        inner: Inner barrier {E[MeV], B20, B22, B30}
+        outer1: First outer barrier {E[MeV], B20, B22, B30}
+        outer2: Second outer barrier {E[MeV], B20, B22, B30}
+        isomer: Isomer configuration {E[MeV], B20, B22, B30}
+    """
+
+    n     : _c.Nuclide = None
+    inner : dict = None
+    outer1: dict = None
+    outer2: dict = None
+    isomer: dict = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'inner': 'Inner barrier {E[MeV], B20, B22, B30}',
+        'outer1': 'First outer barrier {E[MeV], B20, B22, B30}',
+        'outer2': 'Second outer barrier {E[MeV], B20, B22, B30}',
+        'isomer': 'Isomer configuration {E[MeV], B20, B22, B30}',
+    }
 
     @property
     def as_tuple(self) -> tuple:

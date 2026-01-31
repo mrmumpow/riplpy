@@ -9,6 +9,9 @@ from collections import defaultdict as _defaultdict
 from dataclasses import dataclass as _dataclass
 from dataclasses import field as _field
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Fortran format
 import fortranformat as _ff
 
@@ -201,16 +204,41 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class GammaEntry(_core.DiscreteNuclearLevel, _db.NuclideDatabaseEntry):
-    """An object representing an entry in the  discrete nuclear level database that also contains associated gamma-rays. """
+    """A discrete nuclear level with associated gamma-ray transitions.
 
-    halflife   : float = None # Half-life in [seconds]
-    jflag      : str   = None # Flag for spin estimation method
-    unc        : str   = None # Flag for an uncertain level energy
-    jpistr     : str   = None # String representation of spin-parity (original spins from the ENSDF file)
-    gammas     : dict  = _field(default_factory=dict) # Associated gamma-rays with this level
-    decay_modes: list  = _field(default_factory=list) # Decay modes of the level
-    shift      : str   = None # Value assigned to uncertain "X" in an ENSDF level
-    band       : int   = None # Integer assigned to band(s) to which the level is part
+    Contains level properties and all gamma-ray de-excitation data.
+
+    Attributes:
+        halflife: Level half-life [s]
+        jflag: Spin assignment method flag
+        unc: Uncertain energy flag
+        jpistr: Original ENSDF spin-parity string
+        gammas: Dict of gamma transitions keyed by level index
+        decay_modes: List of decay modes
+        shift: Uncertain energy offset (X value)
+        band: Rotational band assignment
+    """
+
+    halflife   : float = None
+    jflag      : str   = None
+    unc        : str   = None
+    jpistr     : str   = None
+    gammas     : dict  = _field(default_factory=dict)
+    decay_modes: list  = _field(default_factory=list)
+    shift      : str   = None
+    band       : int   = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'halflife': 'Level half-life [s]',
+        'jflag': 'Spin assignment method flag',
+        'unc': 'Uncertain energy flag',
+        'jpistr': 'Original ENSDF spin-parity string',
+        'gammas': 'Dict of gamma transitions',
+        'decay_modes': 'List of decay modes',
+        'shift': 'Uncertain energy offset (X value)',
+        'band': 'Rotational band assignment',
+    }
 
     @property
     def number_decay_modes(self, ) -> int:
@@ -225,12 +253,30 @@ class GammaEntry(_core.DiscreteNuclearLevel, _db.NuclideDatabaseEntry):
 
 @_dataclass
 class LevelEntry(_db.NuclideDatabaseEntry):
-    """Object which represents an entry in the DiscreteLevelsDatabase. """
+    """An entry in the discrete levels database.
+
+    Contains the complete discrete level scheme for a nucleus including
+    all levels, gamma transitions, and metadata.
+
+    Attributes:
+        nucleus: Target nucleus (Nuclide object with Z, A, N properties)
+        levels: List of DiscreteLevelInfo objects (ordered by energy)
+        gammas: Dict of gamma transitions keyed by level index
+        extras: Additional metadata from ENSDF header
+    """
 
     nucleus: _c.Nuclide = None
-    levels: list = _field(default_factory=list) # Order matters
-    gammas: dict = _field(default_factory=dict) # Order matters
-    extras: list = _field(default_factory=list) # Unknowns
+    levels: list = _field(default_factory=list)
+    gammas: dict = _field(default_factory=dict)
+    extras: list = _field(default_factory=list)
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'nucleus': 'Target nucleus',
+        'levels': 'List of discrete levels (ordered by energy)',
+        'gammas': 'Dict of gamma transitions by level index',
+        'extras': 'Additional ENSDF metadata',
+    }
 
     @property
     def num_levels(self, ) -> int:

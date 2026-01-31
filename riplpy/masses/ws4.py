@@ -23,6 +23,9 @@ Authors:
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -116,17 +119,45 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 
 @_dataclass
-class Entry:
-    """An entry in the WS4 mass database."""
-    n      : _c.Nuclide  # Compound nucleus
-    flag   : int         # Data flag
-    Mexp   : float       # Experimental or recommended atomic mass excess [MeV]
-    Err    : float       # Error on the experimental or recommended mass excess [MeV]
-    Mth    : float       # Calculated WS4 atomic mass excess [MeV]
-    Esh    : float       # Calculated shell correction energy [MeV]
-    beta2  : float       # Quadrupole deformation
-    beta4  : float       # Hexadecapole deformation
-    beta6  : float       # Hexacontatetrapole deformation
+class Entry(_db.NuclideDatabaseEntry):
+    """An entry in the WS4 mass database.
+
+    Contains theoretical atomic masses from the WS4 model along with
+    experimental reference values and nuclear structure parameters.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        flag: Data quality flag
+        Mexp: Experimental mass excess [MeV]
+        Err: Uncertainty on mass excess [MeV]
+        Mth: Calculated WS4 mass excess [MeV]
+        Esh: Shell correction energy [MeV]
+        beta2: Quadrupole deformation
+        beta4: Hexadecapole deformation
+        beta6: Hexacontatetrapole deformation
+    """
+    n      : _c.Nuclide = None
+    flag   : int = None
+    Mexp   : float = None
+    Err    : float = None
+    Mth    : float = None
+    Esh    : float = None
+    beta2  : float = None
+    beta4  : float = None
+    beta6  : float = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'flag': 'Data quality flag',
+        'Mexp': 'Experimental mass excess [MeV]',
+        'Err': 'Uncertainty on mass excess [MeV]',
+        'Mth': 'Calculated WS4 mass excess [MeV]',
+        'Esh': 'Shell correction energy [MeV]',
+        'beta2': 'Quadrupole deformation',
+        'beta4': 'Hexadecapole deformation',
+        'beta6': 'Hexacontatetrapole deformation',
+    }
 
     @classmethod
     def from_dict(cls, data: dict) -> "Entry":

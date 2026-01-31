@@ -21,6 +21,9 @@ from collections import defaultdict as _defaultdict
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Logging
 import logging as _logging
 
@@ -55,11 +58,27 @@ density_writer = _ff.FortranRecordWriter(FORMAT_DENSITY)
 # ========================
 
 @_dataclass
-class Entry:
-    """An entry in the DENSITY-BSKG3 database."""
-    n        : _c.Nuclide # Compound nucleus
-    dr       : float      # Radius increment [fm]
-    densities: list       # List of density entries for radii
+class Entry(_db.NuclideDatabaseEntry):
+    """An entry in the DENSITY-BSKG3 database.
+
+    Contains radial density distributions from the BSkG3 HFB model,
+    expanded in spherical harmonics multipoles.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        dr: Radius grid spacing [fm]
+        densities: List of DensityPoint objects at each radius
+    """
+    n        : _c.Nuclide = None
+    dr       : float = None
+    densities: list = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'dr': 'Radius grid spacing [fm]',
+        'densities': 'List of density multipole values at each radius',
+    }
 
     @property
     def nrho(self, ) -> int:
@@ -69,19 +88,50 @@ class Entry:
 
 @_dataclass
 class DensityPoint:
-    """A density. """
+    """A density point at a specific radius.
 
-    r      : float     # Radius [fm]
-    rhon0  : float     # Neutron density [fm^-3]
-    rhon2  : float     # Second multipole neutron density
-    rhon4  : float     # Fourth multipole neutron density
-    rhon6  : float     # Sixth multipole neutron density
-    rhon8  : float     # Eighth multipole neutron density
-    rhop0  : float     # Proton density [fm^-3]
-    rhop2  : float     # Second multipole proton density
-    rhop4  : float     # Fourth multipole proton density
-    rhop6  : float     # Sixth multipole proton density
-    rhop8  : float     # Eighth multipole proton density
+    Contains neutron and proton density multipole expansions.
+
+    Attributes:
+        r: Radius [fm]
+        rhon0: Neutron monopole density [fm^-3]
+        rhon2: Neutron quadrupole density
+        rhon4: Neutron hexadecapole density
+        rhon6: Neutron 64-pole density
+        rhon8: Neutron 256-pole density
+        rhop0: Proton monopole density [fm^-3]
+        rhop2: Proton quadrupole density
+        rhop4: Proton hexadecapole density
+        rhop6: Proton 64-pole density
+        rhop8: Proton 256-pole density
+    """
+
+    r      : float = None
+    rhon0  : float = None
+    rhon2  : float = None
+    rhon4  : float = None
+    rhon6  : float = None
+    rhon8  : float = None
+    rhop0  : float = None
+    rhop2  : float = None
+    rhop4  : float = None
+    rhop6  : float = None
+    rhop8  : float = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'r': 'Radius [fm]',
+        'rhon0': 'Neutron monopole density [fm^-3]',
+        'rhon2': 'Neutron quadrupole density',
+        'rhon4': 'Neutron hexadecapole density',
+        'rhon6': 'Neutron 64-pole density',
+        'rhon8': 'Neutron 256-pole density',
+        'rhop0': 'Proton monopole density [fm^-3]',
+        'rhop2': 'Proton quadrupole density',
+        'rhop4': 'Proton hexadecapole density',
+        'rhop6': 'Proton 64-pole density',
+        'rhop8': 'Proton 256-pole density',
+    }
 
 
 def read_ascii_file(filepath: str) -> dict:

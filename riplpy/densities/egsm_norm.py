@@ -18,6 +18,9 @@ standard deviation).
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -83,10 +86,25 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.DatabaseEntry):
-    """An entry in the Enhanced Generalized Superfluid Model (EGSM) normalization database. """
-   
-    element: _c.Element = None # Element
-    factor : float      = None # Normalization factor
+    """An entry in the EGSM normalization database.
+
+    Contains normalization factors for the level density parameter 'a'
+    to improve global systematics predictions for nuclei without
+    experimental resonance data.
+
+    Attributes:
+        element: Target element (Element object with Z property)
+        factor: Normalization factor (a_exp/a_sys averaged over isotopes)
+    """
+
+    element: _c.Element = None
+    factor : float      = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'element': 'Target element',
+        'factor': 'Normalization factor (a_exp/a_sys averaged over isotopes)',
+    }
 
     @property
     def Z(self, ) -> int:

@@ -4,6 +4,9 @@
 # Dataclass
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -144,18 +147,48 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An entry in the resonance spacing database. """
+    """An entry in the neutron resonance database.
 
-    n     : _c.Nuclide = None # Compound nucleus
-    Io    : float      = None # Spin of the ground state of the target nucleus
-    Bn    : float      = None # Neutron binding energy for the corresponding compound nucleus [MeV]
-    D     : float      = None # Average resonance spacing [keV]
-    Derr  : float      = None # Uncertainty in D [keV]
-    Str   : float      = None # S/P-wave neutron strength function 10**(-4)
-    Serr  : float      = None # Uncertainty of Str 10**(-4)
-    Gam   : float      = None # Average radiative width [meV]
-    Gerr  : float      = None # Uncertainty of Gam [meV]
-    ref   : str        = None # Reference to the work in which the analysis was performed
+    Contains s-wave or p-wave neutron resonance parameters from
+    evaluated experimental data.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        Io: Ground state spin of target nucleus
+        Bn: Neutron binding energy [MeV]
+        D: Average resonance spacing [keV]
+        Derr: Uncertainty on D [keV]
+        Str: Neutron strength function [10^-4]
+        Serr: Uncertainty on Str [10^-4]
+        Gam: Average radiative width [meV]
+        Gerr: Uncertainty on Gam [meV]
+        ref: Reference key
+    """
+
+    n     : _c.Nuclide = None
+    Io    : float      = None
+    Bn    : float      = None
+    D     : float      = None
+    Derr  : float      = None
+    Str   : float      = None
+    Serr  : float      = None
+    Gam   : float      = None
+    Gerr  : float      = None
+    ref   : str        = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'Io': 'Ground state spin of target nucleus',
+        'Bn': 'Neutron binding energy [MeV]',
+        'D': 'Average resonance spacing [keV]',
+        'Derr': 'Uncertainty on D [keV]',
+        'Str': 'Neutron strength function [10^-4]',
+        'Serr': 'Uncertainty on Str [10^-4]',
+        'Gam': 'Average radiative width [meV]',
+        'Gerr': 'Uncertainty on Gam [meV]',
+        'ref': 'Reference key',
+    }
 
     @property
     def as_tuple(self) -> tuple:

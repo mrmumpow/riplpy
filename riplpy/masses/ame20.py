@@ -23,6 +23,9 @@ Authors:
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -106,12 +109,29 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 
 @_dataclass
-class Entry:
-    """An entry in the AME20 mass database."""
-    n      : _c.Nuclide  # Compound nucleus
-    flag   : int         # Data flag
-    Mexp   : float       # Experimental or recommended atomic mass excess [MeV]
-    Err    : float       # Error on the experimental or recommended mass excess [MeV]
+class Entry(_db.NuclideDatabaseEntry):
+    """An entry in the AME20 mass database.
+
+    Contains experimental atomic masses from the 2020 Atomic Mass Evaluation.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        flag: Data quality flag (0=measured, 1=extrapolated)
+        Mexp: Experimental mass excess [MeV]
+        Err: Uncertainty on mass excess [MeV]
+    """
+    n      : _c.Nuclide = None  # Compound nucleus
+    flag   : int = None         # Data flag
+    Mexp   : float = None       # Experimental or recommended atomic mass excess [MeV]
+    Err    : float = None       # Error on the experimental or recommended mass excess [MeV]
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'flag': 'Data quality flag (0=measured, 1=extrapolated)',
+        'Mexp': 'Experimental mass excess [MeV]',
+        'Err': 'Uncertainty on mass excess [MeV]',
+    }
 
     @classmethod
     def from_dict(cls, data: dict) -> "Entry":

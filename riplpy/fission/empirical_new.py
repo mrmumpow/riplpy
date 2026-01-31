@@ -21,6 +21,9 @@ Authors:
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -109,24 +112,66 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An object which represents an entry in the empirical fission barrier database. """
+    """An entry in the new empirical fission barrier database.
 
-    n: _c.Nuclide = None  # Compound nucleus
-    s: str     = None  # Symbol
-    syma: str  = None  # Symmetry for barrier A
-    Va: float  = None  # Barrier height A
-    dVa: float = None  # Uncertainty in Va
-    hwa: float = None  # Barrier width A
-    dwa: float = None  # Uncertainty in width A
-    symb: str  = None  # Symmetry for barrier B
-    Vb: float  = None  # Barrier height B
-    dVb: float = None  # Uncertainty in Vb
-    hwb: float = None  # Barrier width B
-    dwb: float = None  # Uncertainty in width B
-    Vc: float  = None  # Barrier height C
-    Dvc: float = None  # Uncertainty in Vc
-    hwc: float = None  # Barrier width C
-    dwc: float = None  # Uncertainty in width C
+    Contains multi-humped fission barrier parameters with uncertainties,
+    supporting up to triple-humped barriers for actinides.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        s: Element symbol
+        syma: Symmetry designation for barrier A
+        Va: Barrier A height [MeV]
+        dVa: Uncertainty on Va [MeV]
+        hwa: Barrier A curvature [MeV]
+        dwa: Uncertainty on hwa [MeV]
+        symb: Symmetry designation for barrier B
+        Vb: Barrier B height [MeV]
+        dVb: Uncertainty on Vb [MeV]
+        hwb: Barrier B curvature [MeV]
+        dwb: Uncertainty on hwb [MeV]
+        Vc: Barrier C height [MeV] (third hump, if present)
+        Dvc: Uncertainty on Vc [MeV]
+        hwc: Barrier C curvature [MeV]
+        dwc: Uncertainty on hwc [MeV]
+    """
+
+    n: _c.Nuclide = None
+    s: str     = None
+    syma: str  = None
+    Va: float  = None
+    dVa: float = None
+    hwa: float = None
+    dwa: float = None
+    symb: str  = None
+    Vb: float  = None
+    dVb: float = None
+    hwb: float = None
+    dwb: float = None
+    Vc: float  = None
+    Dvc: float = None
+    hwc: float = None
+    dwc: float = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        's': 'Element symbol',
+        'syma': 'Symmetry designation for barrier A',
+        'Va': 'Barrier A height [MeV]',
+        'dVa': 'Uncertainty on Va [MeV]',
+        'hwa': 'Barrier A curvature [MeV]',
+        'dwa': 'Uncertainty on hwa [MeV]',
+        'symb': 'Symmetry designation for barrier B',
+        'Vb': 'Barrier B height [MeV]',
+        'dVb': 'Uncertainty on Vb [MeV]',
+        'hwb': 'Barrier B curvature [MeV]',
+        'dwb': 'Uncertainty on hwb [MeV]',
+        'Vc': 'Barrier C height [MeV] (third hump)',
+        'Dvc': 'Uncertainty on Vc [MeV]',
+        'hwc': 'Barrier C curvature [MeV]',
+        'dwc': 'Uncertainty on hwc [MeV]',
+    }
 
     @property
     def as_tuple(self) -> tuple:

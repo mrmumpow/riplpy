@@ -23,6 +23,9 @@ Authors:
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -96,11 +99,28 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_bsfg.Entry):
-    """An entry in the Constant Temperature (CT) database. """
+    """An entry in the Constant Temperature (CT) database.
 
-    Ematch: float = None # Energy at which the low and high energy formulae match [MeV]
-    E0    : float = None # Energy shift for the low-energy approach [MeV]
-    T     : float = None # Temperature for the low-energy approach [MeV]
+    Extends BSFG Entry with additional parameters for the constant
+    temperature model at low excitation energies.
+
+    Attributes:
+        Ematch: Matching energy between CT and FG formulas [MeV]
+        E0: Energy shift for constant temperature formula [MeV]
+        T: Nuclear temperature [MeV]
+    """
+
+    Ematch: float = None
+    E0    : float = None
+    T     : float = None
+
+    # Field descriptions for help/info display (extends parent)
+    _field_info: _ClassVar[dict] = {
+        **_bsfg.Entry._field_info,
+        'Ematch': 'Matching energy between CT and FG formulas [MeV]',
+        'E0': 'Energy shift for constant temperature formula [MeV]',
+        'T': 'Nuclear temperature [MeV]',
+    }
 
 
 class Database(_bsfg.Database):

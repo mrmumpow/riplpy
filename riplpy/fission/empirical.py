@@ -21,6 +21,9 @@ Authors:
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -99,16 +102,41 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An object which represents an entry in the empirical fission barrier database. """
+    """An entry in the empirical fission barrier database.
 
-    n     : _c.Nuclide = None # Compound nucleus
-    Ea    : float = None # Generally in [MeV]
-    hwa   : float = None # Generally in [MeV]
-    syma  : str   = None # shorthand notation for saddle
-    Eb    : float = None # Generally in [MeV]
-    hwb   : float = None # Generally in [MeV]
-    symb  : str   = None # shorthand notation for saddle
-    deltaf: float = None # Generally in [MeV]
+    Contains double-humped fission barrier parameters from experimental data.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        Ea: First (inner) barrier height [MeV]
+        hwa: First barrier curvature [MeV]
+        syma: Saddle point symmetry designation (first barrier)
+        Eb: Second (outer) barrier height [MeV]
+        hwb: Second barrier curvature [MeV]
+        symb: Saddle point symmetry designation (second barrier)
+        deltaf: Pairing correction [MeV]
+    """
+
+    n     : _c.Nuclide = None
+    Ea    : float = None
+    hwa   : float = None
+    syma  : str   = None
+    Eb    : float = None
+    hwb   : float = None
+    symb  : str   = None
+    deltaf: float = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'Ea': 'First (inner) barrier height [MeV]',
+        'hwa': 'First barrier curvature [MeV]',
+        'syma': 'Saddle point symmetry (first barrier)',
+        'Eb': 'Second (outer) barrier height [MeV]',
+        'hwb': 'Second barrier curvature [MeV]',
+        'symb': 'Saddle point symmetry (second barrier)',
+        'deltaf': 'Pairing correction [MeV]',
+    }
 
     @property
     def as_tuple(self) -> tuple:

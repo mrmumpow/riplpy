@@ -23,6 +23,9 @@ Authors:
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -88,11 +91,26 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An entry in the deformation database. """
+    """An entry in the deformation database.
 
-    n      : _c.Nuclide = None # Compound nucleus
-    beta2  : float      = None # Experimental deformation parameter
-    error  : float      = None # Error on the deformation parameter
+    Contains experimental nuclear ground-state deformation parameters.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        beta2: Experimental quadrupole deformation
+        error: Uncertainty on beta2
+    """
+
+    n      : _c.Nuclide = None
+    beta2  : float      = None
+    error  : float      = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'beta2': 'Experimental quadrupole deformation',
+        'error': 'Uncertainty on beta2',
+    }
 
 
 class Database(_db.NuclideDatabase):

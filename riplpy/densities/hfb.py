@@ -27,6 +27,9 @@ import os as _os
 from dataclasses import dataclass as _dataclass
 from dataclasses import field as _field
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Logging
 import logging as _logging
 
@@ -166,14 +169,36 @@ def read_ascii_file(fpath: str) -> dict:
 
 @_dataclass
 class ParityData:
-    """Level density data for a single parity."""
+    """Level density data for a single parity.
 
-    U: list = _field(default_factory=list)        # Excitation energy [MeV]
-    T: list = _field(default_factory=list)        # Temperature [MeV]
-    Ncumul: list = _field(default_factory=list)   # Cumulative level count
-    rho_obs: list = _field(default_factory=list)  # Observed level density [MeV^-1]
-    rho_tot: list = _field(default_factory=list)  # Total level density [MeV^-1]
-    rho_J: list = _field(default_factory=list)    # Spin-dependent densities [MeV^-1]
+    Contains tabulated level densities as a function of excitation energy,
+    including spin-dependent values.
+
+    Attributes:
+        U: Excitation energy grid [MeV]
+        T: Nuclear temperature [MeV]
+        Ncumul: Cumulative level count
+        rho_obs: Observed level density [MeV^-1]
+        rho_tot: Total level density [MeV^-1]
+        rho_J: Spin-dependent level densities [MeV^-1]
+    """
+
+    U: list = _field(default_factory=list)
+    T: list = _field(default_factory=list)
+    Ncumul: list = _field(default_factory=list)
+    rho_obs: list = _field(default_factory=list)
+    rho_tot: list = _field(default_factory=list)
+    rho_J: list = _field(default_factory=list)
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'U': 'Excitation energy grid [MeV]',
+        'T': 'Nuclear temperature [MeV]',
+        'Ncumul': 'Cumulative level count',
+        'rho_obs': 'Observed level density [MeV^-1]',
+        'rho_tot': 'Total level density [MeV^-1]',
+        'rho_J': 'Spin-dependent level densities [MeV^-1]',
+    }
 
     @classmethod
     def from_dict(cls, data: dict) -> "ParityData":
@@ -209,11 +234,27 @@ class ParityData:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An entry in the HFB level density database."""
+    """An entry in the HFB level density database.
+
+    Contains microscopic HFB-based level densities for both parities,
+    tabulated as a function of excitation energy with spin dependence.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        positive_parity: Level density data for positive parity states
+        negative_parity: Level density data for negative parity states
+    """
 
     n: _c.Nuclide = None
     positive_parity: ParityData = None
     negative_parity: ParityData = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'positive_parity': 'Level density data for positive parity states',
+        'negative_parity': 'Level density data for negative parity states',
+    }
 
     def get_total_density(self, energy: float, parity: int = None) -> float:
         """Get total level density at a given excitation energy.

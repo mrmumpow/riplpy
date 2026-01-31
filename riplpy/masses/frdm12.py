@@ -23,6 +23,9 @@ Authors:
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -91,21 +94,48 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An entry in the FRDM2012 mass database. """
+    """An entry in the FRDM2012 mass database.
 
-    n     : _c.Nuclide = None # Compound nucleus
-    flag  : int        = None # flag corresponding to:
-                              #   0 if no experimental data available
-                              #   1  for a mass excess recommended by Audi et al. (2007)
-                              #   2 for a measured mass from Audi et al. (2007)
-    Mexp  : float      = None # Experimental or recommended atomic mass excess [MeV] of Audi et al. (2007) 
-    Err   : float      = None # Error on the experimental or recommended atomic mass excess [MeV] of Audi et al. (2007) 
-    Mth   : float      = None # Calculated FRDM atomic mass excess [MeV]
-    Emic  : float      = None # Calculated FRDM microscopic energy [MeV]
-    beta2 : float      = None # Calculated quadrupole deformation of the nuclear ground-state
-    beta3 : float      = None # Calculated octupole deformation of the nuclear ground-state
-    beta4 : float      = None # Calculated hexadecapole deformation of the nuclear ground-state
-    beta6 : float      = None # Calculated hexacontatetrapole deformation of the nuclear ground-state
+    Contains theoretical atomic masses from the FRDM2012 model along with
+    experimental reference values and nuclear structure parameters.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        flag: Data quality flag (0=no exp, 1=recommended, 2=measured)
+        Mexp: Experimental mass excess [MeV]
+        Err: Uncertainty on mass excess [MeV]
+        Mth: Calculated FRDM2012 mass excess [MeV]
+        Emic: Microscopic correction energy [MeV]
+        beta2: Quadrupole deformation
+        beta3: Octupole deformation
+        beta4: Hexadecapole deformation
+        beta6: Hexacontatetrapole deformation
+    """
+
+    n     : _c.Nuclide = None
+    flag  : int        = None
+    Mexp  : float      = None
+    Err   : float      = None
+    Mth   : float      = None
+    Emic  : float      = None
+    beta2 : float      = None
+    beta3 : float      = None
+    beta4 : float      = None
+    beta6 : float      = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'flag': 'Data quality flag (0=no exp, 1=recommended, 2=measured)',
+        'Mexp': 'Experimental mass excess [MeV]',
+        'Err': 'Uncertainty on mass excess [MeV]',
+        'Mth': 'Calculated FRDM2012 mass excess [MeV]',
+        'Emic': 'Microscopic correction energy [MeV]',
+        'beta2': 'Quadrupole deformation',
+        'beta3': 'Octupole deformation',
+        'beta4': 'Hexadecapole deformation',
+        'beta6': 'Hexacontatetrapole deformation',
+    }
 
     @classmethod
     def from_dict(cls, data: dict) -> "Entry":

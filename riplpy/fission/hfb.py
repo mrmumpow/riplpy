@@ -21,6 +21,9 @@ Authors:
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -103,21 +106,57 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An object which represents an entry in the HFB fission barrier database. """
+    """An entry in the HFB fission barrier database.
 
-    n        : _c.Nuclide = None # Compound nucleus
-    Bin      : float = None # Inner barrier height [MeV]
-    hwin     : float = None # Inner barrier width [MeV]
-    alphain  : float = None # Inner barrier alpha [MeV^-1/2]
-    deltain  : float = None # Inner barrier delta [MeV]
-    Bout     : float = None # Outer barrier height [MeV]
-    hwout    : float = None # Outer barrier width [MeV]
-    alphaout : float = None # Outer barrier alpha [MeV^-1/2]
-    deltaout : float = None # Outer barrier delta [MeV]
-    Bout2    : float = None # Second outer barrier height [MeV]
-    hwout2   : float = None # Second outer barrier width [MeV]
-    alphaout2: float = None # Second outer barrier alpha [MeV^-1/2]
-    deltaout2: float = None # Second outer barrier delta [MeV]
+    Contains microscopic HFB-based fission barrier parameters including
+    inner and outer barriers with asymmetry parameters.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        Bin: Inner barrier height [MeV]
+        hwin: Inner barrier curvature [MeV]
+        alphain: Inner barrier asymmetry [MeV^-1/2]
+        deltain: Inner barrier pairing correction [MeV]
+        Bout: First outer barrier height [MeV]
+        hwout: First outer barrier curvature [MeV]
+        alphaout: First outer barrier asymmetry [MeV^-1/2]
+        deltaout: First outer barrier pairing correction [MeV]
+        Bout2: Second outer barrier height [MeV]
+        hwout2: Second outer barrier curvature [MeV]
+        alphaout2: Second outer barrier asymmetry [MeV^-1/2]
+        deltaout2: Second outer barrier pairing correction [MeV]
+    """
+
+    n        : _c.Nuclide = None
+    Bin      : float = None
+    hwin     : float = None
+    alphain  : float = None
+    deltain  : float = None
+    Bout     : float = None
+    hwout    : float = None
+    alphaout : float = None
+    deltaout : float = None
+    Bout2    : float = None
+    hwout2   : float = None
+    alphaout2: float = None
+    deltaout2: float = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'Bin': 'Inner barrier height [MeV]',
+        'hwin': 'Inner barrier curvature [MeV]',
+        'alphain': 'Inner barrier asymmetry [MeV^-1/2]',
+        'deltain': 'Inner barrier pairing correction [MeV]',
+        'Bout': 'First outer barrier height [MeV]',
+        'hwout': 'First outer barrier curvature [MeV]',
+        'alphaout': 'First outer barrier asymmetry [MeV^-1/2]',
+        'deltaout': 'First outer barrier pairing correction [MeV]',
+        'Bout2': 'Second outer barrier height [MeV]',
+        'hwout2': 'Second outer barrier curvature [MeV]',
+        'alphaout2': 'Second outer barrier asymmetry [MeV^-1/2]',
+        'deltaout2': 'Second outer barrier pairing correction [MeV]',
+    }
 
     @property
     def as_tuple(self) -> tuple:

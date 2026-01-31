@@ -28,6 +28,9 @@ directly from the respective RIPL files.
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -96,17 +99,45 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An entry in the Enhanced Generalized Superfluid Model (EGSM) database. """
-   
-    n   : _c.Nuclide = None # Compound nucleus
-    Io  : float      = None # Spin of the ground state of the target nucleus
-    Bn  : float      = None # Neutron binding energy of the compound nucleus [MeV]
-    Do  : float      = None # Experimental S-wave resonance spacing [eV or MeV?]
-    Derr: float      = None # Uncertainty of the resonance spacing [eV or MeV?] # Changed from original dDo to be consistent
-    Esh : float      = None # Shell correction used for estimation of the level density parameter [MeV?]
-    dap : float      = None # Upper uncertainty of the level density parameter 'a' at neutron binding energy Bn, corresponding to the 'Do - Derr' spacing of S-wave resonances
-    a   : float      = None # Level density parameter 'a' at the neutron binding energy Bn
-    dam : float      = None # Lower uncertainty of the level density parameter 'a' at neutron binding energy Bn, corresponding to the 'Do + Derr' spacing of S-wave resonances
+    """An entry in the Enhanced Generalized Superfluid Model (EGSM) database.
+
+    Contains level density parameters for the EGSM model which combines
+    the superfluid model below BCS critical energy with the Fermi gas model.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        Io: Ground state spin of target nucleus
+        Bn: Neutron binding energy [MeV]
+        Do: Experimental s-wave resonance spacing [keV]
+        Derr: Uncertainty on resonance spacing [keV]
+        Esh: Shell correction energy [MeV]
+        dap: Upper uncertainty on level density parameter [MeV^-1]
+        a: Level density parameter at Bn [MeV^-1]
+        dam: Lower uncertainty on level density parameter [MeV^-1]
+    """
+
+    n   : _c.Nuclide = None
+    Io  : float      = None
+    Bn  : float      = None
+    Do  : float      = None
+    Derr: float      = None
+    Esh : float      = None
+    dap : float      = None
+    a   : float      = None
+    dam : float      = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'Io': 'Ground state spin of target nucleus',
+        'Bn': 'Neutron binding energy [MeV]',
+        'Do': 'Experimental s-wave resonance spacing [keV]',
+        'Derr': 'Uncertainty on resonance spacing [keV]',
+        'Esh': 'Shell correction energy [MeV]',
+        'dap': 'Upper uncertainty on level density parameter [MeV^-1]',
+        'a': 'Level density parameter at Bn [MeV^-1]',
+        'dam': 'Lower uncertainty on level density parameter [MeV^-1]',
+    }
 
 
 class Database(_db.NuclideDatabase):

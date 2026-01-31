@@ -5,6 +5,9 @@
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -89,26 +92,72 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An entry in the Constant Temperature (CT) fit database. """
+    """An entry in the Constant Temperature (CT) fit database.
 
-    n    : _c.Nuclide = None  # Nuclide of the dataset
-    T    : float      = None  # Temperature T in the CT model
-    dT   : float      = None  # Uncertainty of T
-    U0   : float      = None  # Back-shift in CT model
-    dU0  : float      = None  # Uncertainty of U0
-    Nlev : int        = None  # Number of levels in the ENSDF data set
-    Nmax : int        = None  # Maximum level number up to which the level scheme is complete
-    N0   : int        = None  # Minimum level number from which the fit is considered
-    Nc   : int        = None  # Number of level at which unique spin sequence ends
-    Umax : float      = None # Energy corresponds to Nmax
-    Uc   : float      = None # Energy corresponds to Nc
-    Chi  : float      = None # Measure of the quality of fit (blank if there was no fit)
-    Fit  : str        = None # If the record comes from the fit of pre-selected nuclei, which provided the T(A) function = blank if there was no fit
-    Flag : str        = None # 'F' if Chi>0.05 (bad fit); blank otherwise
-    NoX  : int        = None # Number of levels with +X, +Y, +Z ... notation (X,Y,Z... are unknown energy values)
-    Xm   : int        = None # Level number where the first +X, +Y, +Z ... notation appears
-    Ex   : float      = None # Level energy where the first +X, +Y, +Z ... notation appears
-    sigma: float      = None # Spin cut-off values extracted from the discrete level library
+    Contains CT model parameters fitted to discrete level data for
+    extrapolating level densities to higher excitation energies.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        T: Nuclear temperature [MeV]
+        dT: Uncertainty on T [MeV]
+        U0: Back-shift energy [MeV]
+        dU0: Uncertainty on U0 [MeV]
+        Nlev: Total number of ENSDF levels
+        Nmax: Completeness limit (level number)
+        N0: First level included in fit
+        Nc: Level where unique spin sequence ends
+        Umax: Energy at completeness limit [MeV]
+        Uc: Energy at Nc [MeV]
+        Chi: Fit quality chi-squared
+        Fit: Fit flag (blank if no fit)
+        Flag: 'F' if poor fit (Chi>0.05)
+        NoX: Number of levels with +X notation
+        Xm: First level with +X notation
+        Ex: Energy of first +X level [MeV]
+        sigma: Spin cutoff parameter
+    """
+
+    n    : _c.Nuclide = None
+    T    : float      = None
+    dT   : float      = None
+    U0   : float      = None
+    dU0  : float      = None
+    Nlev : int        = None
+    Nmax : int        = None
+    N0   : int        = None
+    Nc   : int        = None
+    Umax : float      = None
+    Uc   : float      = None
+    Chi  : float      = None
+    Fit  : str        = None
+    Flag : str        = None
+    NoX  : int        = None
+    Xm   : int        = None
+    Ex   : float      = None
+    sigma: float      = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'T': 'Nuclear temperature [MeV]',
+        'dT': 'Uncertainty on T [MeV]',
+        'U0': 'Back-shift energy [MeV]',
+        'dU0': 'Uncertainty on U0 [MeV]',
+        'Nlev': 'Total number of ENSDF levels',
+        'Nmax': 'Completeness limit (level number)',
+        'N0': 'First level included in fit',
+        'Nc': 'Level where unique spin sequence ends',
+        'Umax': 'Energy at completeness limit [MeV]',
+        'Uc': 'Energy at Nc [MeV]',
+        'Chi': 'Fit quality chi-squared',
+        'Fit': 'Fit flag (blank if no fit)',
+        'Flag': 'F if poor fit (Chi>0.05)',
+        'NoX': 'Number of levels with +X notation',
+        'Xm': 'First level with +X notation',
+        'Ex': 'Energy of first +X level [MeV]',
+        'sigma': 'Spin cutoff parameter',
+    }
 
 
 class Database(_db.NuclideDatabase):

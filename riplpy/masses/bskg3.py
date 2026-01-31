@@ -23,6 +23,9 @@ Authors:
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -122,20 +125,54 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 
 @_dataclass
-class Entry:
-    """An entry in the BSkG3 mass database."""
-    n       : _c.Nuclide  # Compound nucleus
-    flag    : int         # Data flag
-    Mexp    : float       # Experimental or recommended atomic mass excess [MeV]
-    Err     : float       # Error on the experimental or recommended mass excess [MeV]
-    Mth     : float       # Calculated BSkG3 atomic mass excess [MeV]
-    beta20  : float       # Quadrupole deformation
-    beta22  : float       # Higher-order quadrupole deformation
-    Gamma   : float       # Pairing gap parameter
-    beta30  : float       # Octupole deformation
-    beta32  : float       # Higher-order octupole deformation
-    beta4   : float       # Hexadecapole deformation
-    Rch     : float       # Charge radius [fm]
+class Entry(_db.NuclideDatabaseEntry):
+    """An entry in the BSkG3 mass database.
+
+    Contains theoretical atomic masses from the BSkG3 model along with
+    experimental reference values and nuclear structure parameters.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        flag: Data quality flag
+        Mexp: Experimental mass excess [MeV]
+        Err: Uncertainty on mass excess [MeV]
+        Mth: Calculated BSkG3 mass excess [MeV]
+        beta20: Quadrupole deformation (axial)
+        beta22: Quadrupole deformation (triaxial)
+        Gamma: Triaxial deformation angle [deg]
+        beta30: Octupole deformation (axial)
+        beta32: Octupole deformation (triaxial)
+        beta4: Hexadecapole deformation
+        Rch: Charge radius [fm]
+    """
+    n       : _c.Nuclide = None
+    flag    : int = None
+    Mexp    : float = None
+    Err     : float = None
+    Mth     : float = None
+    beta20  : float = None
+    beta22  : float = None
+    Gamma   : float = None
+    beta30  : float = None
+    beta32  : float = None
+    beta4   : float = None
+    Rch     : float = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'flag': 'Data quality flag',
+        'Mexp': 'Experimental mass excess [MeV]',
+        'Err': 'Uncertainty on mass excess [MeV]',
+        'Mth': 'Calculated BSkG3 mass excess [MeV]',
+        'beta20': 'Quadrupole deformation (axial)',
+        'beta22': 'Quadrupole deformation (triaxial)',
+        'Gamma': 'Triaxial deformation angle [deg]',
+        'beta30': 'Octupole deformation (axial)',
+        'beta32': 'Octupole deformation (triaxial)',
+        'beta4': 'Hexadecapole deformation',
+        'Rch': 'Charge radius [fm]',
+    }
 
     @classmethod
     def from_dict(cls, data: dict) -> "Entry":

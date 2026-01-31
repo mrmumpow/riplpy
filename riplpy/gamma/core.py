@@ -6,6 +6,9 @@ from collections import namedtuple as _namedtuple
 # Dataclass
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # RIPLpy
 import riplpy.collections as _c
 
@@ -17,13 +20,33 @@ GDR_ParameterTuple = _namedtuple('GDR_ParameterTuple', 'Z, A, El, E1, W1, E2, W2
 
 @_dataclass
 class Base_GDR_Parameter(object):
-    """A base class for a GDR parameter (can be used for experiment or theory). """
+    """A base class for GDR parameters (experiment or theory).
 
-    n  : _c.Nuclide = None # The nucleus
-    E1 : float   = None # Associated energy [MeV]
-    W1 : float   = None # Associated width [MeV]
-    E2 : float   = None # Associated second energy [MeV]
-    W2 : float   = None # Associated second width [MeV]
+    Contains the fundamental GDR parameters for up to two resonance peaks
+    (split GDR in deformed nuclei).
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        E1: First GDR peak energy [MeV]
+        W1: First GDR peak width [MeV]
+        E2: Second GDR peak energy [MeV]
+        W2: Second GDR peak width [MeV]
+    """
+
+    n  : _c.Nuclide = None
+    E1 : float   = None
+    W1 : float   = None
+    E2 : float   = None
+    W2 : float   = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'E1': 'First GDR peak energy [MeV]',
+        'W1': 'First GDR peak width [MeV]',
+        'E2': 'Second GDR peak energy [MeV]',
+        'W2': 'Second GDR peak width [MeV]',
+    }
 
     @property
     def nucleus(self, ) -> _c.Nuclide:
@@ -48,10 +71,22 @@ class Base_GDR_Parameter(object):
 
 @_dataclass
 class Theory_GDR_Parameter(Base_GDR_Parameter):
-    """A representation of a single theoretical Giant Dipole Resonance (GDR) parameter. """
-    
-    eta: float = None # The deformation parameter
-                      # This parameter is calculated by the diameter along the nuclear symmetry axis / diameter along the axis perpedicular to it
+    """A theoretical Giant Dipole Resonance (GDR) parameter.
+
+    Extends Base_GDR_Parameter with deformation information from
+    the Goldhaber-Teller model predictions.
+
+    Attributes:
+        eta: Deformation parameter (symmetry axis / perpendicular diameter)
+    """
+
+    eta: float = None
+
+    # Field descriptions for help/info display (extends parent)
+    _field_info: _ClassVar[dict] = {
+        **Base_GDR_Parameter._field_info,
+        'eta': 'Deformation parameter (symmetry axis / perpendicular diameter)',
+    }
 
     # @property
     # def as_dict(self, ) -> dict:
@@ -167,27 +202,76 @@ class Theory_GDR_ParameterMarshaller(object):
 
 @_dataclass
 class Experimental_GDR_Parameter(Base_GDR_Parameter):
-    """A representation of an experimental GDR parameter. """
+    """An experimental GDR parameter from photoabsorption measurements.
 
-    Er1      : float = None # Energy of the first component of the GDR, MeV (the first line of the entry);
-    dEr1     : float = None # Uncertainty (one-sigma standard deviation, MeV) of the energy in the nearest upper line (the second line of the entry);
-    Wr1      : float = None # Width of the first component of the GDR, MeV (the first line of the entry);
-    dWr1     : float = None # Uncertainty (one-sigma standard deviation, MeV) of the width in the nearest upper line (the second line of the entry);
-    Sr1      : float = None # Strength of the first component of the GDR in units of the Thomas-Reiche-Kuhn (TRK) sum rule CS_TRK (the first line of the entry); the GDR strength Sr1 is related to the peak value CSr1 of the first cross-section component CSr1=2*CS_TRK*Sr1/Wr1/PI, CS_TRK= 60 NZ/A = 15 A (1-I^2)[mb], I=(N-Z)/A; (the values of CS_TRK for Zr-90 and Pb-208 are used for  Zr-0 and Pb-0);
-    dSr1     : float = None # Uncertainty (one-sigma standard deviation) of the strength in the nearest upper line (the second line of the entry);
-    Er2      : float = None # Energy of the second component of the GDR, MeV (the first line of the entry);
-    dEr2     : float = None # Uncertainty (one-sigma standard deviation, MeV) of the energy in the nearest upper line (the second line of the entry);
-    Wr2      : float = None # Width of the second component of the GDR, MeV (the first line of the entry);
-    dWr2     : float = None # Uncertainty (one-sigma standard deviation, MeV) of the width in the nearest upper line (the second line of the entry);
-    Sr2      : float = None # Strength of the second component of the GDR in units of the TRK sum rule (the first line of the entry); the GDR strength Sr2 is related to the peak value CSr2 of the second cross-section component CSr2=2*CS_TRK*Sr2/Wr2/PI; (the values of CS_TRK for Zr-90 and Pb-208 are used for  Zr-0 and Pb-0);
-    dSr2     : float = None # Uncertainty (one-sigma standard deviation) of the strength in the nearest upper line (the second line of the entry);
-    Sr       : float = None # Sum Sr=Sr1+Sr2 of strengths of the first and second component of the GDR in units of the TRK sum rule(the first line of the entry); Sr*CS_TRK is total integrated photoabsorpttion cross-section CS__int;
-    dSr      : float = None # Uncertainty (one-sigma standard deviation) of the total strength in the nearest upper line (the second line of the entry);
-    Id       : str   = None # Id providing more information
-    Emin     : float = None # Lower energy limit of fitting interval [MeV]
-    Emax     : float = None # Upper energy limit of fitting interval [MeV]
-    reac     : int   = None # ?
-    reference: str   = None # A reference key
+    Contains fitted Lorentzian parameters for experimental GDR data
+    with uncertainties and reference information.
+
+    Attributes:
+        Er1: First component energy [MeV]
+        dEr1: Uncertainty on Er1 [MeV]
+        Wr1: First component width [MeV]
+        dWr1: Uncertainty on Wr1 [MeV]
+        Sr1: First component strength [TRK units]
+        dSr1: Uncertainty on Sr1
+        Er2: Second component energy [MeV]
+        dEr2: Uncertainty on Er2 [MeV]
+        Wr2: Second component width [MeV]
+        dWr2: Uncertainty on Wr2 [MeV]
+        Sr2: Second component strength [TRK units]
+        dSr2: Uncertainty on Sr2
+        Sr: Total strength Sr1+Sr2 [TRK units]
+        dSr: Uncertainty on Sr
+        Id: Identifier string
+        Emin: Lower energy limit of fit [MeV]
+        Emax: Upper energy limit of fit [MeV]
+        reac: Reaction flag
+        reference: Reference key
+    """
+
+    Er1      : float = None
+    dEr1     : float = None
+    Wr1      : float = None
+    dWr1     : float = None
+    Sr1      : float = None
+    dSr1     : float = None
+    Er2      : float = None
+    dEr2     : float = None
+    Wr2      : float = None
+    dWr2     : float = None
+    Sr2      : float = None
+    dSr2     : float = None
+    Sr       : float = None
+    dSr      : float = None
+    Id       : str   = None
+    Emin     : float = None
+    Emax     : float = None
+    reac     : int   = None
+    reference: str   = None
+
+    # Field descriptions for help/info display (extends parent)
+    _field_info: _ClassVar[dict] = {
+        **Base_GDR_Parameter._field_info,
+        'Er1': 'First component energy [MeV]',
+        'dEr1': 'Uncertainty on Er1 [MeV]',
+        'Wr1': 'First component width [MeV]',
+        'dWr1': 'Uncertainty on Wr1 [MeV]',
+        'Sr1': 'First component strength [TRK units]',
+        'dSr1': 'Uncertainty on Sr1',
+        'Er2': 'Second component energy [MeV]',
+        'dEr2': 'Uncertainty on Er2 [MeV]',
+        'Wr2': 'Second component width [MeV]',
+        'dWr2': 'Uncertainty on Wr2 [MeV]',
+        'Sr2': 'Second component strength [TRK units]',
+        'dSr2': 'Uncertainty on Sr2',
+        'Sr': 'Total strength Sr1+Sr2 [TRK units]',
+        'dSr': 'Uncertainty on Sr',
+        'Id': 'Identifier string',
+        'Emin': 'Lower energy limit of fit [MeV]',
+        'Emax': 'Upper energy limit of fit [MeV]',
+        'reac': 'Reaction flag',
+        'reference': 'Reference key',
+    }
 
 
 @_dataclass
@@ -202,10 +286,27 @@ class ExperimentalEntry(Experimental_GDR_Parameter):
         assert self.reac in range(0, 11)
 
 
-class GammaStrengthFunction(object):
-    """A discrete representation of the gamma-ray strength function (GSF) for atomic nuclei. """
+@_dataclass
+class GammaStrengthFunction:
+    """A tabulated gamma-ray strength function (GSF) for atomic nuclei.
 
-    n     : _c.Nuclide # The nucleus associated with the GSF
-    energy: list       # The excitation energy in the nucleus [MeV]
-    fE1   : list       # The E1 strength function in [mb/MeV]
+    Contains the energy-dependent E1 photon strength function used
+    in statistical model calculations.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        U: Excitation energy grid [MeV]
+        fE1: E1 strength function values [mb/MeV]
+    """
+
+    n   : _c.Nuclide = None
+    U   : list = None
+    fE1 : list = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'U': 'Excitation energy grid [MeV]',
+        'fE1': 'E1 strength function values [mb/MeV]',
+    }
 

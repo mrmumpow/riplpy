@@ -23,6 +23,9 @@ Authors:
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -88,11 +91,26 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An entry in the natural abundances database. """
+    """An entry in the natural abundances database.
 
-    n          : _c.Nuclide = None # Compound nucleus
-    abundance  : float      = None # Abundance in %
-    uncertainty: float      = None # Uncertainties in abundance in %
+    Contains natural isotopic abundances for stable and long-lived nuclides.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        abundance: Natural isotopic abundance [%]
+        uncertainty: Uncertainty on abundance [%]
+    """
+
+    n          : _c.Nuclide = None
+    abundance  : float      = None
+    uncertainty: float      = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'abundance': 'Natural isotopic abundance [%]',
+        'uncertainty': 'Uncertainty on abundance [%]',
+    }
 
 
 class Database(_db.NuclideDatabase):

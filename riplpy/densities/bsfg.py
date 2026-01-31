@@ -28,6 +28,9 @@ Authors:
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -101,22 +104,60 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An entry in the Back-Shifted Fermi-Gas (BSFG) database. """
-    
-    n      : _c.Nuclide = None # Compound nucleus
-    Io     : float      = None # Spin of the ground state of the target nucleus
-    Bn     : float      = None # Neutron binding energy of the compound nucleus [MeV]
-    Do     : float      = None # Evaluated average resonance spacing [eV]
-    Derr   : float      = None # Uncertainty of the resonance spacing [eV]
-    Nlow   : int        = None # Lowest level used for the fit
-    Ulow   : float      = None # Excitation energy of the level Nlow [MeV]
-    Ntop   : int        = None # Highest level used for the fit
-    Utop   : float      = None # Excitation energy of the level Ntop [MeV]
-    dW     : float      = None # Shell correction energy used in the Ignatyuk formula [MeV]
-    gamma  : float      = None # Damping parameter of the Ignatyuk formula
-    ainf   : float      = None # Asymptotic level density parameter [1/MeV]
-    aerr   : float      = None # Uncertainty of the asymptotic level density parameter [1/MeV]
-    pairing: float      = None # Effective energy shift in MeV
+    """An entry in the Back-Shifted Fermi-Gas (BSFG) database.
+
+    Contains level density parameters for the BSFG model fitted to
+    s-wave neutron resonance spacings and discrete level data.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        Io: Ground state spin of target nucleus
+        Bn: Neutron binding energy [MeV]
+        Do: Average s-wave resonance spacing [eV]
+        Derr: Uncertainty on resonance spacing [eV]
+        Nlow: Lowest discrete level used in fit
+        Ulow: Excitation energy of Nlow [MeV]
+        Ntop: Highest discrete level used in fit
+        Utop: Excitation energy of Ntop [MeV]
+        dW: Shell correction energy [MeV]
+        gamma: Ignatyuk damping parameter
+        ainf: Asymptotic level density parameter [MeV^-1]
+        aerr: Uncertainty on ainf [MeV^-1]
+        pairing: Pairing energy shift [MeV]
+    """
+
+    n      : _c.Nuclide = None
+    Io     : float      = None
+    Bn     : float      = None
+    Do     : float      = None
+    Derr   : float      = None
+    Nlow   : int        = None
+    Ulow   : float      = None
+    Ntop   : int        = None
+    Utop   : float      = None
+    dW     : float      = None
+    gamma  : float      = None
+    ainf   : float      = None
+    aerr   : float      = None
+    pairing: float      = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'Io': 'Ground state spin of target nucleus',
+        'Bn': 'Neutron binding energy [MeV]',
+        'Do': 'Average s-wave resonance spacing [eV]',
+        'Derr': 'Uncertainty on resonance spacing [eV]',
+        'Nlow': 'Lowest discrete level used in fit',
+        'Ulow': 'Excitation energy of Nlow [MeV]',
+        'Ntop': 'Highest discrete level used in fit',
+        'Utop': 'Excitation energy of Ntop [MeV]',
+        'dW': 'Shell correction energy [MeV]',
+        'gamma': 'Ignatyuk damping parameter',
+        'ainf': 'Asymptotic level density parameter [MeV^-1]',
+        'aerr': 'Uncertainty on ainf [MeV^-1]',
+        'pairing': 'Pairing energy shift [MeV]',
+    }
 
 
 class Database(_db.NuclideDatabase):

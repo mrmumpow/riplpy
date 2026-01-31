@@ -21,6 +21,9 @@ Authors:
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Functools
 from functools import partial as _partial
 
@@ -102,7 +105,21 @@ def write_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An object which represents an entry in the empirical fission barrier database. """
+    """An entry in the EMPIRE empirical fission barrier database.
+
+    Contains fission barrier parameters formatted for use with the EMPIRE code.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        symmetry: Saddle point symmetry designation
+        Va: First barrier height [MeV]
+        hwa: First barrier curvature [MeV]
+        Symb: Second barrier symmetry designation
+        Vb: Second barrier height [MeV]
+        hwb: Second barrier curvature [MeV]
+        Vc: Third barrier height [MeV] (if present)
+        Deltaf: Pairing correction [MeV]
+    """
 
     n       : _c.Nuclide = None
     symmetry: str   = None
@@ -113,6 +130,19 @@ class Entry(_db.NuclideDatabaseEntry):
     hwb     : float = None
     Vc      : float = None
     Deltaf  : float = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'symmetry': 'Saddle point symmetry designation',
+        'Va': 'First barrier height [MeV]',
+        'hwa': 'First barrier curvature [MeV]',
+        'Symb': 'Second barrier symmetry designation',
+        'Vb': 'Second barrier height [MeV]',
+        'hwb': 'Second barrier curvature [MeV]',
+        'Vc': 'Third barrier height [MeV]',
+        'Deltaf': 'Pairing correction [MeV]',
+    }
 
     @property
     def as_tuple(self) -> tuple:

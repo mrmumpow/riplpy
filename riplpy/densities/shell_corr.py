@@ -7,6 +7,9 @@ import os as _os
 # Dataclasses
 from dataclasses import dataclass as _dataclass
 
+# Typing
+from typing import ClassVar as _ClassVar
+
 # Fortran format
 import fortranformat as _ff
 
@@ -111,19 +114,48 @@ def write_mk_ascii_file(fpath: str, data: dict) -> None:
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An entry in the shell correction database. """
-    
-    n      : _c.Nuclide = None # Compound nucleus
-    shell  : float      = None # Shell correction [MeV]
+    """An entry in the shell correction database.
+
+    Contains shell correction energies for nuclear level density calculations.
+
+    Attributes:
+        n: Target nucleus (Nuclide object with Z, A, N properties)
+        shell: Shell correction energy [MeV]
+    """
+
+    n      : _c.Nuclide = None
+    shell  : float      = None
+
+    # Field descriptions for help/info display
+    _field_info: _ClassVar[dict] = {
+        'n': 'Target nucleus',
+        'shell': 'Shell correction energy [MeV]',
+    }
 
 
 @_dataclass
 class ExtendedEntry(Entry):
-    """An extended entry in the shell correction database. """
+    """An extended entry in the Myers-Swiatecki shell correction database.
 
-    corr   : float      = None # Correction for the deformed nuclear shape [MeV]
-    beta2  : float      = None # Quadrupole  parameter of the nuclear ground-state deformation
-    beta4  : float      = None # Hexadecapole parameter of the nuclear ground-state deformation
+    Contains shell corrections with deformation parameters.
+
+    Attributes:
+        corr: Deformation correction energy [MeV]
+        beta2: Quadrupole deformation parameter
+        beta4: Hexadecapole deformation parameter
+    """
+
+    corr   : float      = None
+    beta2  : float      = None
+    beta4  : float      = None
+
+    # Field descriptions for help/info display (extends parent)
+    _field_info: _ClassVar[dict] = {
+        **Entry._field_info,
+        'corr': 'Deformation correction energy [MeV]',
+        'beta2': 'Quadrupole deformation parameter',
+        'beta4': 'Hexadecapole deformation parameter',
+    }
 
 
 class MS_Database(_db.NuclideDatabase):

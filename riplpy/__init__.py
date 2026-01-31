@@ -524,3 +524,300 @@ def get_fission_barrier(Z_or_nuclide, A: int = None, model: str = 'empirical') -
 
     db = getattr(fission.db, fission.BARRIER_MODELS[model])
     return db.get(n)
+
+
+# =============================================================================
+# Batch Operations
+# =============================================================================
+
+def _normalize_nuclei_list(nuclei: list) -> list:
+    """Convert a list of nuclei specifications to Nuclide objects.
+
+    Accepts:
+        - Nuclide/Nucleus objects
+        - Tuples of (Z, A)
+        - Lists of [Z, A]
+
+    Args:
+        nuclei: List of nuclei in any supported format
+
+    Returns:
+        List of Nuclide objects
+    """
+    result = []
+    for item in nuclei:
+        if isinstance(item, (Nuclide, Nucleus)):
+            result.append(item)
+        elif isinstance(item, (tuple, list)) and len(item) >= 2:
+            result.append(Nuclide(Z=item[0], A=item[1]))
+        else:
+            raise ValueError(f"Cannot convert {item} to Nuclide. Expected Nuclide, (Z, A) tuple, or [Z, A] list.")
+    return result
+
+
+def get_masses(nuclei: list, model: str = 'ame20', skip_missing: bool = False) -> dict:
+    """Get mass excess values for multiple nuclei.
+
+    Args:
+        nuclei: List of nuclei. Each element can be:
+                - A Nuclide/Nucleus object
+                - A tuple (Z, A)
+                - A list [Z, A]
+        model: Mass model to use. Options: 'ame20', 'frdm12', 'frdm95',
+               'hfb14', 'hfb27', 'bskg3', 'd1m'. Default: 'ame20'
+        skip_missing: If True, skip nuclei not in the database.
+                      If False (default), raise NucleusNotFoundError.
+
+    Returns:
+        Dictionary mapping Nuclide -> mass excess (MeV)
+
+    Examples:
+        >>> nuclei = [Nuclide(82, 208), Nuclide(82, 206), (82, 204)]
+        >>> masses = riplpy.get_masses(nuclei, model='ame20')
+        >>> masses[Nuclide(82, 208)]
+        -21.749
+
+        >>> # Using tuples for convenience
+        >>> masses = riplpy.get_masses([(26, 56), (28, 58), (50, 120)])
+
+    Raises:
+        ValueError: If the model is not recognized
+        NucleusNotFoundError: If a nucleus is not found and skip_missing=False
+    """
+    from riplpy.exceptions import NucleusNotFoundError
+
+    if model not in masses.MASS_MODELS:
+        raise ValueError(f"Unknown mass model '{model}'. Available: {list(masses.MASS_MODELS.keys())}")
+
+    db_name, field = masses.MASS_MODELS[model]
+    db = getattr(masses.db, db_name)
+
+    nuclide_list = _normalize_nuclei_list(nuclei)
+    result = {}
+
+    for n in nuclide_list:
+        try:
+            entry = db.get(n)
+            result[n] = getattr(entry, field)
+        except NucleusNotFoundError:
+            if not skip_missing:
+                raise
+            # skip_missing=True: just don't include in results
+
+    return result
+
+
+def get_mass_entries(nuclei: list, model: str = 'ame20', skip_missing: bool = False) -> dict:
+    """Get full mass entries for multiple nuclei.
+
+    Args:
+        nuclei: List of nuclei. Each element can be:
+                - A Nuclide/Nucleus object
+                - A tuple (Z, A)
+                - A list [Z, A]
+        model: Mass model to use. Options: 'ame20', 'frdm12', 'frdm95',
+               'hfb14', 'hfb27', 'bskg3', 'd1m'. Default: 'ame20'
+        skip_missing: If True, skip nuclei not in the database.
+                      If False (default), raise NucleusNotFoundError.
+
+    Returns:
+        Dictionary mapping Nuclide -> Entry object
+
+    Examples:
+        >>> nuclei = [(82, 208), (82, 206), (82, 204)]
+        >>> entries = riplpy.get_mass_entries(nuclei)
+        >>> entries[Nuclide(82, 208)].Mexp
+        -21.749
+
+    Raises:
+        ValueError: If the model is not recognized
+        NucleusNotFoundError: If a nucleus is not found and skip_missing=False
+    """
+    from riplpy.exceptions import NucleusNotFoundError
+
+    if model not in masses.MASS_MODELS:
+        raise ValueError(f"Unknown mass model '{model}'. Available: {list(masses.MASS_MODELS.keys())}")
+
+    db_name, _ = masses.MASS_MODELS[model]
+    db = getattr(masses.db, db_name)
+
+    nuclide_list = _normalize_nuclei_list(nuclei)
+    result = {}
+
+    for n in nuclide_list:
+        try:
+            result[n] = db.get(n)
+        except NucleusNotFoundError:
+            if not skip_missing:
+                raise
+
+    return result
+
+
+def get_level_densities(nuclei: list, model: str = 'bsfg', skip_missing: bool = False) -> dict:
+    """Get level density parameters for multiple nuclei.
+
+    Args:
+        nuclei: List of nuclei. Each element can be:
+                - A Nuclide/Nucleus object
+                - A tuple (Z, A)
+                - A list [Z, A]
+        model: Level density model. Options: 'bsfg', 'ct', 'egsm', 'egsm_norm', 'hfb'.
+               Default: 'bsfg'
+        skip_missing: If True, skip nuclei not in the database.
+                      If False (default), raise NucleusNotFoundError.
+
+    Returns:
+        Dictionary mapping Nuclide -> Entry object
+
+    Examples:
+        >>> nuclei = [(11, 24), (12, 26), (13, 28)]
+        >>> densities = riplpy.get_level_densities(nuclei, model='bsfg')
+
+    Raises:
+        ValueError: If the model is not recognized
+        NucleusNotFoundError: If a nucleus is not found and skip_missing=False
+    """
+    from riplpy.exceptions import NucleusNotFoundError
+
+    if model not in densities.LEVEL_DENSITY_MODELS:
+        raise ValueError(f"Unknown level density model '{model}'. Available: {list(densities.LEVEL_DENSITY_MODELS.keys())}")
+
+    db = getattr(densities.db, densities.LEVEL_DENSITY_MODELS[model])
+
+    nuclide_list = _normalize_nuclei_list(nuclei)
+    result = {}
+
+    for n in nuclide_list:
+        try:
+            result[n] = db.get(n)
+        except NucleusNotFoundError:
+            if not skip_missing:
+                raise
+
+    return result
+
+
+def get_gdrs(nuclei: list, skip_missing: bool = False) -> dict:
+    """Get Giant Dipole Resonance (GDR) parameters for multiple nuclei.
+
+    Args:
+        nuclei: List of nuclei. Each element can be:
+                - A Nuclide/Nucleus object
+                - A tuple (Z, A)
+                - A list [Z, A]
+        skip_missing: If True, skip nuclei not in the database.
+                      If False (default), raise NucleusNotFoundError.
+
+    Returns:
+        Dictionary mapping Nuclide -> Entry object
+
+    Examples:
+        >>> nuclei = [(82, 208), (50, 120), (28, 58)]
+        >>> gdrs = riplpy.get_gdrs(nuclei)
+
+    Raises:
+        NucleusNotFoundError: If a nucleus is not found and skip_missing=False
+    """
+    from riplpy.exceptions import NucleusNotFoundError
+
+    nuclide_list = _normalize_nuclei_list(nuclei)
+    result = {}
+
+    for n in nuclide_list:
+        try:
+            result[n] = gamma.db.theory_gdr.get(n)
+        except NucleusNotFoundError:
+            if not skip_missing:
+                raise
+
+    return result
+
+
+def get_resonances(nuclei: list, wave: str = 's', skip_missing: bool = False) -> dict:
+    """Get resonance parameters for multiple nuclei.
+
+    Args:
+        nuclei: List of nuclei. Each element can be:
+                - A Nuclide/Nucleus object
+                - A tuple (Z, A)
+                - A list [Z, A]
+        wave: Resonance type - 's' (s-wave) or 'p' (p-wave). Default: 's'
+        skip_missing: If True, skip nuclei not in the database.
+                      If False (default), raise NucleusNotFoundError.
+
+    Returns:
+        Dictionary mapping Nuclide -> Entry object
+
+    Examples:
+        >>> nuclei = [(82, 208), (50, 120)]
+        >>> resonances = riplpy.get_resonances(nuclei, wave='s')
+
+    Raises:
+        ValueError: If the wave type is not recognized
+        NucleusNotFoundError: If a nucleus is not found and skip_missing=False
+    """
+    from riplpy.exceptions import NucleusNotFoundError
+
+    if wave == 's':
+        db = resonances.db.swave
+    elif wave == 'p':
+        db = resonances.db.pwave
+    else:
+        raise ValueError(f"Unknown wave type '{wave}'. Available: 's', 'p'")
+
+    nuclide_list = _normalize_nuclei_list(nuclei)
+    result = {}
+
+    for n in nuclide_list:
+        try:
+            result[n] = db.get(n)
+        except NucleusNotFoundError:
+            if not skip_missing:
+                raise
+
+    return result
+
+
+def get_fission_barriers(nuclei: list, model: str = 'empirical', skip_missing: bool = False) -> dict:
+    """Get fission barrier parameters for multiple nuclei.
+
+    Args:
+        nuclei: List of nuclei. Each element can be:
+                - A Nuclide/Nucleus object
+                - A tuple (Z, A)
+                - A list [Z, A]
+        model: Barrier model. Options: 'empirical', 'empirical_new', 'empire',
+               'hfb', 'bskg3'. Default: 'empirical'
+        skip_missing: If True, skip nuclei not in the database.
+                      If False (default), raise NucleusNotFoundError.
+
+    Returns:
+        Dictionary mapping Nuclide -> Entry object
+
+    Examples:
+        >>> nuclei = [(92, 235), (92, 238), (94, 239)]
+        >>> barriers = riplpy.get_fission_barriers(nuclei, model='hfb')
+
+    Raises:
+        ValueError: If the model is not recognized
+        NucleusNotFoundError: If a nucleus is not found and skip_missing=False
+    """
+    from riplpy.exceptions import NucleusNotFoundError
+
+    if model not in fission.BARRIER_MODELS:
+        raise ValueError(f"Unknown fission barrier model '{model}'. Available: {list(fission.BARRIER_MODELS.keys())}")
+
+    db = getattr(fission.db, fission.BARRIER_MODELS[model])
+
+    nuclide_list = _normalize_nuclei_list(nuclei)
+    result = {}
+
+    for n in nuclide_list:
+        try:
+            result[n] = db.get(n)
+        except NucleusNotFoundError:
+            if not skip_missing:
+                raise
+
+    return result

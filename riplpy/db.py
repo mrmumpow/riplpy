@@ -708,6 +708,26 @@ class Database:
         """Check if a key exists in the database."""
         return key in self.data
 
+    def contains(self, key) -> bool:
+        """Check if a key exists in the database.
+
+        This is an explicit method version of the `in` operator.
+
+        Args:
+            key: The key to check (typically a Nuclide or element number)
+
+        Returns:
+            True if the key exists in the database, False otherwise
+
+        Examples:
+            >>> n = Nuclide(Z=82, A=208)
+            >>> db.contains(n)
+            True
+            >>> n in db  # Equivalent using `in` operator
+            True
+        """
+        return key in self.data
+
     def __iter__(self, ) -> iter:
         """Return the list of keys for the data property as an iterable. """
         return iter(self.data.keys())

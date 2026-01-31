@@ -16,6 +16,17 @@ db = _DbAccessor()
 
 # ========================
 
+# Model map: user-friendly name -> db attribute name
+LEVEL_DENSITY_MODELS = {
+    'bsfg': 'bsfg',
+    'ct': 'ct',
+    'egsm': 'egsm',
+    'egsm_norm': 'egsm_norm',
+    'hfb': 'hfb',
+}
+
+# ========================
+
 def load(directory: str) -> None:
     """Load the entire database of the Densities section of RIPL from a specified directory.
 

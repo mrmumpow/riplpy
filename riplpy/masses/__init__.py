@@ -23,6 +23,22 @@ db = _DbAccessor()
 
 # ========================
 
+# Model map: user-friendly name -> (db attribute name, mass excess field name)
+# This allows users to use shorthand names like 'frdm12' instead of 'frdm2012'
+MASS_MODELS = {
+    'ame20': ('ame20', 'Mexp'),
+    'frdm12': ('frdm2012', 'Mth'),
+    'frdm2012': ('frdm2012', 'Mth'),
+    'frdm95': ('frdm1995', 'Mth'),
+    'frdm1995': ('frdm1995', 'Mth'),
+    'hfb14': ('hfb14', 'Mth'),
+    'hfb27': ('hfb27', 'Mth'),
+    'bskg3': ('bskg3', 'Mth'),
+    'd1m': ('d1m', 'Mth'),
+}
+
+# ========================
+
 def load_only_masses(directory: str) -> None:
     """Loads only the mass database of the Masses section of RIPL. 
 

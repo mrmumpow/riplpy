@@ -451,6 +451,8 @@ class TestOpticalModuleAPI:
 
         assert optical.db.index is not None
         assert optical.db.potentials is not None
+        assert optical.db.deformations is not None
+        assert optical.db.references is not None
 
     def test_optical_db_index(self, ripl_path):
         """Test accessing index via optical.db."""
@@ -467,6 +469,134 @@ class TestOpticalModuleAPI:
         assert len(optical.db.potentials.data) > 500
         omp = optical.db.potentials.get(2405)
         assert omp.iref == 2405
+
+    def test_optical_db_deformations(self, ripl_path):
+        """Test accessing deformations via optical.db."""
+        optical.load(directory=ripl_path)
+
+        assert len(optical.db.deformations.data) > 1000
+
+    def test_optical_db_references(self, ripl_path):
+        """Test accessing references via optical.db."""
+        optical.load(directory=ripl_path)
+
+        assert len(optical.db.references.data) > 100
+        ref = optical.db.references.get(14)
+        assert "Becchetti" in ref.citation
+
+
+class TestDeformations:
+    """Tests for the deformations database."""
+
+    def test_load_deformations(self, ripl_path):
+        """Test loading the deformations database."""
+        db = optical.deformations.load(directory=ripl_path)
+        assert db is not None
+        assert len(db.data) > 1000  # Should have ~1400+ entries
+
+    def test_deformation_entry_fields(self, ripl_path):
+        """Test that deformation entries have required fields."""
+        db = optical.deformations.load(directory=ripl_path)
+
+        # Get any entry
+        entry = list(db.data.values())[0]
+        assert hasattr(entry, 'Z')
+        assert hasattr(entry, 'A')
+        assert hasattr(entry, 'Ex')
+        assert hasattr(entry, 'L')
+        assert hasattr(entry, 'beta')
+
+    def test_get_for_nucleus(self, ripl_path):
+        """Test getting all deformations for a nucleus."""
+        db = optical.deformations.load(directory=ripl_path)
+
+        # Pb-208 is a doubly-magic nucleus, may have vibrational states
+        entries = db.get_for_nucleus(82, 208)
+        # Might have entries or might not - just check it returns a list
+        assert isinstance(entries, list)
+
+    def test_filter_quadrupole(self, ripl_path):
+        """Test filtering for quadrupole (L=2) deformations."""
+        db = optical.deformations.load(directory=ripl_path)
+
+        quad_db = db.filter_quadrupole()
+        assert len(quad_db.data) > 500  # Most are quadrupole
+
+        for entry in quad_db.data.values():
+            assert entry.L == 2
+
+    def test_filter_octupole(self, ripl_path):
+        """Test filtering for octupole (L=3) deformations."""
+        db = optical.deformations.load(directory=ripl_path)
+
+        oct_db = db.filter_octupole()
+        assert len(oct_db.data) > 100  # Some are octupole
+
+        for entry in oct_db.data.values():
+            assert entry.L == 3
+
+    def test_deformation_info(self, ripl_path):
+        """Test the info method."""
+        db = optical.deformations.load(directory=ripl_path)
+        info = db.info()
+
+        assert "Deformation Database" in info
+        assert "Quadrupole" in info
+        assert "Octupole" in info
+
+
+class TestReferences:
+    """Tests for the references database."""
+
+    def test_load_references(self, ripl_path):
+        """Test loading the references database."""
+        db = optical.references.load(directory=ripl_path)
+        assert db is not None
+        assert len(db.data) > 100  # Should have ~143 references
+
+    def test_get_reference(self, ripl_path):
+        """Test getting a specific reference."""
+        db = optical.references.load(directory=ripl_path)
+
+        # Reference 14 is Becchetti-Greenlees
+        ref = db.get(14)
+        assert ref is not None
+        assert ref.ref_num == 14
+        assert "Becchetti" in ref.citation
+
+    def test_reference_properties(self, ripl_path):
+        """Test reference property extraction."""
+        db = optical.references.load(directory=ripl_path)
+
+        ref = db.get(14)
+        assert ref.first_author  # Should extract author
+        assert ref.year == 1969  # Known year
+
+    def test_search_references(self, ripl_path):
+        """Test searching references by text."""
+        db = optical.references.load(directory=ripl_path)
+
+        # Search for Koning
+        results = db.search("Koning")
+        assert len(results.data) > 0
+
+        for ref in results.data.values():
+            assert "koning" in ref.citation.lower()
+
+    def test_search_by_author(self, ripl_path):
+        """Test searching by author name."""
+        db = optical.references.load(directory=ripl_path)
+
+        results = db.search_by_author("Young")
+        assert len(results.data) > 0
+
+    def test_reference_info(self, ripl_path):
+        """Test the info method."""
+        db = optical.references.load(directory=ripl_path)
+        info = db.info()
+
+        assert "Reference Database" in info
+        assert "references" in info.lower()
 
 
 class TestDataIntegrity:

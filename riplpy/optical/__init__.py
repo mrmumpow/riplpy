@@ -16,7 +16,8 @@ Example:
     >>> optical.load(directory='/path/to/RIPL')
     >>> # Get a specific potential by reference number
     >>> pot = optical.db.potentials.get(2405)
-    >>> print(pot.author)
+    >>> print(pot.projectile)
+    'n'
 """
 
 # RIPLpy
@@ -26,6 +27,8 @@ from riplpy.db import _DbAccessor
 from . import config
 from . import core
 from . import index
+from . import omp
+from . import spherical
 
 # Database accessor
 db = _DbAccessor()
@@ -39,7 +42,9 @@ def load(directory: str = None) -> None:
                    uses the configured path from riplpy.config.
 
     Note:
-        Once loaded, databases are accessible via optical.db
+        Once loaded, databases are accessible via optical.db:
+            - optical.db.index: Index of all potentials (metadata)
+            - optical.db.potentials: Full potential data (currently spherical only)
     """
     from riplpy import config as riplpy_config
 
@@ -49,5 +54,5 @@ def load(directory: str = None) -> None:
     # Load the index
     db.index = index.load(directory=directory)
 
-    # Load the main OMP library (to be implemented)
-    # db.potentials = omp.load(directory=directory)
+    # Load the main OMP library
+    db.potentials = omp.load(directory=directory)

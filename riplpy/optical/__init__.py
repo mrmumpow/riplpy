@@ -29,6 +29,7 @@ from . import core
 from . import index
 from . import omp
 from . import spherical
+from . import coupled_channel
 
 # Database accessor
 db = _DbAccessor()

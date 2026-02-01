@@ -6,12 +6,16 @@ optical model potentials from the RIPL library.
 """
 
 import os as _os
-from typing import Dict, List, Optional, Iterator
+from typing import Dict, List, Optional, Iterator, Union
 
 from riplpy.db import Database
 from . import config
 from .spherical import SphericalOMP, parse_spherical_omp
+from .coupled_channel import CoupledChannelOMP, parse_coupled_channel_omp
 from .reader import OMPFileReader
+
+# Type alias for any OMP type
+OMPType = Union[SphericalOMP, CoupledChannelOMP]
 
 
 class OMPDatabase(Database):
@@ -20,14 +24,13 @@ class OMPDatabase(Database):
     This class provides access to the full library of optical model potentials,
     supporting lookup by reference number and filtering by various criteria.
 
-    Currently supports:
-        - Spherical potentials (imodel=0): 461 potentials
-
-    Planned support:
-        - Rigid rotor (imodel=1): 99 potentials
-        - Vibrational (imodel=2): 10 potentials
-        - Soft rotor (imodel=3): 6 potentials
-        - Combined (imodel=4,5): 5 potentials
+    Supports all model types:
+        - Spherical potentials (imodel=0): ~461 potentials
+        - Rigid rotor (imodel=1): ~99 potentials
+        - Vibrational (imodel=2): ~10 potentials
+        - Soft rotor (imodel=3): ~7 potentials
+        - Rigid-soft (imodel=4): ~5 potentials
+        - Soft deformed (imodel=5): ~2 potentials
 
     Example:
         >>> db = OMPDatabase()
@@ -39,19 +42,19 @@ class OMPDatabase(Database):
 
     entry = SphericalOMP  # Default entry type
 
-    def __init__(self, data: Dict[int, SphericalOMP] = None):
+    def __init__(self, data: Dict[int, OMPType] = None):
         """Initialize the OMP database.
 
         Args:
             data: Optional dictionary mapping iref -> potential
         """
         super().__init__(data)
-        self._skipped_cc = 0  # Count of skipped coupled-channel potentials
+        self._n_spherical = 0
+        self._n_coupled_channel = 0
 
     def __repr__(self) -> str:
         """Return string representation of the database."""
-        n_spherical = sum(1 for v in self.data.values() if isinstance(v, SphericalOMP))
-        return f"<OMPDatabase: {len(self.data)} potentials ({n_spherical} spherical)>"
+        return f"<OMPDatabase: {len(self.data)} potentials ({self._n_spherical} spherical, {self._n_coupled_channel} CC)>"
 
     def load(self, fpath: str) -> None:
         """Load optical model potentials from the parameter file.
@@ -59,12 +62,11 @@ class OMPDatabase(Database):
         Args:
             fpath: Path to om-parameter-u.dat file
 
-        Note:
-            Currently only loads spherical potentials (imodel=0).
-            Coupled-channel potentials are skipped but counted.
+        Loads all potential types (spherical and coupled-channel).
         """
         self.data = {}
-        self._skipped_cc = 0
+        self._n_spherical = 0
+        self._n_coupled_channel = 0
 
         with OMPFileReader(fpath) as reader:
             for entry_lines in reader.entries():
@@ -72,24 +74,30 @@ class OMPDatabase(Database):
                     continue
 
                 try:
-                    # Try to parse as spherical potential
-                    omp = parse_spherical_omp(entry_lines)
+                    # Get imodel from flags line to determine parser
+                    flags_line = entry_lines[10].split()
+                    imodel = int(flags_line[0])
+
+                    if imodel == 0:
+                        omp = parse_spherical_omp(entry_lines)
+                        self._n_spherical += 1
+                    else:
+                        omp = parse_coupled_channel_omp(entry_lines)
+                        self._n_coupled_channel += 1
+
                     self.data[omp.iref] = omp
-                except ValueError:
-                    # Not a spherical potential (coupled-channel)
-                    self._skipped_cc += 1
                 except Exception:
                     # Skip malformed entries
                     pass
 
-    def get(self, iref: int) -> SphericalOMP:
+    def get(self, iref: int) -> OMPType:
         """Get a potential by its reference number.
 
         Args:
             iref: Library reference number
 
         Returns:
-            SphericalOMP for the specified potential
+            SphericalOMP or CoupledChannelOMP for the specified potential
 
         Raises:
             KeyError: If iref not found in database
@@ -98,14 +106,14 @@ class OMPDatabase(Database):
             raise KeyError(f"OMP reference {iref} not found in database")
         return self.data[iref]
 
-    def get_by_iref(self, iref: int) -> Optional[SphericalOMP]:
+    def get_by_iref(self, iref: int) -> Optional[OMPType]:
         """Get a potential by reference number, returning None if not found.
 
         Args:
             iref: Library reference number
 
         Returns:
-            SphericalOMP if found, None otherwise
+            OMP if found, None otherwise
         """
         return self.data.get(iref)
 
@@ -117,12 +125,12 @@ class OMPDatabase(Database):
     @property
     def n_spherical(self) -> int:
         """Get count of spherical potentials."""
-        return sum(1 for v in self.data.values() if isinstance(v, SphericalOMP))
+        return self._n_spherical
 
     @property
-    def n_skipped(self) -> int:
-        """Get count of skipped coupled-channel potentials."""
-        return self._skipped_cc
+    def n_coupled_channel(self) -> int:
+        """Get count of coupled-channel potentials."""
+        return self._n_coupled_channel
 
     def filter_by_projectile(self, projectile: str) -> "OMPDatabase":
         """Filter potentials by projectile type.
@@ -217,7 +225,47 @@ class OMPDatabase(Database):
         }
         return OMPDatabase(filtered)
 
-    def find_for_reaction(self, projectile: str, Z: int, A: int, E: float) -> List[SphericalOMP]:
+    def filter_spherical(self) -> "OMPDatabase":
+        """Filter to spherical potentials only.
+
+        Returns:
+            New OMPDatabase with only spherical potentials
+        """
+        filtered = {
+            k: v for k, v in self.data.items()
+            if isinstance(v, SphericalOMP)
+        }
+        return OMPDatabase(filtered)
+
+    def filter_coupled_channel(self) -> "OMPDatabase":
+        """Filter to coupled-channel potentials only.
+
+        Returns:
+            New OMPDatabase with only coupled-channel potentials
+        """
+        filtered = {
+            k: v for k, v in self.data.items()
+            if isinstance(v, CoupledChannelOMP)
+        }
+        return OMPDatabase(filtered)
+
+    def filter_by_model(self, imodel: int) -> "OMPDatabase":
+        """Filter potentials by model type.
+
+        Args:
+            imodel: Model type (0=spherical, 1=rigid rotor, 2=vibrational,
+                    3=soft rotor, 4=rigid-soft, 5=soft deformed)
+
+        Returns:
+            New OMPDatabase with filtered potentials
+        """
+        filtered = {
+            k: v for k, v in self.data.items()
+            if v.flags.imodel == imodel
+        }
+        return OMPDatabase(filtered)
+
+    def find_for_reaction(self, projectile: str, Z: int, A: int, E: float) -> List[OMPType]:
         """Find all potentials valid for a specific reaction.
 
         Args:
@@ -227,7 +275,7 @@ class OMPDatabase(Database):
             E: Projectile energy [MeV]
 
         Returns:
-            List of SphericalOMP objects valid for this reaction
+            List of OMP objects valid for this reaction
         """
         results = self.filter_by_projectile(projectile)
         results = results.filter_by_target(Z=Z, A=A)
@@ -239,8 +287,17 @@ class OMPDatabase(Database):
         lines = ["OMP Database"]
         lines.append("-" * 40)
         lines.append(f"Total potentials: {len(self.data)}")
-        lines.append(f"Spherical: {self.n_spherical}")
-        lines.append(f"Skipped (coupled-channel): {self._skipped_cc}")
+        lines.append(f"Spherical: {self._n_spherical}")
+        lines.append(f"Coupled-channel: {self._n_coupled_channel}")
+
+        # Count by model type
+        model_counts = {}
+        for v in self.data.values():
+            model = v.flags.model_name
+            model_counts[model] = model_counts.get(model, 0) + 1
+        lines.append("\nBy model type:")
+        for model, count in sorted(model_counts.items()):
+            lines.append(f"  {model}: {count}")
 
         # Count by projectile
         proj_counts = {}

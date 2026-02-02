@@ -1,7 +1,7 @@
 
 
 # Code version
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 # Logging
 import logging as _logging
@@ -22,11 +22,12 @@ from . import fission
 from . import gamma
 from . import levels
 from . import masses
+from . import optical
 from . import resonances
 
 
 # Supported RIPL sections
-sections = ('densities', 'fission', 'gamma', 'levels', 'masses', 'resonances')
+sections = ('densities', 'fission', 'gamma', 'levels', 'masses', 'optical', 'resonances')
 
 
 def set_path(path: str) -> None:
@@ -526,10 +527,6 @@ def get_fission_barrier(Z_or_nuclide, A: int = None, model: str = 'empirical') -
     return db.get(n)
 
 
-# =============================================================================
-# Batch Operations
-# =============================================================================
-
 def _normalize_nuclei_list(nuclei: list) -> list:
     """Convert a list of nuclei specifications to Nuclide objects.
 
@@ -821,3 +818,136 @@ def get_fission_barriers(nuclei: list, model: str = 'empirical', skip_missing: b
                 raise
 
     return result
+
+
+def get_omp(iref: int) -> object:
+    """Get an optical model potential by its reference number.
+
+    Args:
+        iref: Reference number of the potential (1-2500+)
+
+    Returns:
+        SphericalOMP or CoupledChannelOMP object
+
+    Examples:
+        >>> pot = riplpy.get_omp(2405)
+        >>> print(pot.projectile)
+        'n'
+        >>> print(pot.header.author)
+        'Koning'
+
+    Raises:
+        KeyError: If the potential is not found
+
+    Note:
+        The optical database must be loaded first via riplpy.load()
+    """
+    return optical.db.potentials.get(iref)
+
+
+def list_omps(projectile: str = None) -> list:
+    """List all optical model potential reference numbers.
+
+    Args:
+        projectile: Optional projectile filter ('n', 'p', 'd', 't', 'h', 'a').
+                    If None, returns all potentials.
+
+    Returns:
+        List of iref values (integers)
+
+    Examples:
+        >>> all_irefs = riplpy.list_omps()
+        >>> neutron_irefs = riplpy.list_omps(projectile='n')
+
+    Note:
+        The optical database must be loaded first via riplpy.load()
+    """
+    db = optical.db.potentials
+    if projectile is not None:
+        db = db.filter_by_projectile(projectile)
+    return list(db.data.keys())
+
+
+def find_omp(projectile: str, Z: int, A: int, E: float = None) -> list:
+    """Find optical model potentials suitable for a specific reaction.
+
+    Args:
+        projectile: Projectile type ('n', 'p', 'd', 't', 'h', 'a')
+        Z: Target atomic number
+        A: Target mass number
+        E: Optional projectile energy in MeV. If provided, filters to
+           potentials valid at this energy.
+
+    Returns:
+        List of matching OMP objects, sorted by relevance
+
+    Examples:
+        >>> # Find neutron potentials for Pb-208
+        >>> pots = riplpy.find_omp('n', 82, 208)
+        >>> print(len(pots))
+        15
+
+        >>> # Find potentials valid at 14 MeV
+        >>> pots = riplpy.find_omp('n', 82, 208, E=14.0)
+
+    Note:
+        The optical database must be loaded first via riplpy.load()
+    """
+    return optical.db.potentials.find_for_reaction(projectile, Z, A, E)
+
+
+def get_deformation(Z: int, A: int, Ex: float = 0.0, L: int = 2) -> object:
+    """Get nuclear deformation parameter.
+
+    Args:
+        Z: Atomic number
+        A: Mass number
+        Ex: Excitation energy in MeV (default 0.0 for low-lying states)
+        L: Deformation order (2 for quadrupole, 3 for octupole). Default: 2
+
+    Returns:
+        DeformationEntry object with beta value and metadata
+
+    Examples:
+        >>> # Get quadrupole deformation for Pu-239
+        >>> deform = riplpy.get_deformation(94, 239)
+        >>> print(deform.beta)
+        0.3699
+
+        >>> # Get excited state deformation for U-238
+        >>> deform = riplpy.get_deformation(92, 238, Ex=0.045)
+
+    Raises:
+        KeyError: If the deformation is not found
+
+    Note:
+        The optical database must be loaded first via riplpy.load().
+        The database contains excited-level deformations derived from
+        experiments. Use get_for_nucleus() for all available entries.
+    """
+    return optical.db.deformations.get(Z, A, Ex, L)
+
+
+def get_omp_reference(ref_num: int) -> object:
+    """Get bibliographic reference for an optical model potential.
+
+    Args:
+        ref_num: Reference number
+
+    Returns:
+        Reference object with citation text
+
+    Examples:
+        >>> ref = riplpy.get_omp_reference(100)
+        >>> print(ref.citation)
+        'A.J.Koning and J.P.Delaroche, Nucl.Phys. A713 (2003) 231'
+        >>> print(ref.year)
+        2003
+
+    Raises:
+        KeyError: If the reference is not found
+
+    Note:
+        The optical database must be loaded first via riplpy.load()
+    """
+    return optical.db.references.get(ref_num)

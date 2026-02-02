@@ -1,10 +1,19 @@
 # RIPLpy
 
-Reference Input Parameter Library
+Python interface for the Reference Input Parameter Library (RIPL).
 
-## Description
+## Overview
 
-This is the Python interface for Reference Input Parameter Library (RIPL). This code base is intended for use in supplying, accessing, and general interface with RIPL for use in nuclear physics applications. RIPL is built around "sections" which house  data and parameters for specific nuclear physics properties.
+RIPLpy provides access to the RIPL nuclear physics database, containing evaluated nuclear data for applications in nuclear reaction calculations, astrophysics simulations, and nuclear structure studies.
+
+**Supported RIPL Sections:**
+- **masses** - Atomic masses and mass models (AME2020, FRDM, HFB, etc.)
+- **densities** - Nuclear level density parameters (BSFG, CT, HFB models)
+- **fission** - Fission barrier heights and parameters
+- **gamma** - Giant dipole resonance and gamma strength functions
+- **levels** - Discrete nuclear level schemes
+- **resonances** - Neutron resonance parameters (s-wave and p-wave)
+- **optical** - Optical model potentials (~584 parameterizations)
 
 ## Installation
 
@@ -14,108 +23,294 @@ To install RIPLpy please perform the following actions:
 3. If necessary, unzip the compressed file and switch to the top level directory (which should include this read me file).
 4. Perform the appropriate pip installation based off how you want RIPL to behave in your given environment.
 
-```bash
-pip3 install -e .
-```
 
-* The above command will install the package locally to your machine. Note that the install with the "-e" option allows the package to be updated in real time, so modifications to the source code will be live as soon as you make them. This is ideal for development / research environments and is the most common way to install and use RIPLpy.
 
 ```bash
-pip3 install
+# Development install (recommended)
+pip install -e .
 ```
 
-* If you want the source to stay exactly as it was on the repository, use the above command instead. Note the lack of the "-e" option. This installation method is intended for production environments. 
+The above command will install the package locally to your machine. Note that the install with the "-e" option allows the package to be updated in real time, so modifications to the source code will be live as soon as you make them. This is ideal for development / research environments and is the most common way to install and use RIPLpy.
 
-* To operate RIPLpy in an environment that does not provide active "outside" internet access, such as on high-performance computing (HPC) clusters or on secure networks, first download the tarball of the required packages and then upload these files along with this directory to the appropriate area. The installation may then proceed via pip in the normal fashion.
+```bash
+# Standard install
+pip install .
+```
+
+If you want the source to stay exactly as it was on the repository, use the above command instead. Note the lack of the "-e" option. This installation method is intended for production environments.
+
+## Quick Start
+
+```python
+import riplpy
+
+# Configure the RIPL database path
+riplpy.set_path('/path/to/RIPL-4')
+
+# Load all sections (may take time for large databases)
+riplpy.load()
+
+# Or load specific sections
+import riplpy
+import riplpy.masses as masses
+masses.load(riplpy.get_path())
+```
+
+## Configuration
+
+RIPLpy searches for the RIPL database in this order:
+1. Path set via `riplpy.set_path()`
+2. `RIPL_LOCATION` environment variable
+3. `~/.riplpyrc` configuration file
+
+```python
+# Option 1: Set path programmatically
+riplpy.set_path('/path/to/RIPL-4')
+
+# Option 2: Environment variable
+import os
+os.environ['RIPL_LOCATION'] = '/path/to/RIPL-4'
+
+# Check current path
+print(riplpy.get_path())
+```
+
+## Core API
+
+### Working with Nuclei
+
+```python
+from riplpy import Nuclide, Nucleus, Element
+
+# Create nuclei using different specifications
+pb208 = Nuclide(Z=82, A=208)       # By Z and A
+sn132 = Nuclide(Z=50, N=82)        # By Z and N
+fe56  = Nuclide(sym='Fe', A=56)    # By symbol and A
+
+# Access properties
+print(pb208.Z)              # 82
+print(pb208.A)              # 208
+print(pb208.N)              # 126
+print(pb208.element_symbol) # 'Pb'
+print(pb208.element_name)   # 'Lead'
+
+# Nucleus is an alias for Nuclide with N-based specification
+nucleus = Nucleus(Z=50, N=82)  # Sn-132
+```
+
+### Database Discovery
+
+```python
+import riplpy
+
+riplpy.load()
+
+# List available sections
+print(riplpy.list_sections())
+# ['densities', 'fission', 'gamma', 'levels', 'masses', 'optical', 'resonances']
+
+# List databases in a section
+print(riplpy.list_databases('masses'))
+# ['ame20', 'frdm12', 'frdm95', 'hfb14', 'hfb27', 'bskg3', 'd1m', ...]
+
+# Check if a nucleus is in RIPL
+n = Nuclide(Z=50, A=132)
+print(riplpy.in_ripl(n))
+# True
+
+# Find which sections contain a nucleus
+print(riplpy.in_sections(n))
+# ['densities', 'gamma', 'levels', 'masses']
+
+# Find specific databases containing a nucleus
+print(riplpy.in_dbs(n))
+# [('masses', 'ame20'), ('levels', 'discrete_levels'), ...]
+```
+
+### Convenience Functions
+
+RIPLpy provides high-level functions for common operations:
+
+```python
+import riplpy
+
+riplpy.load()
+
+# Mass data
+mass_excess = riplpy.get_mass(82, 208)                    # Pb-208 mass excess [MeV]
+mass_excess = riplpy.get_mass(82, 208, model='frdm12')    # Using FRDM2012 model
+entry = riplpy.get_mass_entry(82, 208)                    # Full mass entry
+
+# Level density parameters
+ld_params = riplpy.get_level_density(50, 120, model='bsfg')  # BSFG model for Sn-120
+
+# Giant Dipole Resonance
+gdr = riplpy.get_gdr(82, 208)                             # GDR parameters for Pb-208
+
+# Resonance spacing
+res = riplpy.get_resonance(92, 238, wave='s')             # S-wave resonances for U-238
+
+# Fission barriers
+barrier = riplpy.get_fission_barrier(92, 235, model='hfb')  # HFB barrier for U-235
+
+# Optical model potentials
+omp = riplpy.get_omp(2405)                                # Get OMP by reference number
+omps = riplpy.find_omp('n', 82, 208, E=14.0)              # Find OMPs for n + Pb-208 at 14 MeV
+irefs = riplpy.list_omps(projectile='n')                  # List all neutron OMPs
+```
+
+### Batch Operations
+
+Process multiple nuclei efficiently:
+
+```python
+import riplpy
+
+riplpy.load()
+
+# Get masses for multiple nuclei
+nuclei = [(82, 208), (82, 206), (50, 132), (26, 56)]
+masses = riplpy.get_masses(nuclei, model='ame20')
+
+# Skip missing nuclei instead of raising errors
+masses = riplpy.get_masses(nuclei, model='ame20', skip_missing=True)
+
+# Batch level densities
+ld_params = riplpy.get_level_densities(nuclei, model='bsfg', skip_missing=True)
+
+# Batch fission barriers
+actinides = [(92, 235), (92, 238), (94, 239), (94, 241)]
+barriers = riplpy.get_fission_barriers(actinides, model='hfb', skip_missing=True)
+```
+
+### Direct Database Access
+
+For more control, access databases directly:
+
+```python
+import riplpy
+import riplpy.masses as masses
+from riplpy import Nuclide
+
+masses.load(riplpy.get_path())
+
+# Access specific database
+ame = masses.db.ame20
+frdm = masses.db.frdm2012
+
+# Get entry for a nucleus
+n = Nuclide(Z=82, A=208)
+entry = ame.get(n)
+print(entry.Mexp)  # Experimental mass excess [MeV]
+print(entry.Err)   # Uncertainty [MeV]
+
+# Filter databases
+pb_isotopes = ame.filter(Z=82)
+heavy_nuclei = ame.filter(lambda e: e.n.A > 200)
+
+# Iterate over database
+for nuclide, entry in ame.data.items():
+    if entry.Mexp is not None:
+        print(f"{nuclide.sym}-{nuclide.A}: {entry.Mexp:.3f} MeV")
+```
+
+## Section-Specific Usage
+
+Each section has its own README with detailed examples:
+
+- [Masses Section](riplpy/masses/README.md) - Evaluated masses and mass models
+- [Densities Section](riplpy/densities/README.md) - Level density parameters
+- [Fission Section](riplpy/fission/README.md) - Fission barrier data
+- [Gamma Section](riplpy/gamma/README.md) - GDR and gamma strength functions
+- [Levels Section](riplpy/levels/README.md) - Discrete nuclear levels
+- [Resonances Section](riplpy/resonances/README.md) - Neutron resonance data
+- [Optical Section](riplpy/optical/README.md) - Optical model potentials
+
+## Examples
+
+### Calculate Q-values
+
+```python
+import riplpy
+
+riplpy.load()
+
+# Neutron mass excess in MeV
+NEUTRON_MASS_EXCESS = 8.071
+
+def capture_q_value(Z_target, A_target):
+    """Calculate Q-value for (n,gamma) capture reaction."""
+    m_target = riplpy.get_mass(Z_target, A_target)
+    m_product = riplpy.get_mass(Z_target, A_target + 1)
+    # Q = M_target + M_n - M_product (gamma has zero mass)
+    return m_target + NEUTRON_MASS_EXCESS - m_product
+
+# Calculate Q-value for 208Pb(n,gamma)209Pb
+q = capture_q_value(82, 208)
+print(f"Q-value for Pb-208(n,g): {q:.3f} MeV")
+
+# Calculate Q-value for a (p,n) reaction: 56Fe(p,n)56Co
+def pn_q_value(Z, A):
+    """Calculate Q-value for (p,n) reaction."""
+    m_target = riplpy.get_mass(Z, A)
+    m_proton = riplpy.get_mass(1, 1)
+    m_residual = riplpy.get_mass(Z + 1, A)
+    m_neutron = NEUTRON_MASS_EXCESS
+    return (m_target + m_proton) - (m_residual + m_neutron)
+
+q_pn = pn_q_value(26, 56)
+print(f"Q-value for Fe-56(p,n)Co-56: {q_pn:.3f} MeV")
+```
+
+### Compare Mass Models
+
+```python
+import riplpy
+
+riplpy.load()
+
+# Compare mass predictions for neutron-rich Sn isotopes
+models = ['ame20', 'frdm12', 'hfb27']
+isotopes = [(50, A) for A in range(120, 140)]
+
+for Z, A in isotopes:
+    values = []
+    for model in models:
+        try:
+            m = riplpy.get_mass(Z, A, model=model)
+            values.append(f"{m:8.3f}")
+        except:
+            values.append("    N/A ")
+    print(f"Sn-{A}: " + " | ".join(values))
+```
+
+### Find Optical Potentials for a Reaction
+
+```python
+import riplpy
+
+riplpy.load()
+
+# Find all neutron OMPs valid for U-238 at 1 MeV
+potentials = riplpy.find_omp('n', Z=92, A=238, E=1.0)
+
+print(f"Found {len(potentials)} potentials for n + U-238 at 1 MeV:")
+for pot in potentials[:5]:  # Show first 5
+    print(f"  iref={pot.iref}: {pot.header.author[:40]}...")
+    print(f"    Model: {pot.flags.model_name}, E: {pot.validity.E_min}-{pot.validity.E_max} MeV")
+```
 
 ## Requirements
 
-The list of Python3 package dependencies is actively kept up in the requirements.txt file. These requirements are automatically satisfied when installing via the above two methods.
+- Python 3.8+
+- NumPy
 
-## Authors
+See `requirements.txt` for full dependency list.
 
-* Matthew Mumpower {[mumpower@lanl.gov](mailto:mumpower@lanl.gov)}
+## Author
+
+Matthew Mumpower ([matthew@mumpower.net](mailto:matthew@mumpower.net))
 
 ## License
 
-Distributed under the OSS License. See LICENSE.txt for more information.
-
-## Usage
-
-RIPLpy provides nearly complete access to the databases that comprise RIPL. The code is intended to be well documented. This means you should be able to find how to use the majority of the Application Protocol Interface (API) in the source files themselves. Simple but useful examples are provided below for convenience. 
-
-### Core RIPLpy Usage
-
-* Example: Import the RIPLpy interface in Python:
-
-```python
-import riplpy
-```
-
-* Example: Load available databases in RIPLpy from a local file system. You need to replace "<path-to-your-local-RIPL-folder>" with the relevant path on your system. Warning: this could take a long time if all databases are installed:
-
-```python
-import riplpy
-
-riplpy.load("<path-to-your-local-RIPL-folder>")
-```
-
-* Example: Check if nucleus is in one of the RIPL databases (prints True): 
-
-```python
-import riplpy
-
-riplpy.load("<path-to-your-local-RIPL-folder>")
-n = riplpy.Nucleus(Z=50, N=82)
-print(riplpy.in_ripl(n)) # Prints True
-```
-
-* Example: Check if an element is in one of the RIPL databases (prints True): 
-
-```python
-import riplpy
-
-riplpy.load("<path-to-your-local-RIPL-folder>")
-e = riplpy.Element('tin')
-print(riplpy.in_ripl(e)) # Prints True
-```
-
-* Example: Print the sections a particular nucleus resides in: 
-
-```python
-import riplpy
-
-riplpy.load("<path-to-your-local-RIPL-folder>")
-n = riplpy.Nucleus(Z=50, N=82)
-print(riplpy.in_sections(n)) # Prints ['densities', 'gamma', 'levels', 'masses']
-```
-
-* Example: Print the databases a particular nucleus resides in: 
-
-```python
-import riplpy
-
-riplpy.load("<path-to-your-local-RIPL-folder>")
-n = riplpy.Nuclide(Z=50, A=132)
-print(riplpy.in_dbs(n)) # Prints [('densities', 'shellcorr_ms'), ('gamma', 'theory_gdr'), ('levels', 'discrete_levels'), ('levels', 'constant_temperature'), ('masses', 'frdm1995'), ('masses', 'hfb14')]
-
-### RIPLpy: Fission Section Usage
-
-* Example: Access the HFB barrier database in the fission section of RIPL:
-
-```python
-import riplpy
-
-riplpy.fission.hfb.load("<path-to-your-local-RIPL-folder>") # Load the database
-print(riplpy.fission.hfb.data)                              # Print all entries the database
-```
-
-* Example: Access the empirical barrier database in the fission section of RIPL:
-
-```python
-import riplpy
-
-riplpy.fission.empirical.load("<path-to-your-local-RIPL-folder>") # Load the database
-print(riplpy.fission.empirical.data)                              # Print all entries the database
-```
-
+Distributed under the BSD-3 License. See `LICENSE.txt` for details.

@@ -363,3 +363,143 @@ def load(directory: str = None, file_path: str = None) -> OMPDatabase:
     db = OMPDatabase()
     db.load(path)
     return db
+
+
+def _parse_single_omp_file(filepath: str) -> Optional[OMPType]:
+    """Parse a single OMP file (modified potential format).
+
+    Args:
+        filepath: Path to the OMP file (omp-XXXXXX.dat format)
+
+    Returns:
+        SphericalOMP or CoupledChannelOMP, or None if parsing fails
+    """
+    with open(filepath, 'r') as fp:
+        lines = fp.readlines()
+
+    # Clean up lines
+    entry_lines = []
+    for line in lines:
+        line = line.replace('\r', '').rstrip()
+        # Stop at separator if present
+        if line.startswith('+' * 20):
+            break
+        entry_lines.append(line)
+
+    if len(entry_lines) < 11:
+        return None
+
+    try:
+        # Get imodel from flags line to determine parser
+        flags_line = entry_lines[10].split()
+        imodel = int(flags_line[0])
+
+        if imodel == 0:
+            return parse_spherical_omp(entry_lines)
+        else:
+            return parse_coupled_channel_omp(entry_lines)
+    except Exception:
+        return None
+
+
+def load_modified_potentials(directory: str = None, mod_dir: str = None) -> OMPDatabase:
+    """Load modified optical model potentials from the mod-potentials directory.
+
+    The mod-potentials directory contains individual OMP files (omp-XXXXXX.dat)
+    that are updated or corrected versions of potentials in the main database.
+
+    Args:
+        directory: RIPL directory path. If provided, constructs full path.
+        mod_dir: Direct path to mod-potentials directory. Takes precedence.
+
+    Returns:
+        OMPDatabase with modified potentials
+
+    Raises:
+        FileNotFoundError: If the mod-potentials directory cannot be found
+
+    Example:
+        >>> mod_db = load_modified_potentials()
+        >>> print(mod_db.irefs)
+        [1480, 1481, 1482, 2412, 2415, 4609, 4610]
+    """
+    if mod_dir:
+        path = mod_dir
+    elif directory:
+        path = _os.path.join(directory, config.get_data_file_path('mod_potentials'))
+    else:
+        # Try default RIPL path
+        from riplpy import config as riplpy_config
+        ripl_path = riplpy_config.get_path()
+        if ripl_path:
+            path = _os.path.join(ripl_path, config.get_data_file_path('mod_potentials'))
+        else:
+            raise FileNotFoundError(
+                "Cannot locate mod-potentials directory. Please provide directory or mod_dir."
+            )
+
+    if not _os.path.exists(path):
+        raise FileNotFoundError(f"mod-potentials directory not found: {path}")
+
+    db = OMPDatabase()
+    db.data = {}
+
+    # Find all .dat files in the directory
+    for filename in _os.listdir(path):
+        if filename.startswith('omp-') and filename.endswith('.dat'):
+            filepath = _os.path.join(path, filename)
+            omp = _parse_single_omp_file(filepath)
+            if omp is not None:
+                db.data[omp.iref] = omp
+                if isinstance(omp, SphericalOMP):
+                    db._n_spherical += 1
+                else:
+                    db._n_coupled_channel += 1
+
+    return db
+
+
+def load_with_modifications(directory: str = None, apply_modifications: bool = True) -> OMPDatabase:
+    """Load the OMP database with optional modifications applied.
+
+    This is a convenience function that loads the main database and optionally
+    replaces entries with their modified versions from the mod-potentials directory.
+
+    Args:
+        directory: RIPL directory path.
+        apply_modifications: If True, replace potentials with modified versions
+                            where available. Default True.
+
+    Returns:
+        OMPDatabase with potentials (modified versions applied if requested)
+
+    Example:
+        >>> db = load_with_modifications()
+        >>> # Potential 1480 will use the modified version if available
+        >>> pot = db.get(1480)
+    """
+    # Load main database
+    db = load(directory=directory)
+
+    if apply_modifications:
+        try:
+            mod_db = load_modified_potentials(directory=directory)
+            # Replace potentials with modified versions
+            for iref, omp in mod_db.data.items():
+                if iref in db.data:
+                    # Update counts
+                    old_omp = db.data[iref]
+                    if isinstance(old_omp, SphericalOMP):
+                        db._n_spherical -= 1
+                    else:
+                        db._n_coupled_channel -= 1
+                    if isinstance(omp, SphericalOMP):
+                        db._n_spherical += 1
+                    else:
+                        db._n_coupled_channel += 1
+                db.data[iref] = omp
+        except FileNotFoundError:
+            # mod-potentials directory doesn't exist, skip
+            pass
+
+    return db

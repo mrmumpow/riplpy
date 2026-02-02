@@ -656,3 +656,69 @@ class TestDataIntegrity:
 
         for omp in cc_db.data.values():
             assert omp.n_isotopes >= 1
+
+
+class TestModifiedPotentials:
+    """Tests for the modified potentials loader."""
+
+    def test_load_modified_potentials(self, ripl_path):
+        """Test loading modified potentials from mod-potentials directory."""
+        mod_db = optical.omp.load_modified_potentials(directory=ripl_path)
+
+        assert mod_db is not None
+        assert len(mod_db.data) == 7  # 7 modified potentials
+        assert sorted(mod_db.irefs) == [1480, 1481, 1482, 2412, 2415, 4609, 4610]
+
+    def test_modified_potential_parse_correctly(self, ripl_path):
+        """Test that modified potentials parse with correct fields."""
+        mod_db = optical.omp.load_modified_potentials(directory=ripl_path)
+
+        # OMP 1480 is a rigid rotor
+        pot = mod_db.get(1480)
+        assert pot.iref == 1480
+        assert pot.projectile == 'n'
+        assert "Capote" in pot.header.author
+        assert pot.flags.imodel == 1  # Rigid rotor
+
+    def test_load_with_modifications_applies_changes(self, ripl_path):
+        """Test that load_with_modifications replaces potentials."""
+        # Load without modifications
+        db_original = optical.omp.load(directory=ripl_path)
+        original_author = db_original.get(1480).header.author
+
+        # Load with modifications
+        db_modified = optical.omp.load_with_modifications(directory=ripl_path)
+        modified_author = db_modified.get(1480).header.author
+
+        # Total count should be the same
+        assert len(db_modified.data) == len(db_original.data)
+
+        # Author should be updated in modified version
+        assert "Capote" in modified_author
+
+    def test_load_with_modifications_preserves_other_potentials(self, ripl_path):
+        """Test that non-modified potentials remain unchanged."""
+        db = optical.omp.load_with_modifications(directory=ripl_path)
+
+        # OMP 2405 is not in modified potentials
+        pot = db.get(2405)
+        assert pot is not None
+        assert pot.iref == 2405
+
+    def test_load_with_modifications_flag_false(self, ripl_path):
+        """Test that apply_modifications=False skips modifications."""
+        db = optical.omp.load_with_modifications(directory=ripl_path, apply_modifications=False)
+
+        # Should have same count as original
+        db_original = optical.omp.load(directory=ripl_path)
+        assert len(db.data) == len(db_original.data)
+
+    def test_module_level_functions(self, ripl_path):
+        """Test the module-level convenience functions."""
+        # Test load_modified_potentials at module level
+        mod_db = optical.load_modified_potentials(directory=ripl_path)
+        assert len(mod_db.data) == 7
+
+        # Test load_with_modifications at module level
+        db = optical.load_with_modifications(directory=ripl_path)
+        assert len(db.data) > 500

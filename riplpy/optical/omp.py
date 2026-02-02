@@ -195,10 +195,17 @@ class OMPDatabase(Database):
         Returns:
             New OMPDatabase with filtered potentials
         """
-        filtered = {
-            k: v for k, v in self.data.items()
-            if v.validity.E_min <= E <= v.validity.E_max
-        }
+        filtered = {}
+        for k, v in self.data.items():
+            E_min = v.validity.E_min
+            E_max = v.validity.E_max
+            # Handle None values (treat as unbounded)
+            if E_min is None:
+                E_min = 0.0
+            if E_max is None:
+                E_max = float('inf')
+            if E_min <= E <= E_max:
+                filtered[k] = v
         return OMPDatabase(filtered)
 
     def filter_relativistic(self) -> "OMPDatabase":
@@ -265,21 +272,22 @@ class OMPDatabase(Database):
         }
         return OMPDatabase(filtered)
 
-    def find_for_reaction(self, projectile: str, Z: int, A: int, E: float) -> List[OMPType]:
+    def find_for_reaction(self, projectile: str, Z: int, A: int, E: float = None) -> List[OMPType]:
         """Find all potentials valid for a specific reaction.
 
         Args:
             projectile: Projectile type ('n', 'p', etc.)
             Z: Target atomic number
             A: Target mass number
-            E: Projectile energy [MeV]
+            E: Projectile energy [MeV]. If None, no energy filtering.
 
         Returns:
             List of OMP objects valid for this reaction
         """
         results = self.filter_by_projectile(projectile)
         results = results.filter_by_target(Z=Z, A=A)
-        results = results.filter_by_energy(E)
+        if E is not None:
+            results = results.filter_by_energy(E)
         return list(results.data.values())
 
     def info(self) -> str:

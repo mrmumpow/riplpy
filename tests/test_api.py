@@ -690,3 +690,129 @@ class TestBatchOperations:
         # All nuclei should be in result
         for z, a in nuclei:
             assert Nuclide(Z=z, A=a) in result
+
+
+# =============================================================================
+# Optical Model Potential Tests
+# =============================================================================
+
+class TestOpticalConvenienceFunctions:
+    """Tests for optical model convenience functions."""
+
+    def test_optical_in_sections(self):
+        """Test that optical is in the sections tuple."""
+        assert 'optical' in riplpy.sections
+
+    def test_list_sections_includes_optical(self):
+        """Test list_sections includes optical."""
+        sections = riplpy.list_sections()
+        assert 'optical' in sections
+
+    def test_get_omp(self, ripl_path):
+        """Test get_omp returns potential by reference number."""
+        riplpy.optical.load(directory=ripl_path)
+
+        pot = riplpy.get_omp(2405)
+
+        assert pot is not None
+        assert pot.projectile == 'n'
+        assert hasattr(pot, 'header')
+        assert hasattr(pot, 'components')
+
+    def test_get_omp_invalid_raises_keyerror(self, ripl_path):
+        """Test get_omp raises KeyError for invalid iref."""
+        riplpy.optical.load(directory=ripl_path)
+
+        with pytest.raises(KeyError):
+            riplpy.get_omp(999999)
+
+    def test_list_omps(self, ripl_path):
+        """Test list_omps returns all potential reference numbers."""
+        riplpy.optical.load(directory=ripl_path)
+
+        irefs = riplpy.list_omps()
+
+        assert isinstance(irefs, list)
+        assert len(irefs) == 584  # Total potentials in database
+        assert all(isinstance(i, int) for i in irefs)
+
+    def test_list_omps_by_projectile(self, ripl_path):
+        """Test list_omps with projectile filter."""
+        riplpy.optical.load(directory=ripl_path)
+
+        neutron_irefs = riplpy.list_omps(projectile='n')
+        proton_irefs = riplpy.list_omps(projectile='p')
+
+        assert len(neutron_irefs) > 0
+        assert len(proton_irefs) > 0
+        assert len(neutron_irefs) > len(proton_irefs)  # More neutron potentials
+
+    def test_find_omp_basic(self, ripl_path):
+        """Test find_omp returns potentials for a reaction."""
+        riplpy.optical.load(directory=ripl_path)
+
+        pots = riplpy.find_omp('n', 82, 208)
+
+        assert isinstance(pots, list)
+        assert len(pots) > 0
+        # All should be for neutrons on Pb
+        for pot in pots:
+            assert pot.projectile == 'n'
+
+    def test_find_omp_with_energy(self, ripl_path):
+        """Test find_omp with energy filter."""
+        riplpy.optical.load(directory=ripl_path)
+
+        pots_all = riplpy.find_omp('n', 82, 208)
+        pots_14MeV = riplpy.find_omp('n', 82, 208, E=14.0)
+
+        # Energy filter should reduce results
+        assert len(pots_14MeV) <= len(pots_all)
+        assert len(pots_14MeV) > 0
+
+    def test_get_deformation(self, ripl_path):
+        """Test get_deformation returns deformation entry."""
+        riplpy.optical.load(directory=ripl_path)
+
+        # Pu-239 has a deformation entry
+        deform = riplpy.get_deformation(94, 239)
+
+        assert deform is not None
+        assert hasattr(deform, 'beta')
+        assert hasattr(deform, 'L')
+        assert deform.Z == 94
+        assert deform.A == 239
+
+    def test_get_deformation_invalid_raises_keyerror(self, ripl_path):
+        """Test get_deformation raises KeyError for missing entry."""
+        riplpy.optical.load(directory=ripl_path)
+
+        with pytest.raises(KeyError):
+            riplpy.get_deformation(1, 1)  # No deformation for H-1
+
+    def test_get_omp_reference(self, ripl_path):
+        """Test get_omp_reference returns reference."""
+        riplpy.optical.load(directory=ripl_path)
+
+        ref = riplpy.get_omp_reference(100)
+
+        assert ref is not None
+        assert hasattr(ref, 'citation')
+        assert hasattr(ref, 'ref_num')
+        assert ref.ref_num == 100
+        assert len(ref.citation) > 0
+
+    def test_get_omp_reference_invalid_raises_keyerror(self, ripl_path):
+        """Test get_omp_reference raises KeyError for invalid ref."""
+        riplpy.optical.load(directory=ripl_path)
+
+        with pytest.raises(KeyError):
+            riplpy.get_omp_reference(999999)
+
+    def test_optical_load_via_riplpy_load(self, ripl_path):
+        """Test that riplpy.load() also loads optical."""
+        riplpy.load(directory=ripl_path)
+
+        # Optical should be loaded
+        assert riplpy.optical.db.potentials is not None
+        assert len(riplpy.optical.db.potentials.data) > 0

@@ -193,7 +193,7 @@ def write_ascii_file(fpath: str, data: dict) -> None:
                 if len(entry.gammas) > 0 and level_id in glist:
                     for gamma in entry.gammas[level_id]:
                         gamma_data = [
-                            gamma.to_level_numer,  # Gamma transition index
+                            gamma.to_level_number,  # Gamma transition index
                             gamma.energy,          # Gamma energy
                             gamma.prob_g,          # Photon probability
                             gamma.prob_em,         # Probability of the electromagnetic transition (photon, conversion electron, pair creation)

@@ -80,7 +80,7 @@ class DiscreteLevelInfo(DiscreteNuclearLevel):
 class DiscreteGamma(object):
     """An object representing a gamma-ray from a discrete nuclear level. """
 
-    to_level_numer: int   = None # Final level number (unique integer in associated DiscreteLevel list)
+    to_level_number: int   = None # Final level number (unique integer in associated DiscreteLevel list)
     energy        : float = None # Energy, typically in [MeV]
     prob_g        : float = None # Probability that the level decays through photon (gamma ray) emission
     prob_em       : float = None # Probability of the electromagnetic transition (photon, conversion electron, pair creation)

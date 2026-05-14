@@ -236,7 +236,7 @@ DATA_FILES = {
 
     # Levels
     'levels_param': os.path.join('levels', 'levels-param.data'),
-    'discrete_levels': os.path.join('levels', 'data', 'discrete', 'z{Z:03d}.dat'),
+    'discrete_levels': os.path.join('levels', 'z{Z:03d}.dat'),
 
     # Masses section
     # ==============

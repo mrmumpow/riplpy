@@ -54,37 +54,58 @@ writer = _ff.FortranRecordWriter(FORTRAN_FORMAT)
 
 # ========================
 
+def _parse_float(token: str | None):
+    if token is None:
+        return None
+    token = token.strip()
+    if not token:
+        return None
+    try:
+        return float(token)
+    except ValueError:
+        return None
+
+
 def read_ascii_file(fpath: str) -> dict:
-    """Read data from an ASCII file and return a dictionary. """
+    """Read data from the EMPIRE ASCII file and return a dictionary.
+
+    The file contains a mix of whitespace and tab characters used as
+    column-alignment fillers. We tokenize on whitespace and treat all
+    fields beyond the inner barrier as optional.
+    """
     d = {}
 
     with open(fpath, 'r') as fp:
-        for line in fp:
-            # Skip header lines
-            if line.startswith("#") or line.strip() == "" or "a" in line:
+        for raw in fp:
+            line = raw.replace('\t', ' ')
+            if not line.strip():
+                continue
+            if line.lstrip().startswith('#'):
                 continue
 
-            # Parse using Fortran format
-            data = reader.read(line)
-            Z = data[1]
-            A = data[2]
+            tokens = line.split()
+            # A valid data line begins with Z A symbol (e.g. "80 198 Hg ...").
+            if len(tokens) < 5:
+                continue
+            try:
+                Z = int(tokens[0])
+                A = int(tokens[1])
+            except ValueError:
+                continue
+
+            symbol = tokens[2]
+            symmetry = tokens[3]
+            Va = _parse_float(tokens[4])
+            hwa = _parse_float(tokens[5]) if len(tokens) > 5 else None
+            Symb = tokens[6] if len(tokens) > 6 else None
+            Vb = _parse_float(tokens[7]) if len(tokens) > 7 else None
+            hwb = _parse_float(tokens[8]) if len(tokens) > 8 else None
+            Vc = _parse_float(tokens[9]) if len(tokens) > 9 else None
+            Deltaf = _parse_float(tokens[10]) if len(tokens) > 10 else None
+
             n = _c.Nuclide(Z=Z, A=A)
-            symbol = data[3].strip()
-            symmetry = data[4].strip()
-            Va = data[5]
-            hwa = data[6] if len(data) > 6 else None
-            Symb = data[7].strip() if len(data) > 7 else None
-            Vb = data[8] if len(data) > 8 else None
-            hwb = data[9] if len(data) > 9 else None
-            Vc = data[10] if len(data) > 10 else None
-            Deltaf = data[11] if len(data) > 11 else None
-
-            # Create an entry
-            package = {'n': n, 'symmetry': symmetry, 'Va': Va, 'hwa': hwa, 'Symb': Symb, 'Vb': Vb, 'hwb': hwb, 'Vc': Vc, 'Deltaf': Deltaf}
-            d[n] = package
-
-            #except ValueError as e:
-            #    print(f"Could not parse line: {line.strip()}\nError: {e}")
+            d[n] = {'n': n, 'symmetry': symmetry, 'Va': Va, 'hwa': hwa,
+                    'Symb': Symb, 'Vb': Vb, 'hwb': hwb, 'Vc': Vc, 'Deltaf': Deltaf}
 
     return d
 

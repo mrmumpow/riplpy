@@ -224,5 +224,31 @@ class Database(_db.Database):
     #     return ret
 
 
-# Create the local 'load' function with config, database object, and file_path_key pre-filled
-load = _partial(_db.loader, config=_config, db_obj=Database, file_path_key=FILE_PATH_KEY)
+# Create the local 'load' function with config, database object, and file_path_key pre-filled.
+#
+# The legacy ``empirical-hfb-barriers.dat`` file is no longer included in the
+# RIPL-4 release layout. Wrap the loader so that callers receive an empty
+# Database rather than a hard exception when the file is absent.
+def _safe_load(directory: str | None = None, file_path: str | None = None) -> 'Database':
+    """Load the HFB fission barrier database, returning an empty database if the file is missing."""
+    try:
+        return _db.loader(
+            directory=directory, file_path=file_path,
+            config=_config, db_obj=Database, file_path_key=FILE_PATH_KEY,
+        )
+    except Exception as exc:
+        # Importing inside the function avoids any startup-time circular import.
+        from riplpy.exceptions import RiplFileNotFoundError
+        if isinstance(exc, (FileNotFoundError, RiplFileNotFoundError)):
+            try:
+                import riplpy as _riplpy
+                _riplpy.logger.warning(
+                    "fission.hfb: data file not found (%s); using empty database.", exc,
+                )
+            except Exception:
+                pass
+            return Database()
+        raise
+
+
+load = _safe_load

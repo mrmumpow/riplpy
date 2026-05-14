@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Python objects which provide access to the empirical fission barrier database of the Reference Input Parameter Library (RIPL). 
+"""Python objects which provide access to the RIPL-4 empirical fission barrier database.
+
+This module reads ``empirical-barriers-ripl4.dat`` (Capote & Sin, 2025), which
+contains empirical double-humped fission barrier parameters: inner and outer
+barrier heights and curvatures with estimated uncertainties and saddle-point
+symmetry designators.
 
 Python 3.10+ is expected to run this code properly.
 
-Examples:
-    (1) @TODO: Finish
-        $
-
-Todo:
-    * Provide more examples of use cases.
-    * Test in production.
-    
 Authors:
     * Matthew Mumpower {mumpower@lanl.gov}
 
@@ -27,9 +24,6 @@ from typing import ClassVar as _ClassVar
 # Functools
 from functools import partial as _partial
 
-# Fortran format
-import fortranformat as _ff
-
 # RIPLpy
 import riplpy.config as _config
 import riplpy.collections as _c
@@ -37,7 +31,7 @@ import riplpy.db as _db
 
 # ========================
 
-__all__ = ('FILE_PATH_KEY', 'LOCAL_FILE_PATH', 'FILE_HEADER', 'FORTRAN_FORMAT', 'reader', 'writer', 'read_ascii_file', 'write_ascii_file', 'Entry', 'Database', 'load')
+__all__ = ('FILE_PATH_KEY', 'LOCAL_FILE_PATH', 'FILE_HEADER', 'read_ascii_file', 'write_ascii_file', 'Entry', 'Database', 'load')
 
 # ========================
 
@@ -47,184 +41,181 @@ LOCAL_FILE_PATH = _config.get_data_file_path(FILE_PATH_KEY)
 
 # ========================
 
-FILE_HEADER = "#  Z   A  s   Syma    Ea     hwa   Symb    Eb     hwb    Deltaf\n#                   [MeV]   [MeV]        [MeV]   [MeV]    [MeV]\n#--------------------------------------------------------------\n"
-FORTRAN_FORMAT = '(2i4,1x,a2,1x,2(3x,a2,2f8.2),f9.3)'
-reader = _ff.FortranRecordReader(FORTRAN_FORMAT)
-writer = _ff.FortranRecordWriter(FORTRAN_FORMAT)
+FILE_HEADER = (
+    "#-----------------------------------------------------------------------\n"
+    "#  Inner and outer barrier heights, widths with uncertainties are in MeV\n"
+    "#  Z   A  s   Syma   Va  dVa  hwa dwa  Symb   Vb  dVb hwb dwb\n"
+    "#-----------------------------------------------------------------------\n"
+)
 
 # ========================
 
+
+def _parse_float(token: str | None):
+    """Parse a token to float, returning None for blanks."""
+    if token is None:
+        return None
+    token = token.strip()
+    if not token:
+        return None
+    try:
+        return float(token)
+    except ValueError:
+        return None
+
+
 def read_ascii_file(fpath: str) -> dict:
-    """Read data from an ASCII file and return a dictionary. """
-    # Placeholder dictionary
+    """Read data from the RIPL-4 empirical-barriers ASCII file and return a dictionary.
+
+    The file may include records with only inner-barrier information, or with
+    both inner and outer barrier data. Trailing fields are treated as optional.
+    """
     d = {}
-
-    # Read data from file
     with open(fpath, 'r') as fp:
-        for i, line in enumerate(fp.readlines()):
-            # Skip the header line(s)
-            if "#" in line[0]:
+        for line in fp:
+            stripped = line.rstrip("\n")
+            if not stripped.strip():
                 continue
-            data   = reader.read(line)
-            Z      = data[0]
-            A      = data[1]
-            n      = _c.Nuclide(Z=Z, A=A)
-            syma   = data[3]
-            Ea     = data[4]
-            hwa    = data[5]
-            symb   = data[6]
-            Eb     = data[7]
-            hwb    = data[8]
-            deltaf = data[9]
+            if stripped.lstrip().startswith('#'):
+                continue
+            # Tokenize on whitespace; the format is whitespace separated in
+            # the data records and tolerant of optional trailing fields.
+            tokens = stripped.split()
+            # Require at least: Z A sym Syma Va
+            if len(tokens) < 5:
+                continue
+            try:
+                Z = int(tokens[0])
+                A = int(tokens[1])
+            except ValueError:
+                continue
+            s = tokens[2]
+            syma = tokens[3]
+            Va = _parse_float(tokens[4])
+            dVa = _parse_float(tokens[5]) if len(tokens) > 5 else None
+            hwa = _parse_float(tokens[6]) if len(tokens) > 6 else None
+            dwa = _parse_float(tokens[7]) if len(tokens) > 7 else None
+            symb = tokens[8] if len(tokens) > 8 else None
+            Vb = _parse_float(tokens[9]) if len(tokens) > 9 else None
+            dVb = _parse_float(tokens[10]) if len(tokens) > 10 else None
+            hwb = _parse_float(tokens[11]) if len(tokens) > 11 else None
+            dwb = _parse_float(tokens[12]) if len(tokens) > 12 else None
 
-            package = {
-                       'n': n,
-                       'Ea': Ea, 'hwa': hwa, 'syma': syma,
-                       'Eb': Eb, 'hwb': hwb, 'symb': symb,
-                       'deltaf': deltaf
-                      }
-            d[n] = package
+            n = _c.Nuclide(Z=Z, A=A)
+            d[n] = {
+                'n': n, 's': s,
+                'syma': syma, 'Va': Va, 'dVa': dVa, 'hwa': hwa, 'dwa': dwa,
+                'symb': symb, 'Vb': Vb, 'dVb': dVb, 'hwb': hwb, 'dwb': dwb,
+            }
     return d
 
 
 def write_ascii_file(fpath: str, data: dict) -> None:
-    """Write ASCII file given a filename and a data dictionary. """
-
-    # Write data to file
+    """Write the database to an ASCII file using a whitespace-separated layout."""
     with open(fpath, 'w') as fp:
-        # Write header line
         fp.write(FILE_HEADER)
-        # Loop over data
         for n in data.keys():
-            line = data[n].as_tuple
-            fp.write(writer.write(line)+"\n")
+            e = data[n]
+            line = f"{e.n.Z:4d}{e.n.A:4d} {e.s or e.n.element_symbol:<2s}  "
+            line += f" {(e.syma or '  '):<2s}{(e.Va if e.Va is not None else 0.0):8.2f}{(e.dVa if e.dVa is not None else 0.0):4.1f}"
+            if e.hwa is not None:
+                line += f"{e.hwa:5.2f}{(e.dwa if e.dwa is not None else 0.0):5.2f}"
+            if e.Vb is not None or e.symb:
+                line += f"  {(e.symb or '  '):<2s}{(e.Vb if e.Vb is not None else 0.0):8.2f}{(e.dVb if e.dVb is not None else 0.0):4.1f}"
+                if e.hwb is not None:
+                    line += f"{e.hwb:5.2f}{(e.dwb if e.dwb is not None else 0.0):5.2f}"
+            fp.write(line + "\n")
 
 
 @_dataclass
 class Entry(_db.NuclideDatabaseEntry):
-    """An entry in the empirical fission barrier database.
-
-    Contains double-humped fission barrier parameters from experimental data.
+    """An entry in the RIPL-4 empirical fission barrier database.
 
     Attributes:
-        n: Target nucleus (Nuclide object with Z, A, N properties)
-        Ea: First (inner) barrier height [MeV]
-        hwa: First barrier curvature [MeV]
-        syma: Saddle point symmetry designation (first barrier)
-        Eb: Second (outer) barrier height [MeV]
-        hwb: Second barrier curvature [MeV]
-        symb: Saddle point symmetry designation (second barrier)
-        deltaf: Pairing correction [MeV]
+        n: Target nucleus
+        s: Element symbol
+        syma: Inner saddle-point symmetry (S, GA, MA)
+        Va: Inner barrier height [MeV]
+        dVa: Inner barrier height uncertainty [MeV]
+        hwa: Inner barrier curvature [MeV]
+        dwa: Inner barrier curvature uncertainty [MeV]
+        symb: Outer saddle-point symmetry (S, GA, MA)
+        Vb: Outer barrier height [MeV]
+        dVb: Outer barrier height uncertainty [MeV]
+        hwb: Outer barrier curvature [MeV]
+        dwb: Outer barrier curvature uncertainty [MeV]
     """
 
-    n     : _c.Nuclide = None
-    Ea    : float = None
-    hwa   : float = None
-    syma  : str   = None
-    Eb    : float = None
-    hwb   : float = None
-    symb  : str   = None
-    deltaf: float = None
+    n   : _c.Nuclide = None
+    s   : str   = None
+    syma: str   = None
+    Va  : float = None
+    dVa : float = None
+    hwa : float = None
+    dwa : float = None
+    symb: str   = None
+    Vb  : float = None
+    dVb : float = None
+    hwb : float = None
+    dwb : float = None
 
-    # Field descriptions for help/info display
+    # Backwards-compatibility aliases (older API used Ea/Eb).
+    @property
+    def Ea(self) -> float:
+        return self.Va
+
+    @property
+    def Eb(self) -> float:
+        return self.Vb
+
     _field_info: _ClassVar[dict] = {
-        'n': 'Target nucleus',
-        'Ea': 'First (inner) barrier height [MeV]',
-        'hwa': 'First barrier curvature [MeV]',
-        'syma': 'Saddle point symmetry (first barrier)',
-        'Eb': 'Second (outer) barrier height [MeV]',
-        'hwb': 'Second barrier curvature [MeV]',
-        'symb': 'Saddle point symmetry (second barrier)',
-        'deltaf': 'Pairing correction [MeV]',
+        'n':    'Target nucleus',
+        's':    'Element symbol',
+        'syma': 'Inner saddle-point symmetry (S/GA/MA)',
+        'Va':   'Inner barrier height [MeV]',
+        'dVa':  'Uncertainty on Va [MeV]',
+        'hwa':  'Inner barrier curvature [MeV]',
+        'dwa':  'Uncertainty on hwa [MeV]',
+        'symb': 'Outer saddle-point symmetry (S/GA/MA)',
+        'Vb':   'Outer barrier height [MeV]',
+        'dVb':  'Uncertainty on Vb [MeV]',
+        'hwb':  'Outer barrier curvature [MeV]',
+        'dwb':  'Uncertainty on hwb [MeV]',
     }
 
     @property
     def as_tuple(self) -> tuple:
-        """Return a tuple representation matching the ASCII file format."""
-        return (self.n.Z, self.n.A, self.n.element_symbol, self.syma, self.Ea, self.hwa, self.symb, self.Eb, self.hwb, self.deltaf)
+        return (self.n.Z, self.n.A, self.s or self.n.element_symbol,
+                self.syma, self.Va, self.dVa, self.hwa, self.dwa,
+                self.symb, self.Vb, self.dVb, self.hwb, self.dwb)
 
 
 class Database(_db.Database):
-
     reader: object = read_ascii_file
     entry : object = Entry
     writer: object = write_ascii_file
 
     @property
-    def heights(self, ) -> list:
-        """Return the first and second barrier heights in the database as a list of tuples (Z,A,F_A,F_B). """
+    def heights(self) -> list:
+        """Return the inner/outer barrier heights as a list of (Z, A, Va, Vb)."""
         ret = []
         for n in self.data.keys():
-            Z, A = n.Z, n.A
-            ret.append((Z,A,self.data[n].Ea,self.data[n].Eb))
+            ret.append((n.Z, n.A, self.data[n].Va, self.data[n].Vb))
         return ret
-    
+
     @property
-    def curvatures(self, ) -> list:
-        """Return the first and second barrier curvatures in the database as list of tuples (Z,A,C_A,C_B). """
+    def curvatures(self) -> list:
+        """Return the inner/outer barrier curvatures as a list of (Z, A, hwa, hwb)."""
         ret = []
         for n in self.data.keys():
-            Z, A = n.Z, n.A
-            ret.append((Z,A,self.data[n].hwa,self.data[n].hwb))
+            ret.append((n.Z, n.A, self.data[n].hwa, self.data[n].hwb))
         return ret
-
-    # @property
-    # def as_structured_numpy_array(self, ) -> _np.array:
-    #     """Return the database as a structured Numpy array. """
-    #     ret = []
-    #     for n, v in self.data.items():
-    #         # Define nucleus information
-    #         Z,N,A,sym = n.Z,n.N,n.A,n.element_symbol
-    #         # First barrier
-    #         Syma, Ea, hwa = v.A.sp_sym, v.A.height, v.A.curvature
-    #         # Second barrier
-    #         Symb, Eb, hwb = v.B.sp_sym, v.B.height, v.B.curvature
-    #         # Deltaf
-    #         deltaf = v.deltaf
-    #         # Append row
-    #         ret.append((Z,N,A,sym,Syma,Ea,hwa,Symb,Eb,hwb,deltaf))
-    #     return _np.array(ret, dtype=EXP_DB_NUMPY_DTYPE)
-
-    # @property
-    # def as_numpy_array(self, ) -> _np.array:
-    #     """Return the database as a Numpy array. """
-    #     ret = []
-    #     for n, v in self.data.items():
-    #         # Define nucleus information
-    #         Z,N,A,sym = n.Z,n.N,n.A,n.element_symbol
-    #         # First barrier
-    #         Syma, Ea, hwa = v.A.sp_sym, v.A.height, v.A.curvature
-    #         # Second barrier
-    #         Symb, Eb, hwb = v.B.sp_sym, v.B.height, v.B.curvature
-    #         # Deltaf
-    #         deltaf = v.deltaf
-    #         # Append row
-    #         ret.append((Z,N,A,sym,Syma,Ea,hwa,Symb,Eb,hwb,deltaf))
-    #     return _np.array(ret, dtype=object)
-
-    # @property
-    # def as_nuclides(self, ) -> list:
-    #     """Return the database as a list of Nuclides. Each nuclide contains the relevant barrier properties. """
-    #     ret = []
-    #     for _n, _v in self.data.items():
-    #         # Copy nucleus to a new memory location
-    #         n = _copy.deepcopy(_n)
-    #         # First barrier
-    #         n.Syma, n.Ea, n.hwa = _v.A.sp_sym, _v.A.height, _v.A.curvature
-    #         # Second barrier
-    #         n.Symb, n.Eb, n.hwb = _v.B.sp_sym, _v.B.height, _v.B.curvature
-    #         # Deltaf
-    #         n.deltaf = _v.deltaf
-    #         ret.append(n)
-    #     return ret
 
     def first_barrier(self, n: _c.Nuclide) -> float:
-        """Return the first barrier properties of the provided nucleus (nuc). """
-        return self.data[n].Ea
-    
+        return self.data[n].Va
+
     def second_barrier(self, n: _c.Nuclide) -> float:
-        """Return the second barrier properties of the provided nucleus (nuc). """
-        return self.data[n].Eb
+        return self.data[n].Vb
 
 
 # Create the local 'load' function with config, database object, and file_path_key pre-filled

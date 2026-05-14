@@ -227,11 +227,19 @@ DATA_FILES = {
     # ===============
 
     # Fission Barriers
-    'fission_barriers_empirical': os.path.join('fission', 'empirical-barriers.dat'),
-    'fission_barriers_empirical_new': os.path.join('fission', 'empirical-barriers-new.dat'),
+    'fission_barriers_empirical': os.path.join('fission', 'empirical-barriers-ripl4.dat'),
+    'fission_barriers_empirical_new': os.path.join('fission', 'empirical-barriers-ripl4.dat'),
     'fission_barriers_empire': os.path.join('fission', 'empirical-barriers-new-EMPIRE.dat'),
     'fission_barriers_hfb': os.path.join('fission', 'empirical-hfb-barriers.dat'),
     'fission_barriers_bskg3': os.path.join('fission', 'barriers-bskg3.dat'),
+    'fission_barriers_d1m': os.path.join('fission', 'barriers-d1m_lep.dat'),
+
+    # Fission paths (per-isotope directories)
+    'fission_path_bskg3_dir': os.path.join('fission', 'hfbpath-bskg3'),
+    'fission_path_d1m_dir': os.path.join('fission', 'hfbpath-d1m'),
+
+    # Fission saddle-point level densities (per-Z files in subdirs Max1/Max2/Max3/Min1/Min2)
+    'fission_nld_bskg3_dir': os.path.join('fission', 'nld-fis-bskg3'),
 
     # Gamma section
     # =============

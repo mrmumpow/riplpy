@@ -47,81 +47,83 @@ LOCAL_FILE_PATH = _config.get_data_file_path(FILE_PATH_KEY)
 
 # ========================
 
-FILE_HEADER = "#         |         Inner            |            Outer 1         |         Outer 2          |    Isomer\n# Z   N   |  E[MeV] B20   B22   B30  |  E[MeV]  B20   B22   B30   | E[MeV]  B20   B22   B30  |  E[MeV] B20   B22   B30\n"
-FORTRAN_FORMAT = '(2I4, 4(F8.3, F6.2, F6.2, F6.2))'
-reader = _ff.FortranRecordReader(FORTRAN_FORMAT)
+FILE_HEADER = (
+    "#             |        Inner            |            Outer 1         |         Outer 2           |     Isomer 1             |       Isomer 2\n"
+    "# Z   N   A   |  E[MeV] B20   B22   B30 |  E[MeV] B20   B22   B30    |  E[MeV] B20   B22   B30   | E[MeV] B20   B22   B30   |   E[MeV] B20   B22   B30\n"
+)
+# RIPL-4 layout includes Z, N, A and five sections: Inner, Outer 1, Outer 2,
+# Isomer 1, Isomer 2 (each section is E, B20, B22, B30).
+FORTRAN_FORMAT = '(i3,i4,i5,5(f10.3,3f6.2))'
+reader = None  # parsing is whitespace-tolerant; fortranformat is not used
 writer = _ff.FortranRecordWriter(FORTRAN_FORMAT)
 
 # ========================
 
-def read_ascii_file(fpath: str) -> dict:
-    """Read data from an ASCII file and return a dictionary. """
-    # Placeholder dictionary
-    d = {}
 
-    # Read data from file
+def _parse_section(tokens: list[str], offset: int) -> dict:
+    return {
+        'E[MeV]': float(tokens[offset]),
+        'B20':    float(tokens[offset + 1]),
+        'B22':    float(tokens[offset + 2]),
+        'B30':    float(tokens[offset + 3]),
+    }
+
+
+def read_ascii_file(fpath: str) -> dict:
+    """Read data from the BSkG3 ASCII file and return a dictionary.
+
+    The RIPL-4 file contains Z, N, A followed by five sections describing
+    inner barrier, outer barrier 1, outer barrier 2, isomer 1, and isomer 2.
+    Each section contains an energy in MeV plus the B20, B22, and B30
+    deformation parameters.
+    """
+    d = {}
     with open(fpath, 'r') as fp:
         for line in fp:
-            # Skip header lines
-            if line.startswith("#"):
+            if not line.strip():
+                continue
+            if line.lstrip().startswith('#'):
                 continue
 
-            # Use FortranRecordReader to parse the line
-            data = reader.read(line)
-            Z, N = data[0], data[1]
+            tokens = line.split()
+            # Need at least Z, N, A + 5*4 = 23 columns
+            if len(tokens) < 23:
+                continue
 
-            # Extract data for each section
-            inner = {
-                'E[MeV]': data[2],
-                'B20': data[3],
-                'B22': data[4],
-                'B30': data[5]
-            }
-            outer1 = {
-                'E[MeV]': data[6],
-                'B20': data[7],
-                'B22': data[8],
-                'B30': data[9]
-            }
-            outer2 = {
-                'E[MeV]': data[10],
-                'B20': data[11],
-                'B22': data[12],
-                'B30': data[13]
-            }
-            isomer = {
-                'E[MeV]': data[14],
-                'B20': data[15],
-                'B22': data[16],
-                'B30': data[17]
-            }
+            try:
+                Z = int(tokens[0])
+                N = int(tokens[1])
+                A = int(tokens[2])
+                inner   = _parse_section(tokens, 3)
+                outer1  = _parse_section(tokens, 7)
+                outer2  = _parse_section(tokens, 11)
+                isomer  = _parse_section(tokens, 15)
+                isomer2 = _parse_section(tokens, 19)
+            except (ValueError, IndexError):
+                continue
 
-            # Create a dictionary entry
-            n = _c.Nuclide(Z=Z, N=N)
-            package = {
+            n = _c.Nuclide(Z=Z, A=A)
+            d[n] = {
                 'n': n,
                 'inner': inner,
                 'outer1': outer1,
                 'outer2': outer2,
-                'isomer': isomer
+                'isomer': isomer,
+                'isomer2': isomer2,
             }
-
-            # Use Z, N as the key
-            d[n] = package
     return d
 
 
 def write_ascii_file(fpath: str, data: dict) -> None:
-    """Write ASCII file given a filename and a data dictionary. """
-
-    # Write data to file
+    """Write the BSkG3 database to a whitespace-delimited ASCII file."""
     with open(fpath, 'w') as fp:
-        # Write header line
         fp.write(FILE_HEADER)
-        # Loop over data
         for n in data.keys():
-            line = data[n].as_tuple
-            fp.write(writer.write(line)+"\n")
+            e = data[n]
+            parts = [f"{e.n.Z:3d}{e.n.N:4d}{e.n.A:5d}"]
+            for sec in (e.inner, e.outer1, e.outer2, e.isomer, e.isomer2):
+                parts.append(f"{sec['E[MeV]']:10.3f}{sec['B20']:6.2f}{sec['B22']:6.2f}{sec['B30']:6.2f}")
+            fp.write(''.join(parts) + "\n")
 
 
 @_dataclass
@@ -139,11 +141,12 @@ class Entry(_db.NuclideDatabaseEntry):
         isomer: Isomer configuration {E[MeV], B20, B22, B30}
     """
 
-    n     : _c.Nuclide = None
-    inner : dict = None
-    outer1: dict = None
-    outer2: dict = None
-    isomer: dict = None
+    n      : _c.Nuclide = None
+    inner  : dict = None
+    outer1 : dict = None
+    outer2 : dict = None
+    isomer : dict = None
+    isomer2: dict = None
 
     # Field descriptions for help/info display
     _field_info: _ClassVar[dict] = {
@@ -151,17 +154,19 @@ class Entry(_db.NuclideDatabaseEntry):
         'inner': 'Inner barrier {E[MeV], B20, B22, B30}',
         'outer1': 'First outer barrier {E[MeV], B20, B22, B30}',
         'outer2': 'Second outer barrier {E[MeV], B20, B22, B30}',
-        'isomer': 'Isomer configuration {E[MeV], B20, B22, B30}',
+        'isomer': 'First isomer configuration {E[MeV], B20, B22, B30}',
+        'isomer2': 'Second isomer configuration {E[MeV], B20, B22, B30}',
     }
 
     @property
     def as_tuple(self) -> tuple:
         """Return a tuple representation matching the ASCII file format."""
-        return (self.n.Z, self.n.N,
+        return (self.n.Z, self.n.N, self.n.A,
                 self.inner['E[MeV]'], self.inner['B20'], self.inner['B22'], self.inner['B30'],
                 self.outer1['E[MeV]'], self.outer1['B20'], self.outer1['B22'], self.outer1['B30'],
                 self.outer2['E[MeV]'], self.outer2['B20'], self.outer2['B22'], self.outer2['B30'],
-                self.isomer['E[MeV]'], self.isomer['B20'], self.isomer['B22'], self.isomer['B30']) 
+                self.isomer['E[MeV]'], self.isomer['B20'], self.isomer['B22'], self.isomer['B30'],
+                self.isomer2['E[MeV]'], self.isomer2['B20'], self.isomer2['B22'], self.isomer2['B30'])
 
 
 class Database(_db.Database):

@@ -61,17 +61,26 @@ class TestEmpiricalNew:
 
 
 class TestHFBBarriers:
-    """Tests for the HFB fission barrier database."""
+    """Tests for the legacy HFB fission barrier database.
+
+    The legacy ``empirical-hfb-barriers.dat`` file is no longer shipped with
+    the RIPL-4 GitHub release layout. The loader returns an empty database
+    instead of raising. These tests are skipped when the file is absent.
+    """
 
     def test_load_from_directory(self, ripl_path):
-        """Test loading HFB barriers from RIPL directory."""
+        """Test loading HFB barriers from RIPL directory (skipped if absent)."""
         db = fission.hfb.load(directory=ripl_path)
         assert db is not None
+        if len(db.data) == 0:
+            pytest.skip("Legacy HFB barrier file (empirical-hfb-barriers.dat) not present in RIPL-4 layout")
         assert len(db.data) > 0
 
     def test_has_inner_outer_barriers(self, ripl_path):
-        """Test that HFB data has inner and outer barrier info."""
+        """Test that HFB data has inner and outer barrier info (skipped if absent)."""
         db = fission.hfb.load(directory=ripl_path)
+        if len(db.data) == 0:
+            pytest.skip("Legacy HFB barrier file not present in RIPL-4 layout")
         for n, entry in list(db.data.items())[:10]:
             # HFB should have inner (Bin) and outer (Bout) barriers
             assert hasattr(entry, 'Bin')
@@ -95,6 +104,25 @@ class TestBSkG3Barriers:
             assert hasattr(entry, 'inner') or hasattr(entry, 'outer1')
 
 
+class TestD1MBarriers:
+    """Tests for the D1M HFB fission barrier database (RIPL-4)."""
+
+    def test_load_from_directory(self, ripl_path):
+        """Test loading D1M barriers from the RIPL directory."""
+        db = fission.d1m.load(directory=ripl_path)
+        assert db is not None
+        assert len(db.data) > 0
+
+    def test_has_inner_outer_sections(self, ripl_path):
+        """Test that each entry has inner and outer barrier sections."""
+        db = fission.d1m.load(directory=ripl_path)
+        for n, entry in list(db.data.items())[:5]:
+            assert entry.inner is not None
+            assert entry.outer is not None
+            assert 'E[MeV]' in entry.inner and 'B20' in entry.inner
+            assert 'E[MeV]' in entry.outer and 'B20' in entry.outer
+
+
 class TestFissionComparison:
     """Tests comparing different fission barrier models."""
 
@@ -102,6 +130,9 @@ class TestFissionComparison:
         """Test that empirical and HFB share common nuclei."""
         emp = fission.empirical.load(directory=ripl_path)
         hfb = fission.hfb.load(directory=ripl_path)
+
+        if len(hfb.data) == 0:
+            pytest.skip("Legacy HFB barrier file not present in RIPL-4 layout")
 
         # Find common nuclei
         common = set(emp.data.keys()) & set(hfb.data.keys())

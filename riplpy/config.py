@@ -268,8 +268,8 @@ DATA_FILES = {
     # ==================
 
     # Resonances
-    'resonances_swave': os.path.join('resonances', 'resonances0.dat'),
-    'resonances_pwave': os.path.join('resonances', 'resonances1.dat'),
+    'resonances_swave': os.path.join('resonances', 'resonances_L0.dat'),
+    'resonances_pwave': os.path.join('resonances', 'resonances_L1.dat'),
 }
 
 def get_data_file_path(key: str, **kwargs) -> str:

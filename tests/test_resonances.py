@@ -43,7 +43,6 @@ class TestSwaveResonances:
             if entry.D is not None:
                 assert entry.D > 0, f"D should be positive for {n}"
 
-    @pytest.mark.skip(reason="Resonance writer has format issues with None values - needs fix")
     def test_write_and_read_roundtrip(self, ripl_path, temp_output_dir):
         """Test that writing and re-reading produces identical data."""
         db = resonances.swave.load(directory=ripl_path)
@@ -55,8 +54,17 @@ class TestSwaveResonances:
         # Read back
         db2 = resonances.swave.load(file_path=output_path)
 
-        # Compare number of entries (exact comparison may differ due to formatting)
+        # Compare number of entries
         assert len(db.data) == len(db2.data)
+
+        # Spot-check a representative nuclide for value-level fidelity
+        n = Nuclide(Z=11, A=23)
+        if n in db.data and n in db2.data:
+            e1 = db.get(n)
+            e2 = db2.get(n)
+            assert e1.D == e2.D
+            assert e1.Bn == e2.Bn
+            assert e1.D_BNL == e2.D_BNL
 
 
 class TestPwaveResonances:

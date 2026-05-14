@@ -4,9 +4,6 @@
 # Functools
 from functools import partial as _partial
 
-# Fortran format
-import fortranformat as _ff
-
 # RIPLpy
 import riplpy.config as _config
 import riplpy.collections as _c
@@ -21,14 +18,12 @@ LOCAL_FILE_PATH = _config.get_data_file_path(FILE_PATH_KEY)
 
 # ========================
 
-FILE_HEADER = "#                 Resonance data for s-wave resonances \n# Z El  A   Io     Bn        D0        dD      S0    dS    Gg   dG   Com.\n#                 [MeV]     [keV]     [keV]  [1E-4][1E-4][meV][meV]  &Ref\n#========================================================================\n"
-FORTRAN_FORMAT   = '(i3,1x,a2,1x,i3,2x,f3.1,2x,f6.3,2x,2(e8.2,2x),1x,2(f4.2,2x),2(f5.1,1x),1x,a4)'
-reader = _ff.FortranRecordReader(FORTRAN_FORMAT)
-writer = _ff.FortranRecordWriter(FORTRAN_FORMAT)
+# The s- and p-wave files share the same RIPL-4 format (Goriely 2025), so
+# the reader, writer, and Entry dataclass are imported directly from pwave.
+FORTRAN_FORMAT = _pwave.FORTRAN_FORMAT
+FILE_HEADER    = _pwave.FILE_HEADER
 
-# ========================
-
-read_ascii_file = _pwave.read_ascii_file
+read_ascii_file  = _pwave.read_ascii_file
 write_ascii_file = _pwave.write_ascii_file
 
 Entry = _pwave.Entry

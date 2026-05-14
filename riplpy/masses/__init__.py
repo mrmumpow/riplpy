@@ -1,6 +1,13 @@
 
+# Logging
+import logging as _logging
+
 # RIPLpy
 from riplpy.db import _DbAccessor
+from riplpy.exceptions import RiplFileNotFoundError as _RiplFileNotFoundError
+
+# Module-level logger (parent: riplpy)
+_logger = _logging.getLogger('riplpy.masses')
 
 # Local
 from .core import *
@@ -35,41 +42,89 @@ MASS_MODELS = {
     'hfb27': ('hfb27', 'Mth'),
     'bskg3': ('bskg3', 'Mth'),
     'd1m': ('d1m', 'Mth'),
+    'ws4': ('ws4', 'Mth'),
 }
 
 # ========================
 
+def _safe_load(name: str, loader_callable, directory: str, required: bool = True):
+    """Load a mass model database, returning an empty Database if the data file is missing.
+
+    The official RIPL-4 GitHub release does not currently ship every mass model
+    data file (notably ``mass-frdm95.dat`` and ``mass-hfb14.dat``). To keep
+    ``riplpy.load()`` usable against the GitHub layout while still supporting
+    users who have a full release, we catch the missing-file error, log a
+    warning, and return an empty database for that model.
+
+    Arguments:
+        name: Human-readable model name (used in the warning message).
+        loader_callable: The model's ``load`` partial (e.g. ``frdm95.load``).
+        directory: Path passed through to the loader.
+        required: If True (default), missing files re-raise. Set to False for
+            optional models that are known to be absent from some releases.
+    """
+    try:
+        return loader_callable(directory)
+    except _RiplFileNotFoundError as exc:
+        if required:
+            raise
+        _logger.warning(
+            "Skipping %s mass database: data file not found in this RIPL "
+            "release (%s). The reader/writer remain available for users with "
+            "the full RIPL distribution.", name, exc
+        )
+        # Return an empty Database of the appropriate type so attribute access
+        # still works (e.g. for in_ripl / list_databases iteration).
+        return loader_callable.keywords['db_obj']()
+
+
 def load_only_masses(directory: str) -> None:
-    """Loads only the mass database of the Masses section of RIPL. 
+    """Loads only the mass database of the Masses section of RIPL.
 
        Once this method is called, the databases cannot be unloaded.
+
+       Missing data files for ``frdm95`` and ``hfb14`` are skipped with a
+       warning; those models are not part of the current RIPL-4 GitHub release
+       but the readers/writers stay available for users with a full release.
     """
     # AME2020 mass evaluation
-    db.ame20 = ame20.load(directory)
+    db.ame20 = _safe_load('AME2020', ame20.load, directory)
 
     # BSkG3 mass database
-    db.bskg3 = bskg3.load(directory)
+    db.bskg3 = _safe_load('BSkG3', bskg3.load, directory)
 
     # D1M mass database
-    db.d1m = d1m.load(directory)
+    db.d1m = _safe_load('D1M', d1m.load, directory)
 
-    # FRDM1995 mass database
-    db.frdm1995 = frdm95.load(directory)
+    # FRDM1995 mass database (not in current github release)
+    db.frdm1995 = _safe_load('FRDM1995', frdm95.load, directory, required=False)
 
     # FRDM2012 mass database
-    db.frdm2012 = frdm12.load(directory)
+    db.frdm2012 = _safe_load('FRDM2012', frdm12.load, directory)
 
-    # HFB14 mass database
-    db.hfb14 = hfb14.load(directory)
+    # HFB14 mass database (not in current github release)
+    db.hfb14 = _safe_load('HFB14', hfb14.load, directory, required=False)
 
     # HFB27 mass database
-    db.hfb27 = hfb27.load(directory)
+    db.hfb27 = _safe_load('HFB27', hfb27.load, directory)
+
+    # WS4 mass database
+    db.ws4 = _safe_load('WS4', ws4.load, directory)
 
 
-def load(directory: str) -> None:
-    """Load the entire database of the Masses section of RIPL. 
+def load(directory: str, include_heavy: bool = False) -> None:
+    """Load the entire database of the Masses section of RIPL.
 
-       Once this method is called, the databases cannot be unloaded.
+    Args:
+        directory: Path to the RIPL database.
+        include_heavy: If True, also load the per-Z auxiliary density tables
+            ``masses/Density-bskg3/`` and ``masses/Density-d1m/`` (200+ files
+            in total). Default is False because these tables can take ~60s to
+            load and are rarely needed alongside the mass-model fits. Use
+            ``riplpy.masses.density_bskg3.load_all(directory)`` or
+            ``density_d1m.load_element(Z, directory)`` to load on demand.
+
+    Once this method is called, the databases cannot be unloaded.
     """
     # Load masses
     load_only_masses(directory)
@@ -77,11 +132,13 @@ def load(directory: str) -> None:
     # Natural abundance database
     db.natab = ab.load(directory)
 
-    # Density BSKG3
-    db.density_bskg3 = density_bskg3.load_all(directory)
-    
-    # Density D1M
-    db.density_d1m = density_d1m.load_all(directory)
-
     # Ground state deformations
     db.deformations = deformations.load(directory)
+
+    # Heavy per-Z auxiliary density tables (skip by default).
+    if include_heavy:
+        db.density_bskg3 = density_bskg3.load_all(directory)
+        db.density_d1m   = density_d1m.load_all(directory)
+    else:
+        db.density_bskg3 = None
+        db.density_d1m   = None

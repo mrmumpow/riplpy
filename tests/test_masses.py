@@ -108,7 +108,15 @@ class TestFRDM95:
     """Tests for the FRDM1995 mass model database."""
 
     def test_load_from_directory(self, ripl_path):
-        """Test loading FRDM95 database from RIPL directory."""
+        """Test loading FRDM95 database from RIPL directory.
+
+        ``mass-frdm95.dat`` is not part of the current RIPL-4 GitHub release.
+        We skip when the file is absent so the reader/writer code remains
+        validated for users that still have the full release.
+        """
+        file_path = os.path.join(ripl_path, "masses", "mass-frdm95.dat")
+        if not os.path.exists(file_path):
+            pytest.skip("mass-frdm95.dat not present in this RIPL release")
         db = masses.frdm95.load(directory=ripl_path)
         assert db is not None
         assert len(db.data) > 0
@@ -138,7 +146,15 @@ class TestHFB14:
     """Tests for the HFB-14 mass model database."""
 
     def test_load_from_directory(self, ripl_path):
-        """Test loading HFB14 database from RIPL directory."""
+        """Test loading HFB14 database from RIPL directory.
+
+        ``mass-hfb14.dat`` is not part of the current RIPL-4 GitHub release.
+        We skip when the file is absent so the reader/writer code remains
+        validated for users that still have the full release.
+        """
+        file_path = os.path.join(ripl_path, "masses", "mass-hfb14.dat")
+        if not os.path.exists(file_path):
+            pytest.skip("mass-hfb14.dat not present in this RIPL release")
         db = masses.hfb14.load(directory=ripl_path)
         assert db is not None
         assert len(db.data) > 0

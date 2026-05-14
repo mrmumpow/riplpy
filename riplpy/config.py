@@ -208,10 +208,20 @@ DATA_FILES = {
 
     # Level densities
     'densities': os.path.join('densities', 'data', 'densities.dat'),
+    # Note: BSFG (level-densities-bfmeff.dat) and CT (level-densities-ctmeff.dat)
+    # are not present in the public RIPL-4 github release. The keys are retained
+    # so users with the older full release can still load these databases.
     'densities_bsfg': os.path.join('densities', 'level-densities-bfmeff.dat'),
     'densities_ct': os.path.join('densities', 'level-densities-ctmeff.dat'),
-    'densities_egsm': os.path.join('densities', 'level-densities-egsm.dat'),
-    'densities_egsm_norm': os.path.join('densities', 'level-densities-egsm-norm.dat'),
+    'densities_egsm': os.path.join('densities', 'total', 'level-densities-egsm.dat'),
+    'densities_egsm_norm': os.path.join('densities', 'total', 'level-densities-egsm-norm.dat'),
+
+    # Microscopic combinatorial level density tables (per-Z .tab files)
+    # under densities/total/<model>/zXXX.tab
+    'densities_bsk14_comb_dir': os.path.join('densities', 'total', 'bsk14-comb'),
+    'densities_bskg3_comb_dir': os.path.join('densities', 'total', 'bskg3-comb'),
+    'densities_qrpabe_dir': os.path.join('densities', 'total', 'qrpabe'),
+    'densities_thfb_comb_dir': os.path.join('densities', 'total', 'thfb-comb'),
 
     # Fission section
     # ===============

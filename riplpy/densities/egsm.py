@@ -54,47 +54,111 @@ LOCAL_FILE_PATH = _config.get_data_file_path(FILE_PATH_KEY)
 
 # ========================
 
-FILE_HEADER = "#           Level density parameters for the EGSM model\n#  Z  A  Sym Io   Bn       Do            dDo           Esh          +da      a       -da   \n#                [MeV]    [keV]         [keV]         [MeV]         [1/MeV] [1/MeV] [1/MeV]\n#-----------------------------------------------------------------------------------------------------\n"
-FORTRAN_FORMAT = '(1x,2(i3,1x),a2,2x,f3.1,1x,f6.3,3(1x,e13.5),3(f8.4))'
-reader = _ff.FortranRecordReader(FORTRAN_FORMAT)
-writer = _ff.FortranRecordWriter(FORTRAN_FORMAT)
+FILE_HEADER = (
+    "#  Fit of EGSM a-parameter to experimental Do\n"
+    "#  Clasic vibr enhan., RIPL-4 Do & Shell corr.\n"
+    "#  Z  A  Sym  J   Qn         Dobs          dDobs        Shell         Def          Dcalc        +da_exp  a_exp -da_exp  a_sys    a_exp/a_sys\n"
+    "#------------------------------------------------------------------------------------------------------------------------------------------\n"
+)
+# The RIPL-4 github release reformatted this file (added Def, Dcalc, a_sys
+# columns). We use whitespace-tokenised parsing so we remain tolerant of small
+# layout tweaks; ``fortranformat`` is kept imported only for symmetry with
+# other section readers.
+FORTRAN_FORMAT = None
+reader = None
+writer = None
 
 # ========================
 
+
+def _parse_line(line: str) -> dict:
+    """Parse a single EGSM data line into a field dict."""
+    tokens = line.split()
+    # Expected 15 columns in the RIPL-4 github release format
+    if len(tokens) < 13:
+        raise ValueError(f"Unexpected EGSM record: {line!r}")
+    Z = int(tokens[0])
+    A = int(tokens[1])
+    sym = tokens[2]
+    J = float(tokens[3])
+    Qn = float(tokens[4])
+    Dobs = float(tokens[5])
+    dDobs = float(tokens[6])
+    Shell = float(tokens[7])
+    # Older releases had no Def/Dcalc/a_sys columns. Branch on length.
+    if len(tokens) >= 15:
+        Def = float(tokens[8])
+        Dcalc = float(tokens[9])
+        dap = float(tokens[10])
+        a = float(tokens[11])
+        dam = float(tokens[12])
+        a_sys = float(tokens[13])
+        a_ratio = float(tokens[14])
+    else:
+        Def = None
+        Dcalc = None
+        dap = float(tokens[8])
+        a = float(tokens[9])
+        dam = float(tokens[10])
+        a_sys = None
+        a_ratio = None
+    return {
+        'Z': Z, 'A': A, 'sym': sym, 'Io': J, 'Bn': Qn,
+        'Do': Dobs, 'Derr': dDobs, 'Esh': Shell,
+        'Def': Def, 'Dcalc': Dcalc,
+        'dap': dap, 'a': a, 'dam': dam,
+        'a_sys': a_sys, 'a_ratio': a_ratio,
+    }
+
+
 def read_ascii_file(fpath: str) -> dict:
-    """Read Enhanced Generalized Superfluid Model (EGSM) data from an ASCII formatted file and return as a dictionary. """
+    """Read Enhanced Generalized Superfluid Model (EGSM) data from an ASCII formatted file. """
 
-    # Placeholder dictionary
     d = {}
-
-    # Read data from file
     with open(fpath, 'r') as fp:
-        for i, line in enumerate(fp.readlines()):
-            # Skip the header line(s)
-            if "#" in line[0]:
+        for line in fp:
+            if not line.strip():
                 continue
-            data  = reader.read(line)
-            Z       = data[0]
-            A       = data[1]
-            n       = _c.Nuclide(Z=Z, A=A)
-            package = {'n': n, 'Io': data[3], 'Bn': data[4], 'Do': data[5], 'Derr': data[6], 
-                       'Esh': data[7], 'dap': data[8], 'a': data[9], 'dam': data[10],
-                      }
+            if line.lstrip().startswith('#'):
+                continue
+            fields = _parse_line(line)
+            n = _c.Nuclide(Z=fields['Z'], A=fields['A'])
+            package = {
+                'n': n,
+                'Io': fields['Io'],
+                'Bn': fields['Bn'],
+                'Do': fields['Do'],
+                'Derr': fields['Derr'],
+                'Esh': fields['Esh'],
+                'Def': fields['Def'],
+                'Dcalc': fields['Dcalc'],
+                'dap': fields['dap'],
+                'a': fields['a'],
+                'dam': fields['dam'],
+                'a_sys': fields['a_sys'],
+                'a_ratio': fields['a_ratio'],
+            }
             d[n] = package
     return d
 
 
 def write_ascii_file(fpath: str, data: dict) -> None:
-    """Write a Enhanced Generalized Superfluid Model (EGSM) ASCII file given a filename and a data dictionary. """
+    """Write an Enhanced Generalized Superfluid Model (EGSM) ASCII file. """
 
-    # Write data to file
     with open(fpath, 'w') as fp:
-        # Write header line
         fp.write(FILE_HEADER)
-        # Loop over data
         for n in data.keys():
-            line = data[n].as_tuple
-            fp.write(writer.write(line)+"\n")
+            e = data[n]
+            fp.write(
+                f"  {e.n.Z:2d}  {e.n.A:3d} {e.n.element_symbol:<2s}  {e.Io:3.1f}  "
+                f"{e.Bn:6.3f}  "
+                f"{e.Do:12.5E}  {e.Derr:12.5E}  {e.Esh:12.5E}  "
+                f"{(e.Def if e.Def is not None else 0.0):12.5E}  "
+                f"{(e.Dcalc if e.Dcalc is not None else 0.0):12.5E}  "
+                f"{e.dap:7.4f}  {e.a:6.4f}  {e.dam:6.4f}  "
+                f"{(e.a_sys if e.a_sys is not None else 0.0):6.3f}  "
+                f"{(e.a_ratio if e.a_ratio is not None else 0.0):6.3f}\n"
+            )
 
 
 @_dataclass
@@ -116,27 +180,35 @@ class Entry(_db.NuclideDatabaseEntry):
         dam: Lower uncertainty on level density parameter [MeV^-1]
     """
 
-    n   : _c.Nuclide = None
-    Io  : float      = None
-    Bn  : float      = None
-    Do  : float      = None
-    Derr: float      = None
-    Esh : float      = None
-    dap : float      = None
-    a   : float      = None
-    dam : float      = None
+    n      : _c.Nuclide = None
+    Io     : float      = None
+    Bn     : float      = None
+    Do     : float      = None
+    Derr   : float      = None
+    Esh    : float      = None
+    Def    : float      = None
+    Dcalc  : float      = None
+    dap    : float      = None
+    a      : float      = None
+    dam    : float      = None
+    a_sys  : float      = None
+    a_ratio: float      = None
 
     # Field descriptions for help/info display
     _field_info: _ClassVar[dict] = {
         'n': 'Target nucleus',
         'Io': 'Ground state spin of target nucleus',
-        'Bn': 'Neutron binding energy [MeV]',
-        'Do': 'Experimental s-wave resonance spacing [keV]',
-        'Derr': 'Uncertainty on resonance spacing [keV]',
+        'Bn': 'Neutron binding energy / Qn [MeV]',
+        'Do': 'Experimental s-wave resonance spacing Dobs [keV]',
+        'Derr': 'Uncertainty on resonance spacing dDobs [keV]',
         'Esh': 'Shell correction energy [MeV]',
+        'Def': 'Ground-state deformation parameter',
+        'Dcalc': 'Calculated s-wave resonance spacing [keV]',
         'dap': 'Upper uncertainty on level density parameter [MeV^-1]',
         'a': 'Level density parameter at Bn [MeV^-1]',
         'dam': 'Lower uncertainty on level density parameter [MeV^-1]',
+        'a_sys': 'Systematic level density parameter a_sys [MeV^-1]',
+        'a_ratio': 'Ratio a_exp / a_sys',
     }
 
 

@@ -10,41 +10,57 @@ from pathlib import Path
 
 import riplpy.densities as densities
 from riplpy.collections import Nuclide
+from riplpy.exceptions import RiplFileNotFoundError
+
+
+def _bsfg_available(ripl_path):
+    return os.path.exists(os.path.join(ripl_path, 'densities', 'level-densities-bfmeff.dat'))
+
+
+def _ct_available(ripl_path):
+    return os.path.exists(os.path.join(ripl_path, 'densities', 'level-densities-ctmeff.dat'))
+
+
+def _hfb_available(ripl_path):
+    return os.path.isdir(os.path.join(ripl_path, 'densities', 'total', 'level-densities-hfb'))
+
+
+def _mk_available(ripl_path):
+    return os.path.exists(os.path.join(ripl_path, 'densities', 'shellmengoninakajima.dat'))
 
 
 class TestBSFG:
-    """Tests for the Back-Shifted Fermi Gas level density database."""
+    """Tests for the Back-Shifted Fermi Gas level density database.
+
+    BSFG data is not shipped in the public RIPL-4 github release, so these
+    tests skip cleanly when the backing file is absent.
+    """
 
     def test_load_from_directory(self, ripl_path):
-        """Test loading BSFG database from RIPL directory."""
+        if not _bsfg_available(ripl_path):
+            pytest.skip("BSFG data file (level-densities-bfmeff.dat) not present")
         db = densities.bsfg.load(directory=ripl_path)
         assert db is not None
         assert len(db.data) > 0
 
     def test_get_entry(self, ripl_path):
-        """Test retrieving a specific entry from the database."""
+        if not _bsfg_available(ripl_path):
+            pytest.skip("BSFG data file (level-densities-bfmeff.dat) not present")
         db = densities.bsfg.load(directory=ripl_path)
-        # Fe-56 is a common nucleus
         n = Nuclide(Z=26, A=56)
         if n in db.data:
             entry = db.get(n)
             assert entry is not None
             assert entry.n == n
-            # Should have level density parameters
             assert entry.ainf is not None
 
     def test_write_and_read_roundtrip(self, ripl_path, temp_output_dir):
-        """Test that writing and re-reading produces identical data."""
+        if not _bsfg_available(ripl_path):
+            pytest.skip("BSFG data file (level-densities-bfmeff.dat) not present")
         db = densities.bsfg.load(directory=ripl_path)
-
-        # Write to temp file
         output_path = os.path.join(temp_output_dir, "test_bsfg.dat")
         db.save(output_path)
-
-        # Read back
         db2 = densities.bsfg.load(file_path=output_path)
-
-        # Compare entries
         for n in list(db.data.keys())[:10]:
             orig = db.get(n)
             new = db2.get(n)
@@ -53,19 +69,24 @@ class TestBSFG:
 
 
 class TestCT:
-    """Tests for the Constant Temperature level density database."""
+    """Tests for the Constant Temperature level density database.
+
+    CT data is not shipped in the public RIPL-4 github release; these tests
+    skip cleanly when the backing file is absent.
+    """
 
     def test_load_from_directory(self, ripl_path):
-        """Test loading CT database from RIPL directory."""
+        if not _ct_available(ripl_path):
+            pytest.skip("CT data file (level-densities-ctmeff.dat) not present")
         db = densities.ct.load(directory=ripl_path)
         assert db is not None
         assert len(db.data) > 0
 
     def test_has_temperature_parameters(self, ripl_path):
-        """Test that CT entries have temperature parameters."""
+        if not _ct_available(ripl_path):
+            pytest.skip("CT data file (level-densities-ctmeff.dat) not present")
         db = densities.ct.load(directory=ripl_path)
         for n, entry in list(db.data.items())[:10]:
-            # CT model should have T, E0, Ematch parameters
             assert hasattr(entry, 'T')
             assert hasattr(entry, 'E0')
 
@@ -115,6 +136,8 @@ class TestShellCorrections:
 
     def test_load_mk_from_directory(self, ripl_path):
         """Test loading Mengoni-Nakajima shell corrections from RIPL directory."""
+        if not _mk_available(ripl_path):
+            pytest.skip("MK shell corrections (shellmengoninakajima.dat) not present")
         db = densities.shell_corr.load_mk(directory=ripl_path)
         assert db is not None
         assert len(db.data) > 0
@@ -136,43 +159,80 @@ class TestShellCorrections:
 
 
 class TestHFBLevelDensities:
-    """Tests for the HFB spin-dependent level density database."""
+    """Tests for the HFB spin-dependent level density database.
+
+    The level-densities-hfb directory is not in the public github release;
+    skip when absent.
+    """
 
     def test_load_element(self, ripl_path):
-        """Test loading HFB level densities for a single element."""
+        if not _hfb_available(ripl_path):
+            pytest.skip("HFB level-densities-hfb directory not present")
         db = densities.hfb.load_element(Z=26, directory=ripl_path)
         assert db is not None
         assert len(db.data) > 0
 
     def test_has_positive_and_negative_parity(self, ripl_path):
-        """Test that entries have both parity data."""
+        if not _hfb_available(ripl_path):
+            pytest.skip("HFB level-densities-hfb directory not present")
         db = densities.hfb.load_element(Z=26, directory=ripl_path)
         for n, entry in list(db.data.items())[:5]:
-            # Should have positive parity data
             assert entry.positive_parity is not None or entry.negative_parity is not None
             if entry.positive_parity:
                 assert len(entry.positive_parity.U) > 0
                 assert len(entry.positive_parity.rho_tot) > 0
 
     def test_get_total_density(self, ripl_path):
-        """Test retrieving total level density at specific energy."""
+        if not _hfb_available(ripl_path):
+            pytest.skip("HFB level-densities-hfb directory not present")
         db = densities.hfb.load_element(Z=26, directory=ripl_path)
         n = Nuclide(Z=26, A=56)
         if n in db.data:
             entry = db.get(n)
             density = entry.get_total_density(5.0)
-            # Level density should be positive
             assert density > 0
 
     def test_spin_dependent_densities(self, ripl_path):
-        """Test that spin-dependent density arrays are present."""
+        if not _hfb_available(ripl_path):
+            pytest.skip("HFB level-densities-hfb directory not present")
         db = densities.hfb.load_element(Z=26, directory=ripl_path)
         for n, entry in list(db.data.items())[:3]:
             if entry.positive_parity:
-                # Should have spin-dependent densities
                 assert len(entry.positive_parity.rho_J) > 0
-                # Each energy point should have spin densities
                 assert len(entry.positive_parity.rho_J[0]) > 0
+
+
+class TestCombinatorialLevelDensities:
+    """Tests for the microscopic combinatorial level density databases
+    (BSk14, BSkG3, QRPA-BE, T-HFB) shipped under densities/total/."""
+
+    @pytest.mark.parametrize("module_name,Z", [
+        ('bsk14_comb', 8),
+        ('bskg3_comb', 8),
+        ('qrpabe', 10),
+        ('thfb_comb', 8),
+    ])
+    def test_load_element(self, ripl_path, module_name, Z):
+        """Each model should load a single element directory of .tab files."""
+        module = getattr(densities, module_name)
+        db = module.load_element(Z=Z, directory=ripl_path)
+        assert db is not None
+        assert len(db.data) > 0
+        # Confirm we got entries for the requested Z
+        assert any(n.Z == Z for n in db.data)
+        # Verify spin-dependent data is parsed
+        entry = next(iter(db.data.values()))
+        assert entry.positive_parity is not None or entry.negative_parity is not None
+
+    @pytest.mark.parametrize("module_name", [
+        'bsk14_comb', 'bskg3_comb', 'qrpabe', 'thfb_comb',
+    ])
+    def test_load_all(self, ripl_path, module_name):
+        """Each model should load thousands of nuclei across all elements."""
+        module = getattr(densities, module_name)
+        db = module.load_all(directory=ripl_path)
+        assert db is not None
+        assert len(db.data) > 100, f"{module_name} loaded only {len(db.data)} nuclei"
 
 
 class TestDensityComparison:
@@ -180,9 +240,23 @@ class TestDensityComparison:
 
     def test_bsfg_and_ct_have_common_nuclei(self, ripl_path):
         """Test that BSFG and CT share common nuclei."""
+        if not (_bsfg_available(ripl_path) and _ct_available(ripl_path)):
+            pytest.skip("BSFG/CT data files not present in this RIPL release")
         bsfg = densities.bsfg.load(directory=ripl_path)
         ct = densities.ct.load(directory=ripl_path)
-
-        # Find common nuclei
         common = set(bsfg.data.keys()) & set(ct.data.keys())
-        assert len(common) > 50  # Should have many common nuclei
+        assert len(common) > 50
+
+
+class TestDensitiesSectionLoad:
+    """Smoke test for ``riplpy.densities.load``."""
+
+    def test_section_load_does_not_raise(self, ripl_path):
+        """The section-level loader should tolerate missing legacy files."""
+        densities.load(ripl_path)
+        # EGSM and the combinatorial databases should always be present
+        assert densities.db.egsm is not None
+        assert densities.db.bsk14_comb is not None
+        assert densities.db.bskg3_comb is not None
+        assert densities.db.qrpabe is not None
+        assert densities.db.thfb_comb is not None

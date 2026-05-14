@@ -59,15 +59,20 @@ def read_ascii_file(fpath: str) -> dict:
 
     # Read data from file
     with open(fpath, 'r') as fp:
-        for i, line in enumerate(fp.readlines()):
-            # Skip the header line(s)
-            if "#" in line[0]:
+        for line in fp:
+            # Normalise line endings (handle CRLF) and skip blanks / comments
+            stripped = line.strip()
+            if not stripped or stripped.startswith('#'):
                 continue
-            data = reader.read(line)
-            ele    = _c.Element(Z=data[0])
-            package = {'element': ele, 'factor': data[1],
-                      }
-            d[ele] = package
+            # Whitespace tokenisation is more robust than the historical
+            # fixed-width fortran format (the github release has CRLF endings).
+            tokens = stripped.split()
+            if len(tokens) < 2:
+                continue
+            Z = int(tokens[0])
+            factor = float(tokens[1])
+            ele = _c.Element(Z=Z)
+            d[ele] = {'element': ele, 'factor': factor}
     return d
 
 

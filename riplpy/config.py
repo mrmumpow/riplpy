@@ -243,11 +243,55 @@ DATA_FILES = {
 
     # Gamma section
     # =============
+    #
+    # The RIPL-4 github release reorganises the gamma layout substantially.
+    # Legacy single-file products (e.g. ``gamma/gamma-strength-micro``,
+    # ``gamma/gdr-parameters-theor.dat``, and ``gamma/data/...``) are no longer
+    # shipped. The keys below point at the new locations; absent legacy keys are
+    # retained for backwards compatibility but the corresponding loaders are
+    # tolerant to the underlying file being missing.
 
-    # Gamma-ray strength functions
+    # Gamma-ray strength functions (legacy single-file product; not in github)
     'gsf_data': os.path.join('gamma', 'data', 'gsf', 'gsf_Z{Z:03d}A{A:03d}.dat'),
-    'gdr_parameters_exp': os.path.join('gamma', 'data', 'ripl3-gdr-parameters&errors-exp-SLO.dat'),
+
+    # Theoretical / experimental GDR parameter compilations
     'gdr_parameters_theor': os.path.join('gamma', 'gdr-parameters-theor.dat'),
+    'gdr_parameters_exp': os.path.join('gamma', 'data', 'ripl3-gdr-parameters&errors-exp-SLO.dat'),
+
+    # RIPL-4 recommended experimental SLO / SMLO GDR parameters
+    'gdr_parameters_recommended_exp_slo': os.path.join(
+        'gamma', 'gdr_parameters_exp_new', 'gdr_parameters_recommended_exp_slo.dat'
+    ),
+    'gdr_parameters_recommended_exp_smlo': os.path.join(
+        'gamma', 'gdr_parameters_exp_new', 'gdr_parameters_recommended_exp_smlo.dat'
+    ),
+    # Experimental values WITH errors (two-line records)
+    'gdr_parameters_errors_exp_slo': os.path.join(
+        'gamma', 'gdr_parameters_exp_new', 'gdr_parameters&errors_exp_slo.dat'
+    ),
+    'gdr_parameters_errors_exp_smlo': os.path.join(
+        'gamma', 'gdr_parameters_exp_new', 'gdr_parameters&errors_exp_smlo.dat'
+    ),
+    # Broader SLO / SMLO fits including systematics (~8980 entries)
+    'gdr_parameters_systematics_slo': os.path.join(
+        'gamma', 'gdr_parameters_exp&systematics', 'gdr-parameters_exp&systematics_slo.dat'
+    ),
+    'gdr_parameters_systematics_smlo': os.path.join(
+        'gamma', 'gdr_parameters_exp&systematics', 'gdr-parameters_exp&systematics_smlo.dat'
+    ),
+
+    # D1M+QRPA per-nucleus gamma strength predictions
+    'gsf_d1m_dir': os.path.join('gamma', 'd1m'),
+
+    # SMLO E1 photoabsorption tables (per-nucleus, fe1_the_<Z>_<A>_photoabs_h_SMLO.dat)
+    'gsf_smlo_e1_dir': os.path.join('gamma', 'smlo_E1'),
+    # SMLO M1 strength tables (per-Z files, e.g. z026_m1)
+    'gsf_smlo_m1_dir': os.path.join('gamma', 'smlo_M1'),
+    # TLO data (per-Z FE1_zXXX.dat files)
+    'gsf_tlo_dir': os.path.join('gamma', 'tlo'),
+
+    # Photon Strength Function Database (PSFDatabase-v2024.1, multi-format)
+    'psf_database_dir': os.path.join('gamma', 'PSFDatabase-v2024.1'),
 
     # Levels section
     # ==============

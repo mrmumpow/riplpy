@@ -31,6 +31,12 @@ Authors:
 # Functools
 from functools import partial as _partial
 
+# OS
+import os as _os
+
+# Logging
+import logging as _logging
+
 # Fortran format
 import fortranformat as _ff
 
@@ -38,7 +44,11 @@ import fortranformat as _ff
 import riplpy.config as _config
 import riplpy.collections as _c
 import riplpy.db as _db
+from riplpy.exceptions import RiplFileNotFoundError as _RiplFileNotFoundError
 from . import core as _core
+
+# Module logger
+_logger = _logging.getLogger(__name__)
 
 # ========================
 
@@ -104,12 +114,43 @@ class Entry(_core.Theory_GDR_Parameter, _db.NuclideDatabaseEntry):
         return (self.n.Z, self.n.A, self.n.element_symbol, self.eta, self.E1, self.W1, self.E2, self.W2)
 
 
-class Database(_db.Database):
+class Database(_db.NuclideDatabase):
 
     reader: object = read_ascii_file
     entry : object = Entry
     writer: object = write_ascii_file
 
 
-# Create the local 'load' function with config, database object, and file_path_key pre-filled
-load = _partial(_db.loader, config=_config, db_obj=Database, file_path_key=FILE_PATH_KEY)
+def load(directory: str = None, file_path: str = None) -> Database:
+    """Load the theoretical GDR parameter database.
+
+    The legacy ``gdr-parameters-theor.dat`` file is NOT shipped in the
+    RIPL-4 github release. When the file is absent this loader returns
+    an empty :class:`Database` (and logs a warning) rather than raising,
+    so that the section ``load()`` driver keeps working.
+    """
+    # Resolve target path
+    db_path = file_path
+    if db_path is None:
+        if directory is not None:
+            db_path = _os.path.join(directory, _config.get_data_file_path(FILE_PATH_KEY)) \
+                if _config.RIPL_PATH != directory else _config.get_data_file_path(FILE_PATH_KEY)
+            # Simpler: just join directory with the relative path mapping
+            rel = _config.DATA_FILES.get(FILE_PATH_KEY)
+            db_path = _os.path.join(directory, rel) if rel else None
+        else:
+            try:
+                db_path = _config.get_data_file_path(FILE_PATH_KEY)
+            except KeyError:
+                db_path = None
+
+    if db_path is None or not _os.path.exists(db_path):
+        _logger.warning(
+            "Theoretical GDR file 'gdr-parameters-theor.dat' is not "
+            "available; returning empty database. (RIPL-4 github release "
+            "replaces this product with the per-nucleus D1M+QRPA tables under "
+            "'gamma/d1m/'.)"
+        )
+        return Database()
+
+    return _db.load(Database, db_path)

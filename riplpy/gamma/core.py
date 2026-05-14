@@ -235,12 +235,16 @@ class Experimental_GDR_Parameter(Base_GDR_Parameter):
     dWr1     : float = None
     Sr1      : float = None
     dSr1     : float = None
+    CSp1     : float = None
+    dCSp1    : float = None
     Er2      : float = None
     dEr2     : float = None
     Wr2      : float = None
     dWr2     : float = None
     Sr2      : float = None
     dSr2     : float = None
+    CSp2     : float = None
+    dCSp2    : float = None
     Sr       : float = None
     dSr      : float = None
     Id       : str   = None
@@ -258,12 +262,16 @@ class Experimental_GDR_Parameter(Base_GDR_Parameter):
         'dWr1': 'Uncertainty on Wr1 [MeV]',
         'Sr1': 'First component strength [TRK units]',
         'dSr1': 'Uncertainty on Sr1',
+        'CSp1': 'First component Lorentzian peak cross section [mb]',
+        'dCSp1': 'Uncertainty on CSp1 [mb]',
         'Er2': 'Second component energy [MeV]',
         'dEr2': 'Uncertainty on Er2 [MeV]',
         'Wr2': 'Second component width [MeV]',
         'dWr2': 'Uncertainty on Wr2 [MeV]',
         'Sr2': 'Second component strength [TRK units]',
         'dSr2': 'Uncertainty on Sr2',
+        'CSp2': 'Second component Lorentzian peak cross section [mb]',
+        'dCSp2': 'Uncertainty on CSp2 [mb]',
         'Sr': 'Total strength Sr1+Sr2 [TRK units]',
         'dSr': 'Uncertainty on Sr',
         'Id': 'Identifier string',
@@ -284,6 +292,39 @@ class ExperimentalEntry(Experimental_GDR_Parameter):
     def check(self, ) -> None:
         """Perform sanity checks regarding the class variables that define the object. """
         assert self.reac in range(0, 11)
+
+
+@_dataclass
+class Systematics_GDR_Parameter(Base_GDR_Parameter):
+    """Combined experimental/systematics GDR parameter (RIPL-4 SLO+SMLO systematics).
+
+    Used for entries that may come either from experimental fits (``In=1``) or
+    from the global systematics fits (``In=0``). The strength quantities follow
+    the same conventions as :class:`Experimental_GDR_Parameter`.
+
+    Attributes:
+        Er1, Wr1, S1, CSp1: First-mode GDR energy, width, strength (TRK), peak XS [mb]
+        Er2, Wr2, S2, CSp2: Second-mode GDR energy, width, strength (TRK), peak XS [mb]
+        S: Total strength S1+S2 in units of the TRK sum rule
+        In: 1 = experimental, 0 = systematics
+    """
+
+    Sr1  : float = None
+    CSp1 : float = None
+    Sr2  : float = None
+    CSp2 : float = None
+    Sr   : float = None
+    In   : int   = None
+
+    _field_info: _ClassVar[dict] = {
+        **Base_GDR_Parameter._field_info,
+        'Sr1':  'First component strength [TRK units]',
+        'CSp1': 'First component Lorentzian peak cross section [mb]',
+        'Sr2':  'Second component strength [TRK units]',
+        'CSp2': 'Second component Lorentzian peak cross section [mb]',
+        'Sr':   'Total strength Sr1+Sr2 [TRK units]',
+        'In':   'Source flag (1 = experimental, 0 = systematics)',
+    }
 
 
 @_dataclass

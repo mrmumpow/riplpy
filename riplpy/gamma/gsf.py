@@ -22,6 +22,9 @@ Authors:
 # OS
 import os as _os
 
+# Logging
+import logging as _logging
+
 # Fortran format
 import fortranformat as _ff
 
@@ -29,6 +32,9 @@ import fortranformat as _ff
 import riplpy.collections as _c
 import riplpy.db as _db
 from . import core as _core
+
+# Module logger
+_logger = _logging.getLogger(__name__)
 
 # ========================
 
@@ -153,12 +159,42 @@ class Database(_db.Database):
             self.data[entry] = _data[entry]
 
     def load_all(self, directory: str) -> None:
-        """Load the entire gamma-ray strength function (GSF) database. """
-        # Loop over the element numbers
+        """Load the entire gamma-ray strength function (GSF) database.
+
+        The legacy ``gamma/gamma-strength-micro`` directory is NOT shipped in
+        the RIPL-4 github release. When that directory is absent we fall back
+        to the new ``gamma/d1m/`` per-Z D1M+QRPA tables (whose ``U``/``fE1``
+        schema we replicate) so downstream code that relied on
+        ``data[n]['U']`` and ``data[n]['fE1']`` keeps working.
+        """
         db_loc = _os.path.join(directory, local_data_dir)
-        for fn in _os.listdir(db_loc):
-            fpath = _os.path.join(db_loc, fn)
-            self.load(fpath)
+        if _os.path.isdir(db_loc):
+            for fn in _os.listdir(db_loc):
+                fpath = _os.path.join(db_loc, fn)
+                self.load(fpath)
+            return
+        # Fall back to the D1M+QRPA tables
+        _logger.warning(
+            f"GSF legacy directory not found ({db_loc}); falling back to "
+            "D1M+QRPA tables under 'gamma/d1m/'."
+        )
+        from . import d1m as _d1m
+        d1m_dir = _os.path.join(directory, _d1m.local_data_dir)
+        if not _os.path.isdir(d1m_dir):
+            _logger.warning(f"D1M fallback directory not found: {d1m_dir}")
+            return
+        for fn in _os.listdir(d1m_dir):
+            fpath = _os.path.join(d1m_dir, fn)
+            if not _os.path.isfile(fpath):
+                continue
+            try:
+                pkts = _d1m.read_ascii_file(fpath)
+            except Exception as exc:  # noqa: BLE001
+                _logger.debug(f"GSF fallback: cannot parse {fpath}: {exc}")
+                continue
+            for n, pkt in pkts.items():
+                # Keep only the schema the legacy GSF database exposed
+                self.data[n] = {'U': pkt['U'], 'fE1': pkt['fE1']}
 
     def save(self, fpath: str, entry: _c.Nuclide = None) -> None:
         """Save entries to a file.

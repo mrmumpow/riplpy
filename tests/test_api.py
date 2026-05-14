@@ -70,7 +70,11 @@ class TestConvenienceFunctionsDirectLoad:
 
     def test_get_level_density_direct(self, ripl_path):
         """Test getting level density parameters."""
-        db = densities.bsfg.load(directory=ripl_path)
+        from riplpy.exceptions import RiplFileNotFoundError
+        try:
+            db = densities.bsfg.load(directory=ripl_path)
+        except (FileNotFoundError, RiplFileNotFoundError):
+            pytest.skip("BSFG data file (level-densities-bfmeff.dat) not present")
 
         # Na-24 is in the BSFG database
         n = Nuclide(Z=11, A=24)
@@ -82,6 +86,10 @@ class TestConvenienceFunctionsDirectLoad:
     def test_get_gdr_direct(self, ripl_path):
         """Test getting GDR parameters."""
         db = gamma.gdr.load(directory=ripl_path)
+
+        # The legacy theoretical GDR file is not shipped in the github layout.
+        if len(db.data) == 0:
+            pytest.skip("gdr-parameters-theor.dat not present in github layout")
 
         # Pb-208 should have GDR parameters
         n = Nuclide(Z=82, A=208)
@@ -412,13 +420,17 @@ class TestAPIIntegration:
 
     def test_multiple_databases(self, ripl_path):
         """Test working with multiple databases."""
+        from riplpy.exceptions import RiplFileNotFoundError
         ame = masses.ame20.load(directory=ripl_path)
-        bsfg = densities.bsfg.load(directory=ripl_path)
+        try:
+            other = densities.egsm.load(directory=ripl_path)
+        except (FileNotFoundError, RiplFileNotFoundError):
+            pytest.skip("EGSM data file not present")
 
         # Find common nuclei
         ame_nuclei = set(ame.data.keys())
-        bsfg_nuclei = set(bsfg.data.keys())
-        common = ame_nuclei & bsfg_nuclei
+        other_nuclei = set(other.data.keys())
+        common = ame_nuclei & other_nuclei
 
         assert len(common) > 0
 
@@ -645,9 +657,18 @@ class TestBatchOperations:
         """Test get_level_densities batch operation."""
         densities.load(directory=ripl_path)
 
-        # Use nuclei known to be in BSFG database
-        nuclei = [(11, 24), (12, 26)]
-        result = riplpy.get_level_densities(nuclei, model='bsfg', skip_missing=True)
+        # Prefer BSFG when available; otherwise fall back to EGSM (which is
+        # shipped in the github RIPL-4 release).
+        if densities.db.bsfg is not None:
+            model = 'bsfg'
+            nuclei = [(11, 24), (12, 26)]
+        elif densities.db.egsm is not None:
+            model = 'egsm'
+            nuclei = [(26, 56), (50, 120)]
+        else:
+            pytest.skip("No level density database available in this layout")
+
+        result = riplpy.get_level_densities(nuclei, model=model, skip_missing=True)
 
         # At least one should be found
         assert len(result) >= 1

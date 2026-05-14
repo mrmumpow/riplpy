@@ -136,7 +136,11 @@ def in_ripl(x: Nuclide | Element) -> bool:
    for section in sections:
       # Check the databases in this section
       for db in getattr(globals()[section], 'db')():
-          if x in getattr(getattr(globals()[section], 'db'), db).data:
+          db_obj = getattr(getattr(globals()[section], 'db'), db)
+          if db_obj is None:
+              # Section loader skipped this database (data file missing).
+              continue
+          if x in db_obj.data:
               return True
    return False
 
@@ -164,7 +168,10 @@ def in_sections(x: Nuclide | Element) -> list:
    for section in sections:
       # Check the databases in this section
       for db in getattr(globals()[section], 'db')():
-          if x in getattr(getattr(globals()[section], 'db'), db).data:
+          db_obj = getattr(getattr(globals()[section], 'db'), db)
+          if db_obj is None:
+              continue
+          if x in db_obj.data:
               _sections.append(section)
               break
    return _sections
@@ -185,7 +192,10 @@ def in_dbs(x: Nuclide | Element) -> list:
    for section in sections:
       # Check the databases in this section
       for db in getattr(globals()[section], 'db')():
-          if x in getattr(getattr(globals()[section], 'db'), db).data:
+          db_obj = getattr(getattr(globals()[section], 'db'), db)
+          if db_obj is None:
+              continue
+          if x in db_obj.data:
               dbs.append((section, db))
    return dbs
 
@@ -456,7 +466,12 @@ def get_level_density(Z_or_nuclide, A: int = None, model: str = 'bsfg') -> objec
     if model not in densities.LEVEL_DENSITY_MODELS:
         raise ValueError(f"Unknown level density model '{model}'. Available: {list(densities.LEVEL_DENSITY_MODELS.keys())}")
 
+    from riplpy.exceptions import NucleusNotFoundError
     db = getattr(densities.db, densities.LEVEL_DENSITY_MODELS[model])
+    if db is None:
+        raise NucleusNotFoundError(
+            f"Level density model '{model}' database not loaded (data file missing)"
+        )
     return db.get(n)
 
 
@@ -473,8 +488,14 @@ def get_gdr(Z_or_nuclide, A: int = None) -> object:
     Raises:
         NucleusNotFoundError: If the nucleus is not in the database
     """
+    from riplpy.exceptions import NucleusNotFoundError
     n = _resolve_nucleus(Z_or_nuclide, A)
-    return gamma.db.theory_gdr.get(n)
+    db = gamma.db.theory_gdr
+    if db is None:
+        raise NucleusNotFoundError(
+            "Theoretical GDR database not loaded (gdr-parameters-theor.dat missing)"
+        )
+    return db.get(n)
 
 
 def get_resonance(Z_or_nuclide, A: int = None, wave: str = 's') -> object:
@@ -523,7 +544,12 @@ def get_fission_barrier(Z_or_nuclide, A: int = None, model: str = 'empirical') -
     if model not in fission.BARRIER_MODELS:
         raise ValueError(f"Unknown fission barrier model '{model}'. Available: {list(fission.BARRIER_MODELS.keys())}")
 
+    from riplpy.exceptions import NucleusNotFoundError
     db = getattr(fission.db, fission.BARRIER_MODELS[model])
+    if db is None:
+        raise NucleusNotFoundError(
+            f"Fission barrier model '{model}' database not loaded (data file missing)"
+        )
     return db.get(n)
 
 
@@ -685,6 +711,15 @@ def get_level_densities(nuclei: list, model: str = 'bsfg', skip_missing: bool = 
     nuclide_list = _normalize_nuclei_list(nuclei)
     result = {}
 
+    # The underlying database may be ``None`` if the backing data file is
+    # absent from this RIPL layout. Honour ``skip_missing`` in that case.
+    if db is None:
+        if skip_missing:
+            return result
+        raise NucleusNotFoundError(
+            f"Level density model '{model}' database not loaded (data file missing)"
+        )
+
     for n in nuclide_list:
         try:
             result[n] = db.get(n)
@@ -721,9 +756,17 @@ def get_gdrs(nuclei: list, skip_missing: bool = False) -> dict:
     nuclide_list = _normalize_nuclei_list(nuclei)
     result = {}
 
+    db = gamma.db.theory_gdr
+    if db is None:
+        if skip_missing:
+            return result
+        raise NucleusNotFoundError(
+            "Theoretical GDR database not loaded (gdr-parameters-theor.dat missing)"
+        )
+
     for n in nuclide_list:
         try:
-            result[n] = gamma.db.theory_gdr.get(n)
+            result[n] = db.get(n)
         except NucleusNotFoundError:
             if not skip_missing:
                 raise
@@ -809,6 +852,13 @@ def get_fission_barriers(nuclei: list, model: str = 'empirical', skip_missing: b
 
     nuclide_list = _normalize_nuclei_list(nuclei)
     result = {}
+
+    if db is None:
+        if skip_missing:
+            return result
+        raise NucleusNotFoundError(
+            f"Fission barrier model '{model}' database not loaded (data file missing)"
+        )
 
     for n in nuclide_list:
         try:

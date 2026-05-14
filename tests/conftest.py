@@ -8,8 +8,8 @@ RIPLpy against the RIPL-4 nuclear data library.
 import os
 import pytest
 
-# RIPL-4 data directory
-RIPL_PATH = "/path/to/RIPL-4"
+# RIPL-4 data directory (GitHub release layout)
+RIPL_PATH = "/path/to/RIPL-4/github"
 
 
 @pytest.fixture(scope="session")
@@ -28,9 +28,20 @@ def temp_output_dir(tmp_path_factory):
 
 @pytest.fixture(scope="session", autouse=True)
 def set_ripl_env():
-    """Set the RIPL_LOCATION environment variable for tests."""
+    """Set the RIPL_LOCATION environment variable and config path for tests."""
     old_value = os.environ.get("RIPL_LOCATION")
     os.environ["RIPL_LOCATION"] = RIPL_PATH
+
+    # The riplpy.config module may already have been imported with a stale
+    # RIPL_PATH (from a previously-set environment variable). Force-refresh
+    # it so that tests resolve files relative to the RIPL-4 github layout.
+    try:
+        import riplpy.config as _config
+        if os.path.isdir(RIPL_PATH):
+            _config.set_path(RIPL_PATH)
+    except Exception:
+        pass
+
     yield
     if old_value is not None:
         os.environ["RIPL_LOCATION"] = old_value

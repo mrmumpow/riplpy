@@ -13,6 +13,8 @@ Submodules:
     omp: Main OMP database
     deformations: Excited-level deformation parameters
     references: Bibliographic references
+    rop2013: Avrigeanu revised alpha ROP table (ROP2013za.dat)
+    atomki: Lazy reader for the per-nucleus ATOMKI alpha-OMP gnu files
 
 Example:
     >>> import riplpy.optical as optical
@@ -27,6 +29,9 @@ Example:
     >>> # Load modified potentials
     >>> mod_db = optical.load_modified_potentials()
     >>> print(mod_db.irefs)  # [1480, 1481, 1482, 2412, 2415, 4609, 4610]
+
+    >>> # Lazy ATOMKI per-nucleus reader (no preload)
+    >>> entry = optical.atomki.load_nucleus(Z=26, A=42)
 """
 
 # RIPLpy
@@ -41,6 +46,8 @@ from . import spherical
 from . import coupled_channel
 from . import deformations
 from . import references
+from . import rop2013
+from . import atomki
 
 # Database accessor
 db = _DbAccessor()
@@ -48,6 +55,11 @@ db = _DbAccessor()
 
 def load(directory: str = None) -> None:
     """Load the optical model database from the RIPL directory.
+
+    Each underlying loader is wrapped in a try/except so that a missing or
+    malformed data file emits a warning via :data:`riplpy.logger` instead of
+    aborting the whole section. Subsequent attributes on :data:`optical.db`
+    will simply be absent.
 
     Args:
         directory: Path to the RIPL database directory. If not provided,
@@ -59,23 +71,46 @@ def load(directory: str = None) -> None:
             - optical.db.potentials: Full potential data (spherical + CC)
             - optical.db.deformations: Excited-level deformation parameters
             - optical.db.references: Bibliographic references
+            - optical.db.rop2013: ROP2013za.dat (Avrigeanu alpha ROP table)
+
+        The ATOMKI alpha-OMP gnu files are not preloaded; use
+        :func:`riplpy.optical.atomki.load_nucleus` for on-demand access.
     """
     from riplpy import config as riplpy_config
+    from riplpy import logger
 
     if directory is None:
         directory = riplpy_config.get_path()
 
     # Load the index
-    db.index = index.load(directory=directory)
+    try:
+        db.index = index.load(directory=directory)
+    except FileNotFoundError as exc:
+        logger.warning("optical: index file missing, skipping: %s", exc)
 
     # Load the main OMP library
-    db.potentials = omp.load(directory=directory)
+    try:
+        db.potentials = omp.load(directory=directory)
+    except FileNotFoundError as exc:
+        logger.warning("optical: potential parameter file missing, skipping: %s", exc)
 
     # Load deformations
-    db.deformations = deformations.load(directory=directory)
+    try:
+        db.deformations = deformations.load(directory=directory)
+    except FileNotFoundError as exc:
+        logger.warning("optical: deformations file missing, skipping: %s", exc)
 
     # Load references
-    db.references = references.load(directory=directory)
+    try:
+        db.references = references.load(directory=directory)
+    except FileNotFoundError as exc:
+        logger.warning("optical: references file missing, skipping: %s", exc)
+
+    # Load the ROP2013 (Avrigeanu revised alpha ROP) table
+    try:
+        db.rop2013 = rop2013.load(directory=directory)
+    except FileNotFoundError as exc:
+        logger.warning("optical: ROP2013za.dat missing, skipping: %s", exc)
 
 
 def load_modified_potentials(directory: str = None):

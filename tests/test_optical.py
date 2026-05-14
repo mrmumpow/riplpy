@@ -722,3 +722,81 @@ class TestModifiedPotentials:
         # Test load_with_modifications at module level
         db = optical.load_with_modifications(directory=ripl_path)
         assert len(db.data) > 500
+
+
+class TestROP2013:
+    """Tests for the Avrigeanu revised alpha ROP table (ROP2013za.dat)."""
+
+    def test_load_rop2013(self, ripl_path):
+        """ROP2013 loads and contains the expected number of nuclei."""
+        db = optical.rop2013.load(directory=ripl_path)
+        assert db is not None
+        assert len(db) >= 70  # 79 nuclei in RIPL-4
+        assert db.iref == 9999
+        assert "Avrigeanu" in db.authors
+
+    def test_rop2013_sc45_entry(self, ripl_path):
+        """The Sc-45 entry has the expected tabulated values."""
+        db = optical.rop2013.load(directory=ripl_path)
+        entry = db.get(21, 45)
+        assert entry is not None
+        assert entry.Z == 21
+        assert entry.A == 45
+        assert entry.n_points > 10
+        # First row at E = 2 MeV
+        assert entry.E[0] == pytest.approx(2.0)
+        assert entry.V_R[0] == pytest.approx(164.0)
+        assert entry.r_R[0] == pytest.approx(1.204)
+        # sigma_R should be positive after ~5 MeV
+        assert max(entry.sigma_R) > 100.0
+
+    def test_rop2013_missing_returns_none(self, ripl_path):
+        """Unknown (Z, A) returns None."""
+        db = optical.rop2013.load(directory=ripl_path)
+        assert db.get(999, 999) is None
+
+    def test_rop2013_loaded_via_optical_load(self, ripl_path):
+        """optical.load() attaches the ROP2013 database to optical.db."""
+        optical.load(directory=ripl_path)
+        assert optical.db.rop2013 is not None
+        assert len(optical.db.rop2013) > 0
+
+
+class TestAtomki:
+    """Tests for the ATOMKI alpha-OMP gnu lazy reader."""
+
+    def test_atomki_load_nucleus(self, ripl_path):
+        """Loading a single nucleus returns a populated profile."""
+        atomki_dir = os.path.join(ripl_path, 'optical', 'atomki')
+        entry = optical.atomki.load_nucleus(Z=26, A=42, directory=atomki_dir)
+        assert entry.Z == 26
+        assert entry.A == 42
+        assert entry.AP == 4
+        assert entry.ZP == 2
+        assert entry.JR0 > 0
+        assert entry.n_points > 100
+        # Mesh values are monotonic and positive
+        assert entry.r[0] == pytest.approx(0.025)
+        assert entry.r[-1] > entry.r[0]
+
+    def test_atomki_missing_raises(self, ripl_path):
+        """A missing (Z, A) raises FileNotFoundError."""
+        atomki_dir = os.path.join(ripl_path, 'optical', 'atomki')
+        with pytest.raises(FileNotFoundError):
+            optical.atomki.load_nucleus(Z=999, A=999, directory=atomki_dir)
+
+    def test_atomki_available_nuclei(self, ripl_path):
+        """available_nuclei() returns all 4359 files in the github release."""
+        atomki_dir = os.path.join(ripl_path, 'optical', 'atomki')
+        nuclei = optical.atomki.available_nuclei(directory=atomki_dir)
+        assert len(nuclei) > 4000
+        # Every entry is an int tuple
+        for z, a in nuclei[:10]:
+            assert isinstance(z, int)
+            assert isinstance(a, int)
+            assert z > 0 and a > 0
+
+    def test_atomki_filename_helper(self):
+        """filename_for() produces the canonical 3-digit zero-padded name."""
+        assert optical.atomki.filename_for(26, 42) == 'z026a042a_talys_alphaomp9real.gnu'
+        assert optical.atomki.filename_for(8, 16) == 'z008a016a_talys_alphaomp9real.gnu'

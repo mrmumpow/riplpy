@@ -24,6 +24,8 @@ FILE_PATHS = {
     'references': _os.path.join(DATA_DIR, 'om-references.txt'),
     'deformations': _os.path.join(DATA_DIR, 'om-deformations.dat'),
     'mod_potentials': _os.path.join(DATA_DIR, 'mod-potentials'),
+    'rop2013': _os.path.join(DATA_DIR, 'ROP2013za.dat'),
+    'atomki': _os.path.join('optical', 'atomki'),
 }
 
 # Entry separator in the main parameter file

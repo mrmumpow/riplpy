@@ -125,7 +125,10 @@ class DeformationDatabase(Database):
         if best_key is not None and best_diff < 0.01:  # Within 10 keV
             return self.data[best_key]
 
-        raise KeyError(f"Deformation not found for Z={Z}, A={A}, Ex={Ex}, L={L}")
+        from riplpy.exceptions import NucleusNotFoundError
+        raise NucleusNotFoundError(
+            f"Deformation not found for Z={Z}, A={A}, Ex={Ex}, L={L}"
+        )
 
     def get_for_nucleus(self, Z: int, A: int) -> List[DeformationEntry]:
         """Get all deformation entries for a nucleus.

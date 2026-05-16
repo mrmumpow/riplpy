@@ -114,10 +114,12 @@ class ReferenceDatabase(Database):
             Reference for the specified number
 
         Raises:
-            KeyError: If reference not found
+            EntryNotFoundError: If reference not found (a KeyError subclass,
+                so ``except KeyError`` still works).
         """
         if ref_num not in self.data:
-            raise KeyError(f"Reference {ref_num} not found")
+            from riplpy.exceptions import EntryNotFoundError
+            raise EntryNotFoundError(f"Reference {ref_num} not found")
         return self.data[ref_num]
 
     def search(self, query: str) -> "ReferenceDatabase":

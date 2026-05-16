@@ -100,10 +100,12 @@ class OMPDatabase(Database):
             SphericalOMP or CoupledChannelOMP for the specified potential
 
         Raises:
-            KeyError: If iref not found in database
+            EntryNotFoundError: If iref not found in database (a KeyError
+                subclass, so ``except KeyError`` still works).
         """
         if iref not in self.data:
-            raise KeyError(f"OMP reference {iref} not found in database")
+            from riplpy.exceptions import EntryNotFoundError
+            raise EntryNotFoundError(f"OMP reference {iref} not found in database")
         return self.data[iref]
 
     def get_by_iref(self, iref: int) -> Optional[OMPType]:

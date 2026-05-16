@@ -446,13 +446,16 @@ def get_mass_entry(Z_or_nuclide, A: int = None, model: str = 'ame20') -> object:
     return db.get(n)
 
 
-def get_level_density(Z_or_nuclide, A: int = None, model: str = 'bsfg') -> object:
+def get_level_density(Z_or_nuclide, A: int = None, model: str = 'egsm') -> object:
     """Get level density parameters for a nucleus from a specified model.
 
     Args:
         Z_or_nuclide: Either a Nuclide/Nucleus object, or the atomic number Z
         A: Mass number (required if Z_or_nuclide is an integer)
-        model: Level density model. Options: 'bsfg', 'ct', 'egsm', 'egsm_norm', 'hfb'. Default: 'bsfg'
+        model: Level density model. RIPL-4 options: 'egsm', 'egsm_norm',
+               'bsk14_comb', 'bskg3_comb', 'qrpabe', 'thfb_comb'. RIPL-3
+               legacy options (full RIPL distribution only): 'bsfg', 'ct',
+               'hfb'. Default: 'egsm'
 
     Returns:
         Entry object containing level density parameters (model-dependent fields)
@@ -677,7 +680,7 @@ def get_mass_entries(nuclei: list, model: str = 'ame20', skip_missing: bool = Fa
     return result
 
 
-def get_level_densities(nuclei: list, model: str = 'bsfg', skip_missing: bool = False) -> dict:
+def get_level_densities(nuclei: list, model: str = 'egsm', skip_missing: bool = False) -> dict:
     """Get level density parameters for multiple nuclei.
 
     Args:
@@ -685,8 +688,10 @@ def get_level_densities(nuclei: list, model: str = 'bsfg', skip_missing: bool = 
                 - A Nuclide/Nucleus object
                 - A tuple (Z, A)
                 - A list [Z, A]
-        model: Level density model. Options: 'bsfg', 'ct', 'egsm', 'egsm_norm', 'hfb'.
-               Default: 'bsfg'
+        model: Level density model. RIPL-4 options: 'egsm', 'egsm_norm',
+               'bsk14_comb', 'bskg3_comb', 'qrpabe', 'thfb_comb'. RIPL-3
+               legacy options (full RIPL distribution only): 'bsfg', 'ct',
+               'hfb'. Default: 'egsm'
         skip_missing: If True, skip nuclei not in the database.
                       If False (default), raise NucleusNotFoundError.
 
@@ -695,7 +700,7 @@ def get_level_densities(nuclei: list, model: str = 'bsfg', skip_missing: bool = 
 
     Examples:
         >>> nuclei = [(11, 24), (12, 26), (13, 28)]
-        >>> densities = riplpy.get_level_densities(nuclei, model='bsfg')
+        >>> densities = riplpy.get_level_densities(nuclei, model='egsm')
 
     Raises:
         ValueError: If the model is not recognized

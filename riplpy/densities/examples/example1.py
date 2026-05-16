@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 """Load the BSFG level density database from ASCII file and print data.
 
+NOTE: The Back-Shifted Fermi Gas (BSFG) level density parameters are a RIPL-3
+legacy product (file ``densities/level-densities-bfmeff.dat``). They ship with
+the full RIPL distribution but are NOT part of the RIPL-4 GitHub release. This
+example skips automatically when the legacy data file is unavailable.
+
 Usage:
     if __name__ == '__main__':
         # RIPLpy
         import riplpy.densities as dens
 
-        # Load the database
+        # Load the database (requires the full RIPL distribution)
         bsfg = dens.bsfg.load() # The BSFG level density database
         # Print the entire database
         print(bsfg.data)
@@ -23,27 +28,30 @@ import unittest
 
 # RIPLpy
 import riplpy.densities as dens
+from riplpy.exceptions import RiplFileNotFoundError
 
 # ========================
 
 class TestRIPLpyBSFGDatabase(unittest.TestCase):
-    """A simple Unit Test object. """
+    """A simple Unit Test object for the RIPL-3 legacy BSFG database. """
 
     def test_load_bsfg_database(self) -> None:
-        """Test loading the BSFG level density database."""
-        # Attempt to load the BSFG level density database
+        """Test loading the BSFG level density database (legacy; skipped if absent)."""
+        # Attempt to load the BSFG level density database. This is a RIPL-3
+        # legacy product that is absent from the RIPL-4 GitHub release, so
+        # skip the test rather than fail when the data file is missing.
         try:
             bsfg = dens.bsfg.load()  # Load the database
-        except Exception as e:
-            self.fail(f"Failed to load BSFG database: {e}")
-        
-        # Check that the 'data' attribute is not None or empty
-        self.assertIsNotNone(bsfg.data, "BSFG database 'data' attribute is None")
-        self.assertTrue(len(bsfg.data) > 0, "BSFG database 'data' attribute is empty")
+        except (RiplFileNotFoundError, FileNotFoundError):
+            self.skipTest(
+                "BSFG is RIPL-3 legacy data (level-densities-bfmeff.dat); "
+                "not present in this RIPL release"
+            )
 
-        # Optionally, add more specific checks for the structure of `bsfg.data` if known
-        # For example, check if it's a dictionary, list, or contains expected keys
-        self.assertTrue(isinstance(bsfg.data, dict), "BSFG database 'data' attribute is not a dictionary")
+        # Check that the 'data' attribute is a non-empty dictionary
+        self.assertIsNotNone(bsfg.data, "BSFG database 'data' attribute is None")
+        self.assertIsInstance(bsfg.data, dict, "BSFG database 'data' is not a dictionary")
+        self.assertTrue(len(bsfg.data) > 0, "BSFG database 'data' attribute is empty")
 
 
 if __name__ == '__main__':

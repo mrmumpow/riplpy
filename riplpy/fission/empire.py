@@ -4,13 +4,13 @@
 Python 3.10+ is expected to run this code properly.
 
 Examples:
-    (1) @TODO: Finish
-        $
+    (1) Load the EMPIRE fission barrier compilation and read an entry::
+       $ import riplpy.fission as fission
+       $ from riplpy.collections import Nuclide
+       $ empire = fission.empire.load()
+       $ entry = empire.get(Nuclide(Z=92, A=235))
+       $ print(entry.Va, entry.Vb)  # inner / outer barrier heights [MeV]
 
-Todo:
-    * Provide more examples of use cases.
-    * Test in production.
-    
 Authors:
     * Matthew Mumpower {mumpower@lanl.gov}
 

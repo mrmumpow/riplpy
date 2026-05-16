@@ -1,16 +1,23 @@
 # -*- coding: utf-8 -*-
-"""Python objects which provide access to the HFB fission barrier database of the Reference Input Parameter Library (RIPL). 
+"""Python objects which provide access to the HFB fission barrier database of the Reference Input Parameter Library (RIPL).
+
+RIPL-3 LEGACY: The single-file HFB fission barrier table
+(``fission/empirical-hfb-barriers.dat``) is a RIPL-3 legacy product. It ships
+with the full RIPL distribution but is NOT part of the RIPL-4 GitHub release,
+which provides the BSkG3 and D1M barriers instead (see ``fission.bskg3`` and
+``fission.d1m``). ``riplpy.fission.load()`` returns an empty database with a
+warning when this legacy file is absent.
 
 Python 3.10+ is expected to run this code properly.
 
 Examples:
-    (1) @TODO: Finish
-        $
+    (1) Load the HFB fission barrier database (requires the full RIPL release)::
+       $ import riplpy.fission as fission
+       $ from riplpy.collections import Nuclide
+       $ hfb = fission.hfb.load()
+       $ entry = hfb.get(Nuclide(Z=92, A=238))
+       $ print(entry.Bin, entry.Bout)
 
-Todo:
-    * Provide more examples of use cases.
-    * Test in production.
-    
 Authors:
     * Matthew Mumpower {mumpower@lanl.gov}
 

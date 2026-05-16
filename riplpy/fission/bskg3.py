@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
-"""Python objects which provide access to the theoretical BSGK3 fission barrier database of the Reference Input Parameter Library (RIPL). 
+"""Python objects which provide access to the theoretical BSkG3 fission barrier database of the Reference Input Parameter Library (RIPL).
+
+The BSkG3 fission barriers are microscopic HFB-based predictions (inner,
+outer, and isomer sections) shipped with both the full RIPL distribution and
+the RIPL-4 GitHub release (``fission/barriers-bskg3.dat``).
 
 Python 3.10+ is expected to run this code properly.
 
 Examples:
-    (1) @TODO: Finish
-        $
+    (1) Load the BSkG3 fission barrier database and read an actinide::
+       $ import riplpy.fission as fission
+       $ from riplpy.collections import Nuclide
+       $ bskg3 = fission.bskg3.load()
+       $ entry = bskg3.get(Nuclide(Z=92, A=238))
+       $ print(entry.inner, entry.outer1)
 
-Todo:
-    * Provide more examples of use cases.
-    * Test in production.
-    
 Authors:
     * Matthew Mumpower {mumpower@lanl.gov}
 

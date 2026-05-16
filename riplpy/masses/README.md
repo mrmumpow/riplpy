@@ -4,17 +4,23 @@ Nuclear mass data from various theoretical models and experimental compilations.
 
 ## Overview
 
-The masses section provides access to:
+RIPL-4 models (GitHub release + full distribution):
 - **AME2020** - Atomic Mass Evaluation 2020 (experimental masses)
 - **FRDM2012** - Finite Range Droplet Model 2012
-- **FRDM1995** - Finite Range Droplet Model 1995
-- **HFB14** - Hartree-Fock-Bogoliubov model (version 14)
 - **HFB27** - Hartree-Fock-Bogoliubov model (version 27)
 - **BSkG3** - Brussels-Skyrme model
 - **D1M** - Gogny D1M interaction
+- **WS4** - Weizsäcker-Skyrme 4 mass model
 - **Natural Abundances** - Isotopic abundances in nature
 - **Deformations** - Ground-state nuclear deformations
-- **Densities** - Nuclear density distributions
+
+RIPL-3 legacy models (full RIPL distribution only — NOT in the RIPL-4 GitHub release):
+- **FRDM1995** - Finite Range Droplet Model 1995
+- **HFB14** - Hartree-Fock-Bogoliubov model (version 14)
+
+Legacy models are skipped with a warning by `masses.load()` when their data
+files are absent; their readers/writers remain available for users with the
+full RIPL distribution.
 
 ## Quick Start
 
@@ -34,15 +40,16 @@ print(f"Mass excess: {entry.Mexp:.3f} +/- {entry.Err:.3f} MeV")
 
 ## Available Models
 
-| Model | Attribute | Mass Field | Description |
-|-------|-----------|------------|-------------|
-| AME2020 | `ame20` | `Mexp` | Experimental masses |
-| FRDM2012 | `frdm12` | `Mth` | Theoretical (FRDM) |
-| FRDM1995 | `frdm95` | `Mth` | Theoretical (FRDM) |
-| HFB14 | `hfb14` | `Mth` | Theoretical (HFB) |
-| HFB27 | `hfb27` | `Mth` | Theoretical (HFB) |
-| BSkG3 | `bskg3` | `Mth` | Theoretical (BSkG) |
-| D1M | `d1m` | `Mth` | Theoretical (Gogny) |
+| Model | Attribute | Mass Field | Availability |
+|-------|-----------|------------|--------------|
+| AME2020 | `ame20` | `Mexp` | RIPL-4 |
+| FRDM2012 | `frdm12` | `Mth` | RIPL-4 |
+| HFB27 | `hfb27` | `Mth` | RIPL-4 |
+| BSkG3 | `bskg3` | `Mth` | RIPL-4 |
+| D1M | `d1m` | `Mth` | RIPL-4 |
+| WS4 | `ws4` | `Mth` | RIPL-4 |
+| FRDM1995 | `frdm95` | `Mth` | RIPL-3 legacy |
+| HFB14 | `hfb14` | `Mth` | RIPL-3 legacy |
 
 ## Examples
 

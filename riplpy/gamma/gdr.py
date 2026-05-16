@@ -21,13 +21,14 @@ In case of deformed nuclei, the GDR splits into two peaks for oscillations paral
 Python 3.10+ is expected to run this code properly.
 
 Examples:
-    (1) @TODO: Finish
-        $
+    (1) Load the legacy theoretical GDR database (full RIPL release only;
+        returns an empty database on the GitHub release)::
+       $ import riplpy.gamma as gamma
+       $ from riplpy.collections import Nuclide
+       $ gdr = gamma.gdr.load()
+       $ entry = gdr.get(Nuclide(Z=82, A=208))
+       $ print(entry.E1, entry.W1)  # GDR energy / width [MeV]
 
-Todo:
-    * Provide more examples of use cases.
-    * Test in production.
-    
 Authors:
     * Matthew Mumpower {mumpower@lanl.gov}
 

@@ -159,27 +159,45 @@ def read_ascii_file(fpath: str) -> dict:
     return {n: pkt}
 
 
+class Entry(_db.PacketEntry):
+    """An experimental photon strength function (PSF) dataset entry."""
+
+    _field_info = {
+        'n': 'Target nucleus',
+        'E': 'Photon energy grid [MeV]',
+        'f': 'Photon strength function [MeV^-3]',
+        'rows': 'Raw numeric data table (one list per data line)',
+        'columns': 'Column labels parsed from the file header',
+        'source': 'Experimental technique category (subdirectory name)',
+        'filename': 'Source data file name',
+    }
+
+
 class Database(_db.NuclideDatabase):
-    """PSF experimental database. Keys are Nuclides; values are dicts.
+    """PSF experimental database. Keys are Nuclides; values are lists of Entry.
 
     Multiple datasets per nucleus are stored under ``self.data[n]`` as a list of
-    package dicts to preserve them (datasets from different experiments).
+    :class:`Entry` packets to preserve them (datasets from different
+    experiments).
     """
 
     reader: object = read_ascii_file
+    entry : object = Entry
     local_data_dir: str = local_data_dir
 
     def load(self, fpath: str) -> None:
         """Merge entries from one PSF file into the database."""
         data = type(self).reader(fpath)
+        entry_cls = type(self).entry
         for n, pkt in data.items():
+            entry = entry_cls(pkt)
             existing = self.data.get(n)
             if existing is None:
-                self.data[n] = [pkt]
+                self.data[n] = [entry]
             elif isinstance(existing, list):
-                existing.append(pkt)
+                existing.append(entry)
             else:
-                self.data[n] = [existing, pkt]
+                self.data[n] = [existing, entry]
 
     def load_category(self, category: str, directory: str) -> None:
         db_loc = _os.path.join(directory, self.local_data_dir, category)

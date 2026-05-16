@@ -20,6 +20,7 @@ import os as _os
 import logging as _logging
 
 # RIPLpy
+import riplpy.db as _db
 from riplpy.config import resolve_directory as _resolve_directory
 from . import d1m as _d1m
 
@@ -33,9 +34,26 @@ __all__ = ('local_data_dir', 'Database', 'load', 'load_all', 'load_element')
 local_data_dir = _os.path.join('gamma', 'smlo_M1')
 
 
+class Entry(_db.PacketEntry):
+    """A SMLO M1 photon strength function entry.
+
+    Reuses the D1M+QRPA multi-nucleus column layout; the two strength
+    columns are the cold (``T=0``) and finite-temperature (``T>0``) limits.
+    """
+
+    _field_info = {
+        'n': 'Target nucleus',
+        'U': 'Photon-energy grid [MeV]',
+        'fE1': 'Cold-nucleus (T=0) M1 photon strength function [MeV^-3]',
+        'fE1_T': 'M1 strength rows (rows = U, cols = T=0 / T>0) [MeV^-3]',
+        'T': 'Strength column labels (T=0, T>0)',
+    }
+
+
 class Database(_d1m.Database):
 
     reader: object = _d1m.read_ascii_file
+    entry : object = Entry
     local_data_dir: str = local_data_dir
 
     def load_all(self, directory: str) -> None:

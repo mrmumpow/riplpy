@@ -135,15 +135,32 @@ def read_ascii_file(fpath: str) -> dict:
     return d
 
 
+class Entry(_db.PacketEntry):
+    """A TLO (Triple-Lorentzian Open) E1 photon strength function entry."""
+
+    _field_info = {
+        'n': 'Target nucleus',
+        'U': 'Photon-energy grid [MeV]',
+        'fE1': 'E1 dipole strength function [MeV^-3]',
+        'fE1_T': 'Full per-nucleus strength rows (rows = U) [MeV^-3]',
+        'beta': 'Ground-state beta deformation parameter (Delaroche et al.)',
+        'gamma': 'Ground-state gamma deformation parameter [deg]',
+        'mode': 'Deformation mode flag (EFF = reduced near shells, INTER = '
+                'interpolated odd nuclei, 5DCH = Delaroche et al.)',
+    }
+
+
 class Database(_db.NuclideDatabase):
 
     reader: object = read_ascii_file
+    entry : object = Entry
     local_data_dir: str = local_data_dir
 
     def load(self, fpath: str) -> None:
         data = type(self).reader(fpath)
+        entry_cls = type(self).entry
         for n, pkt in data.items():
-            self.data[n] = pkt
+            self.data[n] = entry_cls(pkt)
 
     def load_all(self, directory: str) -> None:
         db_loc = _os.path.join(directory, self.local_data_dir)

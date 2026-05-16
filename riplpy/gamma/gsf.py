@@ -1,17 +1,22 @@
 
 # -*- coding: utf-8 -*-
-"""Python objects which provide access to the gamma-ray strength function (GSF) database of the Reference Input Parameter Library (RIPL). 
+"""Python objects which provide access to the gamma-ray strength function (GSF) database of the Reference Input Parameter Library (RIPL).
+
+The legacy ``gamma/gamma-strength-micro`` per-nucleus directory is not shipped
+in the RIPL-4 GitHub release; ``load_all``/``load_nucleus`` transparently fall
+back to the RIPL-4 D1M+QRPA tables under ``gamma/d1m/`` (preserving the
+``U`` [MeV] / ``fE1`` [MeV^-3] schema).
 
 Python 3.10+ is expected to run this code properly.
 
 Examples:
-    (1) @TODO: Finish
-        $
+    (1) Load the GSF data for a single nucleus (D1M fallback on GitHub)::
+       $ import riplpy.gamma as gamma
+       $ from riplpy.collections import Nuclide
+       $ db = gamma.gsf.load_nucleus(Nuclide(Z=26, A=56))
+       $ entry = db.get(Nuclide(Z=26, A=56))
+       $ print(entry['U'][:3], entry['fE1'][:3])
 
-Todo:
-    * Provide more examples of use cases.
-    * Test in production.
-    
 Authors:
     * Matthew Mumpower {mumpower@lanl.gov}
 
@@ -140,6 +145,15 @@ class Entry(_core.GammaStrengthFunction, _db.NuclideDatabaseEntry):
     pass
 
 
+class PacketEntry(_db.PacketEntry):
+    """A microscopic gamma-ray strength function (GSF) packet entry."""
+
+    _field_info = {
+        'U': 'Photon-energy grid [MeV]',
+        'fE1': 'E1 photon strength function [MeV^-3]',
+    }
+
+
 def _write_for_db(fpath: str, data: dict) -> None:
     """Wrapper for write_ascii_file that matches the base class save() signature."""
     write_ascii_file(fpath, data)
@@ -157,7 +171,7 @@ class Database(_db.Database):
         """
         _data = type(self).reader(fpath)
         for entry in _data.keys():
-            self.data[entry] = _data[entry]
+            self.data[entry] = PacketEntry(_data[entry])
 
     def load_all(self, directory: str) -> None:
         """Load the entire gamma-ray strength function (GSF) database.
@@ -195,7 +209,7 @@ class Database(_db.Database):
                 continue
             for n, pkt in pkts.items():
                 # Keep only the schema the legacy GSF database exposed
-                self.data[n] = {'U': pkt['U'], 'fE1': pkt['fE1']}
+                self.data[n] = PacketEntry({'U': pkt['U'], 'fE1': pkt['fE1']})
 
     def save(self, fpath: str, entry: _c.Nuclide = None) -> None:
         """Save entries to a file.
@@ -238,8 +252,30 @@ def load_all(directory: str = None) -> Database:
 
 
 def load_nucleus(n: _c.Nuclide, directory: str = None) -> Database:
+    """Load the GSF data for a single nucleus.
+
+    Uses the legacy ``gamma/gamma-strength-micro`` per-nucleus file when
+    present; otherwise falls back to the RIPL-4 D1M+QRPA per-Z table (the
+    legacy directory is not shipped in the GitHub release), mirroring
+    :meth:`Database.load_all`.
+    """
     directory = _resolve_directory(directory)
     d = Database()
     fpath = _os.path.join(directory, local_data_dir, f'gsf_Z{n.Z:03d}A{n.A:03d}.dat')
-    d.load(fpath)
+    if _os.path.exists(fpath):
+        d.load(fpath)
+        return d
+
+    # Fall back to the D1M+QRPA per-Z table and extract this nuclide.
+    from . import d1m as _d1m
+    d1m_file = _os.path.join(directory, _d1m.local_data_dir, f"z{n.Z:03d}_e1")
+    if not _os.path.exists(d1m_file):
+        _logger.warning(
+            f"GSF data for {n} not available (no legacy file and no D1M "
+            f"fallback at {d1m_file})."
+        )
+        return d
+    pkts = _d1m.read_ascii_file(d1m_file)
+    if n in pkts:
+        d.data[n] = PacketEntry({'U': pkts[n]['U'], 'fE1': pkts[n]['fE1']})
     return d

@@ -134,15 +134,29 @@ def read_ascii_file(fpath: str) -> dict:
     return d
 
 
+class Entry(_db.PacketEntry):
+    """A D1M+QRPA microscopic E1 photon strength function entry."""
+
+    _field_info = {
+        'n': 'Target nucleus',
+        'U': 'Photon-energy grid [MeV]',
+        'fE1': 'Cold-nucleus (T=0) E1 photon strength function [MeV^-3]',
+        'fE1_T': 'Per-temperature E1 strength rows (rows = U, cols = T) [MeV^-3]',
+        'T': 'Temperature/excitation column labels [MeV]',
+    }
+
+
 class Database(_db.NuclideDatabase):
 
     reader: object = read_ascii_file
+    entry : object = Entry
     local_data_dir: str = local_data_dir
 
     def load(self, fpath: str) -> None:
         data = type(self).reader(fpath)
+        entry_cls = type(self).entry
         for n, pkt in data.items():
-            self.data[n] = pkt
+            self.data[n] = entry_cls(pkt)
 
     def load_all(self, directory: str) -> None:
         db_loc = _os.path.join(directory, self.local_data_dir)

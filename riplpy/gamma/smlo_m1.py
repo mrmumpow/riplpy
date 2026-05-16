@@ -20,6 +20,7 @@ import os as _os
 import logging as _logging
 
 # RIPLpy
+from riplpy.config import resolve_directory as _resolve_directory
 from . import d1m as _d1m
 
 # Module logger
@@ -55,16 +56,18 @@ def load(directory: str = None, file_path: str = None) -> Database:
     db = Database()
     if file_path is not None:
         db.load(file_path)
-    elif directory is not None:
+    else:
+        directory = _resolve_directory(directory)
         db.load_all(directory)
     return db
 
 
-def load_all(directory: str) -> Database:
+def load_all(directory: str = None) -> Database:
     return load(directory=directory)
 
 
-def load_element(Z: int, directory: str) -> Database:
+def load_element(Z: int, directory: str = None) -> Database:
+    directory = _resolve_directory(directory)
     db = Database()
     fpath = _os.path.join(directory, local_data_dir, f"z{Z:03d}_m1")
     if _os.path.exists(fpath):

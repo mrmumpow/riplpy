@@ -36,6 +36,7 @@ import logging as _logging
 import riplpy.collections as _c
 import riplpy.config as _config
 import riplpy.db as _db
+from riplpy.config import resolve_directory as _resolve_directory
 from . import core as _core
 
 # Module logger
@@ -352,8 +353,10 @@ def _load_db(db_cls, directory: str = None, file_path: str = None,
     """Internal helper: instantiate ``db_cls`` and load the requested file."""
     db = db_cls()
     db_path = file_path
-    if db_path is None and directory is not None and rel_path is not None:
-        db_path = _os.path.join(directory, rel_path)
+    if db_path is None:
+        directory = _resolve_directory(directory)
+        if rel_path is not None:
+            db_path = _os.path.join(directory, rel_path)
     if db_path is None or not _os.path.exists(db_path):
         _logger.warning(
             f"{db_cls.__name__}: data file not found at {db_path!r}; "

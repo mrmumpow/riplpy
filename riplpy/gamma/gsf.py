@@ -31,6 +31,7 @@ import fortranformat as _ff
 # RIPLpy
 import riplpy.collections as _c
 import riplpy.db as _db
+from riplpy.config import resolve_directory as _resolve_directory
 from . import core as _core
 
 # Module logger
@@ -228,14 +229,16 @@ class Database(_db.Database):
             self.save(fpath, entry)
 
 
-def load_all(directory: str) -> Database:
+def load_all(directory: str = None) -> Database:
     """Load and return the GSF database. """
+    directory = _resolve_directory(directory)
     d = Database()
     d.load_all(directory)
     return d
 
 
-def load_nucleus(n: _c.Nuclide, directory: str) -> Database:
+def load_nucleus(n: _c.Nuclide, directory: str = None) -> Database:
+    directory = _resolve_directory(directory)
     d = Database()
     fpath = _os.path.join(directory, local_data_dir, f'gsf_Z{n.Z:03d}A{n.A:03d}.dat')
     d.load(fpath)

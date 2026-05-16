@@ -51,6 +51,7 @@ import fortranformat as _ff
 import riplpy.config as _config
 import riplpy.collections as _c
 import riplpy.db as _db
+from riplpy.config import resolve_directory as _resolve_directory
 from riplpy.exceptions import RiplFileNotFoundError as _RiplFileNotFoundError
 from . import core as _core
 
@@ -139,17 +140,13 @@ def load(directory: str = None, file_path: str = None) -> Database:
     # Resolve target path
     db_path = file_path
     if db_path is None:
-        if directory is not None:
-            db_path = _os.path.join(directory, _config.get_data_file_path(FILE_PATH_KEY)) \
-                if _config.RIPL_PATH != directory else _config.get_data_file_path(FILE_PATH_KEY)
-            # Simpler: just join directory with the relative path mapping
-            rel = _config.DATA_FILES.get(FILE_PATH_KEY)
-            db_path = _os.path.join(directory, rel) if rel else None
-        else:
-            try:
-                db_path = _config.get_data_file_path(FILE_PATH_KEY)
-            except KeyError:
-                db_path = None
+        # Fall back to the configured RIPL path when no directory is given.
+        # _resolve_directory raises only when nothing is configured at all;
+        # a configured-but-missing legacy file still yields an empty database
+        # with a warning (handled below).
+        directory = _resolve_directory(directory)
+        rel = _config.DATA_FILES.get(FILE_PATH_KEY)
+        db_path = _os.path.join(directory, rel) if rel else None
 
     if db_path is None or not _os.path.exists(db_path):
         _logger.warning(

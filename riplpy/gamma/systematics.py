@@ -23,6 +23,7 @@ import logging as _logging
 # RIPLpy
 import riplpy.collections as _c
 import riplpy.db as _db
+from riplpy.config import resolve_directory as _resolve_directory
 from . import core as _core
 
 # Module logger
@@ -105,7 +106,8 @@ class Database(_db.NuclideDatabase):
 def _load(rel_path: str, directory: str = None, file_path: str = None) -> Database:
     db = Database()
     db_path = file_path
-    if db_path is None and directory is not None:
+    if db_path is None:
+        directory = _resolve_directory(directory)
         db_path = _os.path.join(directory, rel_path)
     if db_path is None or not _os.path.exists(db_path):
         _logger.warning(

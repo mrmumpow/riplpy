@@ -33,6 +33,7 @@ import logging as _logging
 # RIPLpy
 import riplpy.collections as _c
 import riplpy.db as _db
+from riplpy.config import resolve_directory as _resolve_directory
 
 # Module logger
 _logger = _logging.getLogger(__name__)
@@ -162,18 +163,21 @@ def load(directory: str = None, file_path: str = None) -> Database:
     db = Database()
     if file_path is not None:
         db.load(file_path)
-    elif directory is not None:
+    else:
+        directory = _resolve_directory(directory)
         db.load_all(directory)
     return db
 
 
-def load_all(directory: str) -> Database:
+def load_all(directory: str = None) -> Database:
     """Load the whole D1M+QRPA directory."""
     return load(directory=directory)
 
 
-def load_element(Z: int, directory: str, multipolarity: str = 'e1') -> Database:
+def load_element(Z: int, directory: str = None,
+                  multipolarity: str = 'e1') -> Database:
     """Load D1M data for a single element (E1 or M1)."""
+    directory = _resolve_directory(directory)
     db = Database()
     fpath = _os.path.join(directory, local_data_dir,
                           f"z{Z:03d}_{multipolarity.lower()}")

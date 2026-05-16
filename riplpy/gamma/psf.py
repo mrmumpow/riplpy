@@ -41,6 +41,7 @@ import re as _re
 # RIPLpy
 import riplpy.collections as _c
 import riplpy.db as _db
+from riplpy.config import resolve_directory as _resolve_directory
 
 # Module logger
 _logger = _logging.getLogger(__name__)
@@ -109,7 +110,10 @@ def _parse_header(lines: list[str]) -> tuple[int | None, int | None, list[str]]:
 
 def read_ascii_file(fpath: str) -> dict:
     """Read one PSF dataset file. Returns ``{Nuclide: package}``."""
-    with open(fpath, 'r') as fp:
+    # PSF files carry free-text author/reference headers that occasionally
+    # contain Latin-1 bytes (e.g. a non-breaking space \xa0). Decode
+    # permissively so a stray byte cannot drop an entire dataset.
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         raw_lines = fp.readlines()
 
     Z, A, col_labels = _parse_header(raw_lines)
@@ -205,16 +209,18 @@ def load(directory: str = None, file_path: str = None) -> Database:
     db = Database()
     if file_path is not None:
         db.load(file_path)
-    elif directory is not None:
+    else:
+        directory = _resolve_directory(directory)
         db.load_all(directory)
     return db
 
 
-def load_all(directory: str) -> Database:
+def load_all(directory: str = None) -> Database:
     return load(directory=directory)
 
 
-def load_category(category: str, directory: str) -> Database:
+def load_category(category: str, directory: str = None) -> Database:
+    directory = _resolve_directory(directory)
     db = Database()
     db.load_category(category, directory)
     return db

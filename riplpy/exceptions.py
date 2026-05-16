@@ -25,3 +25,14 @@ class NucleusNotFoundError(RIPLPyError, KeyError):
 class ElementNotFoundError(RIPLPyError, KeyError):
     """Raised when an element is not found in a database."""
     pass
+
+
+class EntryNotFoundError(RIPLPyError, KeyError):
+    """Raised when a non-nuclide-keyed entry is not found in a database.
+
+    Used for lookups keyed by an identifier other than a nucleus/element
+    (e.g. an optical-model reference number ``iref`` or a bibliographic
+    reference number). Subclasses ``KeyError`` so existing ``except KeyError``
+    handlers keep working.
+    """
+    pass

@@ -26,7 +26,7 @@ from typing import ClassVar as _ClassVar
 # RIPLpy
 from riplpy.exceptions import NucleusNotFoundError, ElementNotFoundError, FileFormatError, RiplFileNotFoundError
 
-__all__ = ('DatabaseEntry', 'NuclideDatabaseEntry', 'Database', 'NuclideDatabase', 'ElementDatabase', '_DbAccessor', 'load')
+__all__ = ('DatabaseEntry', 'NuclideDatabaseEntry', 'PacketEntry', 'Database', 'NuclideDatabase', 'ElementDatabase', '_DbAccessor', 'load')
 
 @_dataclass
 class DatabaseEntry:
@@ -131,6 +131,134 @@ class NuclideDatabaseEntry(DatabaseEntry):
             if f.name != 'n':
                 lst.append(getattr(self, f.name))
         return tuple(lst)
+
+
+class PacketEntry:
+    """A uniform, dict-backed database entry for array/spectral datasets.
+
+    The scalar RIPL sections use frozen ``@dataclass`` entries. The large
+    RIPL-4 array/spectral products (gamma D1M/SMLO/TLO/GSF, the combinatorial
+    level densities, fission paths, …) are naturally variable-width tables and
+    were historically stored as bare ``dict`` packets. ``PacketEntry`` wraps
+    such a packet so that *every* database — scalar or spectral — yields an
+    entry exposing the same interface (``.as_dict``/``.as_list``/``.fields()``/
+    ``.field_info()``/``.summary()`` and ``__repr__``) used by the export
+    machinery (``to_dataframe``/``to_json``/``to_csv``).
+
+    Both attribute access (``entry.U``) and item access (``entry['U']``) work,
+    so existing code and documentation that treated packets as plain dicts
+    keeps working unchanged.
+
+    Subclasses may set ``_field_info`` (``{name: 'description [units]'}``) for
+    schema/units documentation, exactly like the dataclass entries.
+    """
+
+    _field_info: _ClassVar[dict] = {}
+
+    def __init__(self, packet: dict | None = None, **kwargs) -> None:
+        data = dict(packet) if packet else {}
+        data.update(kwargs)
+        # Store under a private name so attribute access cannot shadow it.
+        object.__setattr__(self, '_data', data)
+
+    # -- mapping-style access (backwards compatible with the old dict packets)
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __setitem__(self, key, value):
+        self._data[key] = value
+
+    def __contains__(self, key) -> bool:
+        return key in self._data
+
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+
+    def keys(self):
+        return self._data.keys()
+
+    def values(self):
+        return self._data.values()
+
+    def items(self):
+        return self._data.items()
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    # -- attribute-style access
+    def __getattr__(self, name):
+        # __getattr__ is only called when normal lookup fails, so _data is safe.
+        try:
+            return self._data[name]
+        except KeyError as exc:
+            raise AttributeError(name) from exc
+
+    # -- uniform Entry interface (parallels DatabaseEntry)
+    @property
+    def as_dict(self) -> dict:
+        """Return the underlying packet as a plain dictionary."""
+        return dict(self._data)
+
+    @property
+    def as_list(self) -> list:
+        """Return the packet values in key order."""
+        return list(self._data.values())
+
+    @property
+    def as_tuple(self) -> tuple:
+        """Return the packet values in key order as a tuple."""
+        return tuple(self._data.values())
+
+    def fields(self) -> list:
+        """Return the packet's field names."""
+        return list(self._data.keys())
+
+    def field_info(self) -> dict:
+        """Return field information (type + description) for this entry."""
+        info = {}
+        descriptions = getattr(type(self), '_field_info', None) or {}
+        for name, value in self._data.items():
+            info[name] = {
+                'type': type(value).__name__,
+                'description': descriptions.get(name, ''),
+            }
+        return info
+
+    def summary(self) -> str:
+        """Return a formatted summary of the entry with field descriptions."""
+        lines = [f"Entry: {type(self).__name__}", "-" * 40]
+        descriptions = getattr(type(self), '_field_info', None) or {}
+        for name, value in self._data.items():
+            if isinstance(value, (list, tuple)):
+                val_str = f"<{type(value).__name__} of {len(value)}>"
+            elif hasattr(value, 'Z') and hasattr(value, 'A'):
+                val_str = f"{value.element_symbol}-{value.A} (Z={value.Z}, N={value.N})"
+            elif isinstance(value, float):
+                val_str = f"{value:.6g}"
+            else:
+                val_str = repr(value)
+            desc = descriptions.get(name, '')
+            lines.append(f"  {name}: {val_str}")
+            if desc:
+                lines.append(f"       {desc}")
+        return "\n".join(lines)
+
+    def __repr__(self) -> str:
+        parts = []
+        for name, value in self._data.items():
+            if isinstance(value, (list, tuple)):
+                parts.append(f"{name}=<{type(value).__name__} of {len(value)}>")
+            elif hasattr(value, 'Z') and hasattr(value, 'A'):
+                parts.append(f"{name}={value.element_symbol}-{value.A}")
+            elif isinstance(value, float):
+                parts.append(f"{name}={value:.4g}")
+            else:
+                parts.append(f"{name}={value!r}")
+        return f"{type(self).__name__}({', '.join(parts)})"
 
 
 class Database:
@@ -375,11 +503,22 @@ class Database:
         """
         if value is None:
             return None
-        elif isinstance(value, (int, float, str, bool)):
+        elif isinstance(value, bool):
+            return value
+        elif isinstance(value, (int, float, str)):
             return value
         elif hasattr(value, 'Z') and hasattr(value, 'A'):
             # Nucleus-like object
             return {'Z': value.Z, 'A': value.A, 'symbol': value.element_symbol}
+        elif hasattr(value, 'item') and hasattr(value, 'dtype') and getattr(value, 'shape', None) == ():
+            # 0-d numpy scalar -> native Python scalar
+            return value.item()
+        elif hasattr(value, 'tolist') and hasattr(value, 'dtype'):
+            # numpy ndarray -> nested Python list (round-trippable)
+            return self._serialize_value(value.tolist())
+        elif hasattr(value, 'as_dict'):
+            # DatabaseEntry / PacketEntry instance
+            return {k: self._serialize_value(v) for k, v in value.as_dict.items()}
         elif _is_dataclass(value) and not isinstance(value, type):
             # Dataclass instance
             return {f.name: self._serialize_value(getattr(value, f.name)) for f in _fields(value)}
@@ -390,40 +529,101 @@ class Database:
         else:
             return str(value)
 
-    def _flatten_entry(self, entry: object, prefix: str = '') -> dict:
-        """Flatten an entry into a single-level dictionary for CSV export.
+    @staticmethod
+    def _entry_as_mapping(entry: object) -> dict:
+        """Return an entry's fields as a plain dict, whatever its container.
+
+        Handles dataclass entries, ``PacketEntry``/objects with ``as_dict``,
+        bare ``dict`` packets, and falls back to ``vars()`` for plain objects.
+        """
+        if hasattr(entry, 'as_dict'):
+            return entry.as_dict
+        if isinstance(entry, dict):
+            return dict(entry)
+        try:
+            return vars(entry)
+        except TypeError:
+            return {'value': entry}
+
+    def _flatten_entry(self, entry: object, prefix: str = '',
+                       stringify_sequences: bool = True) -> dict:
+        """Flatten an entry into a single-level dictionary for tabular export.
 
         Nested structures are flattened with dot notation (e.g., 'inner.E[MeV]').
+
+        Args:
+            entry: A dataclass entry, ``PacketEntry``, or dict packet.
+            prefix: Key prefix used during recursion.
+            stringify_sequences: If True (CSV), list/array values are stored as
+                JSON strings so each cell is scalar. If False (DataFrame), they
+                are kept as native Python lists so downstream code can consume
+                the arrays directly.
         """
         flat = {}
-        entry_dict = entry.as_dict if hasattr(entry, 'as_dict') else vars(entry)
+        entry_dict = self._entry_as_mapping(entry)
 
         for key, value in entry_dict.items():
             full_key = f"{prefix}{key}" if prefix else key
 
             if value is None:
                 flat[full_key] = None
-            elif isinstance(value, (int, float, str, bool)):
+            elif isinstance(value, bool):
+                flat[full_key] = value
+            elif isinstance(value, (int, float, str)):
                 flat[full_key] = value
             elif hasattr(value, 'Z') and hasattr(value, 'A'):
                 # Nucleus-like object - expand to Z, A, symbol
                 flat[f"{full_key}.Z"] = value.Z
                 flat[f"{full_key}.A"] = value.A
                 flat[f"{full_key}.symbol"] = value.element_symbol
+            elif hasattr(value, 'item') and hasattr(value, 'dtype') and getattr(value, 'shape', None) == ():
+                # 0-d numpy scalar
+                flat[full_key] = value.item()
+            elif hasattr(value, 'tolist') and hasattr(value, 'dtype'):
+                # numpy ndarray
+                lst = value.tolist()
+                flat[full_key] = _json.dumps(lst) if stringify_sequences else lst
+            elif _is_dataclass(value) and not isinstance(value, type):
+                # Recursively flatten nested dataclass
+                nested = self._flatten_entry(value, prefix=f"{full_key}.",
+                                             stringify_sequences=stringify_sequences)
+                flat.update(nested)
+            elif hasattr(value, 'as_dict'):
+                # Nested PacketEntry / Entry
+                nested = self._flatten_entry(value, prefix=f"{full_key}.",
+                                             stringify_sequences=stringify_sequences)
+                flat.update(nested)
             elif isinstance(value, dict):
                 for k, v in value.items():
-                    flat[f"{full_key}.{k}"] = v
+                    if isinstance(v, (list, tuple)):
+                        flat[f"{full_key}.{k}"] = (
+                            _json.dumps(self._serialize_value(v))
+                            if stringify_sequences else self._serialize_value(v)
+                        )
+                    else:
+                        flat[f"{full_key}.{k}"] = self._serialize_value(v)
             elif isinstance(value, (list, tuple)):
-                # For lists, store as JSON string
-                flat[full_key] = _json.dumps(value)
-            elif _is_dataclass(value) and not isinstance(value, type):
-                # Recursively flatten dataclass
-                nested = self._flatten_entry(value, prefix=f"{full_key}.")
-                flat.update(nested)
+                serial = self._serialize_value(value)
+                flat[full_key] = _json.dumps(serial) if stringify_sequences else serial
             else:
                 flat[full_key] = str(value)
 
         return flat
+
+    def _iter_export_entries(self):
+        """Yield ``(key, entry)`` pairs for export.
+
+        Databases that store *multiple* datasets per key as a ``list`` (e.g.
+        the PSF experimental database, which holds several measurements per
+        nucleus) are exploded into one record per dataset so every export
+        format yields a uniform, flat row/record stream.
+        """
+        for key, value in self.data.items():
+            if isinstance(value, list):
+                for item in value:
+                    yield key, item
+            else:
+                yield key, value
 
     def to_csv(self, fpath: str) -> None:
         """Export the database to a CSV file.
@@ -438,8 +638,8 @@ class Database:
         rows = []
         all_columns = set()
 
-        for key, entry in self.data.items():
-            row = self._flatten_entry(entry)
+        for key, entry in self._iter_export_entries():
+            row = self._flatten_entry(entry, stringify_sequences=True)
             rows.append(row)
             all_columns.update(row.keys())
 
@@ -474,8 +674,8 @@ class Database:
 
         # Serialize all entries
         entries = []
-        for key, entry in self.data.items():
-            serialized = self._serialize_value(entry.as_dict if hasattr(entry, 'as_dict') else vars(entry))
+        for key, entry in self._iter_export_entries():
+            serialized = self._serialize_value(self._entry_as_mapping(entry))
             entries.append(serialized)
 
         with open(fpath, 'w') as fp:
@@ -498,10 +698,11 @@ class Database:
         if not self.data:
             return pd.DataFrame()
 
-        # Collect all rows
+        # Collect all rows (keep list/array fields as native Python lists so
+        # downstream ML code can consume the arrays directly).
         rows = []
-        for key, entry in self.data.items():
-            row = self._flatten_entry(entry)
+        for key, entry in self._iter_export_entries():
+            row = self._flatten_entry(entry, stringify_sequences=False)
             rows.append(row)
 
         # Create DataFrame
@@ -522,8 +723,8 @@ class Database:
             list: A list of dictionaries, one per entry.
         """
         entries = []
-        for key, entry in self.data.items():
-            serialized = self._serialize_value(entry.as_dict if hasattr(entry, 'as_dict') else vars(entry))
+        for key, entry in self._iter_export_entries():
+            serialized = self._serialize_value(self._entry_as_mapping(entry))
             entries.append(serialized)
         return entries
 
@@ -536,8 +737,8 @@ class Database:
             list: A list of flattened dictionaries, one per entry.
         """
         rows = []
-        for key, entry in self.data.items():
-            row = self._flatten_entry(entry)
+        for key, entry in self._iter_export_entries():
+            row = self._flatten_entry(entry, stringify_sequences=False)
             rows.append(row)
         return rows
 
@@ -856,16 +1057,24 @@ def loader(directory: str = None, file_path: str = None, config: object = None, 
     db_path = None
     if file_path:
         db_path = file_path
-    elif directory:
-        file_path = config.get_data_file_path(file_path_key)
-        db_path = _os.path.join(directory, file_path)
     else:
+        # Resolve the directory consistently with riplpy.load() and the
+        # section loaders (set_path / RIPL_LOCATION / ~/.riplpyrc / auto).
+        # ``DATA_FILES`` holds the RIPL-relative path; join it with the
+        # resolved directory. (Note: config.get_data_file_path() pre-joins
+        # the import-time RIPL_PATH and is therefore unsuitable here — it
+        # would silently ignore an explicit ``directory`` argument.)
         try:
-            file_path = config.get_data_file_path(file_path_key)
-            db_path = _os.path.join(config.RIPL_PATH, file_path)
-        except (ImportError, KeyError):
-            # Fallback if config is not available or the key is missing
-            pass
+            resolved = config.resolve_directory(directory)
+        except (ValueError, ImportError):
+            resolved = None
+        rel = None
+        try:
+            rel = config.DATA_FILES.get(file_path_key)
+        except (AttributeError, KeyError):
+            rel = None
+        if resolved and rel:
+            db_path = _os.path.join(resolved, rel)
 
     if db_path and _os.path.exists(db_path):
         try:

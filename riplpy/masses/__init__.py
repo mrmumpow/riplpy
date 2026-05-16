@@ -3,6 +3,7 @@
 import logging as _logging
 
 # RIPLpy
+from riplpy.config import resolve_directory as _resolve_directory
 from riplpy.db import _DbAccessor
 from riplpy.exceptions import RiplFileNotFoundError as _RiplFileNotFoundError
 
@@ -112,11 +113,13 @@ def load_only_masses(directory: str) -> None:
     db.ws4 = _safe_load('WS4', ws4.load, directory)
 
 
-def load(directory: str, include_heavy: bool = False) -> None:
+def load(directory: str = None, include_heavy: bool = False) -> None:
     """Load the entire database of the Masses section of RIPL.
 
     Args:
-        directory: Path to the RIPL database.
+        directory: Path to the RIPL database. If None, the configured path
+            is used (set_path(), RIPL_LOCATION env var, ~/.riplpyrc, or an
+            auto-detected location).
         include_heavy: If True, also load the per-Z auxiliary density tables
             ``masses/Density-bskg3/`` and ``masses/Density-d1m/`` (200+ files
             in total). Default is False because these tables can take ~60s to
@@ -126,6 +129,8 @@ def load(directory: str, include_heavy: bool = False) -> None:
 
     Once this method is called, the databases cannot be unloaded.
     """
+    directory = _resolve_directory(directory)
+
     # Load masses
     load_only_masses(directory)
 

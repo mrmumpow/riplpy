@@ -149,6 +149,37 @@ def get_path() -> str:
     return _resolve_ripl_path()
 
 
+def resolve_directory(directory: str = None) -> str:
+    """Resolve a section loader's ``directory`` argument.
+
+    If ``directory`` is provided it is returned unchanged. Otherwise the
+    configured RIPL path is used (set_path(), RIPL_LOCATION env var,
+    ~/.riplpyrc, or an auto-detected location). This gives every section
+    ``load()`` the same fallback behaviour as ``riplpy.load()``.
+
+    Args:
+        directory: Explicit path, or None to use the configured path.
+
+    Returns:
+        The resolved RIPL database directory.
+
+    Raises:
+        ValueError: If no directory is given and no path is configured.
+    """
+    if directory is not None:
+        return directory
+    resolved = _resolve_ripl_path()
+    if not resolved:
+        raise ValueError(
+            "No RIPL directory specified and no path configured. "
+            "Either pass a directory to load(), or configure the path first:\n"
+            "  - riplpy.set_path('/path/to/RIPL')\n"
+            "  - Set RIPL_LOCATION environment variable\n"
+            "  - Create ~/.riplpyrc config file"
+        )
+    return resolved
+
+
 def clear_path() -> None:
     """Clear the programmatically set path, reverting to other sources."""
     global _ripl_path_override, RIPL_PATH

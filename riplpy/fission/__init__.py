@@ -55,11 +55,17 @@ def _safe_load(loader, model_name: str, directory: str, db_cls):
         return db_cls()
 
 
-def load(directory: str) -> None:
-    """Load the entire database of the Fission section of RIPL from a specified directory.
+def load(directory: str = None) -> None:
+    """Load the entire database of the Fission section of RIPL.
+
+       Args:
+           directory: Path to the RIPL database. If None, the configured path
+               is used (set_path(), RIPL_LOCATION env var, ~/.riplpyrc, or an
+               auto-detected location).
 
        Once this method is called, the databases cannot be unloaded.
     """
+    directory = _riplpy.config.resolve_directory(directory)
 
     # Empirical fission barrier databases (RIPL-4)
     db.empirical_barriers     = _safe_load(emp.load,     'empirical',     directory, emp.Database)

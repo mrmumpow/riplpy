@@ -1,6 +1,7 @@
 
 # RIPLpy
 from riplpy import logger as _logger
+from riplpy.config import resolve_directory as _resolve_directory
 from riplpy.db import _DbAccessor
 from riplpy.exceptions import RiplFileNotFoundError as _RiplFileNotFoundError
 
@@ -39,7 +40,7 @@ def _safe_load(name: str, loader, *args, **kwargs):
         return None
 
 
-def load(directory: str, include_heavy: bool = False) -> None:
+def load(directory: str = None, include_heavy: bool = False) -> None:
     """Load the entire Gamma section of RIPL from ``directory``.
 
     Loaders for files that are absent in the github RIPL-4 release are
@@ -47,7 +48,9 @@ def load(directory: str, include_heavy: bool = False) -> None:
     the databases that are available.
 
     Args:
-        directory: Path to the RIPL database.
+        directory: Path to the RIPL database. If None, the configured path
+            is used (set_path(), RIPL_LOCATION env var, ~/.riplpyrc, or an
+            auto-detected location).
         include_heavy: If True, also eagerly load the per-nucleus tables in
             ``gamma/d1m``, ``gamma/smlo_E1`` (~8980 files), ``gamma/smlo_M1``,
             ``gamma/tlo``, and the PSFDatabase-v2024.1 directory. Default is
@@ -73,6 +76,8 @@ def load(directory: str, include_heavy: bool = False) -> None:
     * ``db.tlo``                       -- TLO E1 strength tables, per-Z (heavy)
     * ``db.psf``                       -- PSFDatabase-v2024.1 experimental PSF data (heavy)
     """
+
+    directory = _resolve_directory(directory)
 
     # Theoretical GDR parameters (legacy single-file product)
     db.theory_gdr = _safe_load('theory_gdr', gdr.load, directory=directory)

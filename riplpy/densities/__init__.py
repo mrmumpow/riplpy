@@ -1,6 +1,7 @@
 
 # RIPLpy
 from riplpy import logger as _logger
+from riplpy.config import resolve_directory as _resolve_directory
 from riplpy.db import _DbAccessor
 from riplpy.exceptions import RiplFileNotFoundError
 
@@ -51,8 +52,13 @@ def _safe_load(name: str, loader, *args, **kwargs):
         return None
 
 
-def load(directory: str) -> None:
-    """Load the entire database of the Densities section of RIPL from a specified directory.
+def load(directory: str = None) -> None:
+    """Load the entire database of the Densities section of RIPL.
+
+       Args:
+           directory: Path to the RIPL database. If None, the configured path
+               is used (set_path(), RIPL_LOCATION env var, ~/.riplpyrc, or an
+               auto-detected location).
 
        Once this method is called, the databases cannot be unloaded.
 
@@ -60,6 +66,7 @@ def load(directory: str) -> None:
        gracefully skipped with a warning, so a partial installation will still
        populate the available databases.
     """
+    directory = _resolve_directory(directory)
 
     # The BSFG level density database (not in github release; legacy only)
     db.bsfg = _safe_load('bsfg', bsfg.load, directory=directory)

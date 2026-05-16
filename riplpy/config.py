@@ -269,6 +269,10 @@ DATA_FILES = {
     'fission_path_bskg3_dir': os.path.join('fission', 'hfbpath-bskg3'),
     'fission_path_d1m_dir': os.path.join('fission', 'hfbpath-d1m'),
 
+    # RMF fission paths (per-nucleus files in axial/triaxial directories)
+    'fission_rmf_axial_dir': os.path.join('fission', 'RMF', 'Path_Axial'),
+    'fission_rmf_triaxial_dir': os.path.join('fission', 'RMF', 'Path_Triaxial'),
+
     # Fission saddle-point level densities (per-Z files in subdirs Max1/Max2/Max3/Min1/Min2)
     'fission_nld_bskg3_dir': os.path.join('fission', 'nld-fis-bskg3'),
 

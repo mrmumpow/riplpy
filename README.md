@@ -158,7 +158,7 @@ gdr = riplpy.get_gdr(82, 208)                             # GDR parameters for P
 res = riplpy.get_resonance(92, 238, wave='s')             # S-wave resonances for U-238
 
 # Fission barriers
-barrier = riplpy.get_fission_barrier(92, 235, model='hfb')  # HFB barrier for U-235
+barrier = riplpy.get_fission_barrier(92, 235, model='bskg3')  # BSkG3 barrier for U-235
 
 # Optical model potentials
 omp = riplpy.get_omp(2405)                                # Get OMP by reference number
@@ -187,7 +187,7 @@ ld_params = riplpy.get_level_densities(nuclei, model='egsm', skip_missing=True)
 
 # Batch fission barriers
 actinides = [(92, 235), (92, 238), (94, 239), (94, 241)]
-barriers = riplpy.get_fission_barriers(actinides, model='hfb', skip_missing=True)
+barriers = riplpy.get_fission_barriers(actinides, model='bskg3', skip_missing=True)
 ```
 
 ### Direct Database Access
@@ -220,6 +220,49 @@ for nuclide, entry in ame.data.items():
     if entry.Mexp is not None:
         print(f"{nuclide.sym}-{nuclide.A}: {entry.Mexp:.3f} MeV")
 ```
+
+### RIPL-4 Array Datasets
+
+In addition to the scalar parameter tables, the RIPL-4 release ships large
+per-nucleus / per-Z **array (spectral/tabular) datasets**. These are loaded on
+demand (the global `riplpy.load()` skips them by default for speed) via
+per-element / per-nucleus helpers, and every entry is a uniform
+`PacketEntry` supporting both `entry['U']` and `entry.U` access plus
+`.as_dict()` / `to_dataframe()` export:
+
+```python
+import riplpy
+from riplpy import Nuclide
+riplpy.set_path('/path/to/RIPL-4')
+
+# Gamma microscopic strength functions
+import riplpy.gamma as gamma
+d1m  = gamma.d1m.load_element(Z=26)                 # D1M+QRPA E1, per Z
+smlo = gamma.smlo_e1.load_nucleus(Nuclide(82, 208)) # SMLO E1 photoabsorption
+tlo  = gamma.tlo.load_element(Z=34)                  # TLO E1 tables
+psf  = gamma.psf.load_category('oslo')               # experimental PSF database
+
+# Fission paths and saddle-point level densities
+import riplpy.fission as fission
+paths = fission.hfbpath.load_d1m()                   # HFB-D1M fission paths
+rmf   = fission.rmf.load_axial()                     # RMF axial paths
+nld   = fission.nld_fis.load('Max1')                 # saddle-point NLD
+
+# Combinatorial level densities
+import riplpy.densities as densities
+comb  = densities.bsk14_comb.load_element(Z=26)      # BSk14 combinatorial NLD
+
+# Alpha optical potentials
+import riplpy.optical as optical
+atomki = optical.atomki.load_nucleus(26, 56)         # TALYS alpha-OMP
+
+# Every array DB exports uniformly for ML pipelines:
+df = d1m.to_dataframe()
+records = d1m.to_list()
+```
+
+See `COVERAGE.md` for the exhaustive dataset/reader map and `SCHEMA.json`
+for a machine-readable field/units catalog.
 
 ## Section-Specific Usage
 
@@ -309,10 +352,11 @@ for pot in potentials[:5]:  # Show first 5
 
 ## Requirements
 
-- Python 3.8+
-- NumPy
+- Python 3.10+
+- `fortranformat`
+- pandas (optional, for `to_dataframe()`)
 
-See `requirements.txt` for full dependency list.
+See `requirements.txt` for the full dependency list.
 
 ## Author
 

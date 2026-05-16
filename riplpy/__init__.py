@@ -29,6 +29,31 @@ from . import resonances
 # Supported RIPL sections
 sections = ('densities', 'fission', 'gamma', 'levels', 'masses', 'optical', 'resonances')
 
+# Public API surface (explicit for tooling, autodoc, and ML/AI introspection)
+__all__ = [
+    # Core types
+    'Nuclide', 'Nucleus', 'Element', 'Elements', 'Models',
+    # Sections (submodules)
+    'densities', 'fission', 'gamma', 'levels', 'masses', 'optical',
+    'resonances', 'config', 'sections',
+    # Configuration
+    'set_path', 'get_path', 'load',
+    # Discovery / introspection
+    'in_ripl', 'in_sections', 'in_dbs', 'list_sections', 'list_databases',
+    'list_nuclei', 'get_database',
+    # Uniform ML/AI ingestion entry points
+    'to_dataframe', 'to_records',
+    # Scalar convenience getters
+    'get_mass', 'get_mass_entry', 'get_level_density', 'get_gdr',
+    'get_resonance', 'get_fission_barrier',
+    # Batch getters
+    'get_masses', 'get_mass_entries', 'get_level_densities', 'get_gdrs',
+    'get_resonances', 'get_fission_barriers',
+    # Optical model
+    'get_omp', 'list_omps', 'find_omp', 'get_deformation',
+    'get_omp_reference',
+]
+
 
 def set_path(path: str) -> None:
     """Set the RIPL database path.
@@ -371,6 +396,73 @@ def get_database(database: str, section: str = None) -> object:
     # Unambiguous - return the database
     module = globals()[found_in[0]]
     return getattr(getattr(module, 'db'), database)
+
+
+def to_dataframe(database: str, section: str = None) -> "pandas.DataFrame":
+    """Return a loaded database as a pandas DataFrame.
+
+    A single uniform ML-ingestion entry point: every section's databases —
+    scalar or array/spectral — flatten to a tidy DataFrame with the nuclide
+    Z/A/symbol columns first. Array fields are kept as native Python lists so
+    downstream code can consume them directly.
+
+    Args:
+        database: Database name or 'section.database' (e.g. 'masses.ame20',
+                  'gamma.experiment_slo', 'fission.bskg3').
+        section: Optional section name if the database name is ambiguous.
+
+    Returns:
+        pandas.DataFrame of the flattened entries.
+
+    Raises:
+        ValueError: If the database is unknown/ambiguous, or is not loaded
+            (call riplpy.load() or the section/per-element loader first).
+
+    Examples:
+        >>> riplpy.load()
+        >>> df = riplpy.to_dataframe('masses.ame20')
+        >>> df = riplpy.to_dataframe('fission.bskg3')
+
+    Note:
+        Databases must be loaded first (riplpy.load(), the section load(), or
+        a per-element/per-nucleus helper for the heavy array datasets).
+    """
+    db = get_database(database, section)
+    if db is None:
+        raise ValueError(
+            f"Database '{database}' is not loaded (it may be a RIPL-3 legacy "
+            f"product absent from this release, or a heavy dataset not yet "
+            f"loaded). Load it first via riplpy.load() or the per-element "
+            f"loader."
+        )
+    return db.to_dataframe()
+
+
+def to_records(database: str, section: str = None) -> list:
+    """Return a loaded database as a list of serialized entry dictionaries.
+
+    Like :func:`to_dataframe` but returns plain JSON-serializable records
+    (Nuclide objects become ``{'Z','A','symbol'}``; arrays stay lists) — a
+    uniform, dependency-free ML/AI ingestion format.
+
+    Args:
+        database: Database name or 'section.database'.
+        section: Optional section name if ambiguous.
+
+    Returns:
+        list[dict]: One serialized record per entry (per dataset for the
+        list-valued PSF database).
+
+    Raises:
+        ValueError: If the database is unknown/ambiguous or not loaded.
+    """
+    db = get_database(database, section)
+    if db is None:
+        raise ValueError(
+            f"Database '{database}' is not loaded (RIPL-3 legacy or a heavy "
+            f"dataset not yet loaded). Load it first."
+        )
+    return db.to_list()
 
 
 def _resolve_nucleus(Z_or_nuclide, A=None) -> Nuclide:

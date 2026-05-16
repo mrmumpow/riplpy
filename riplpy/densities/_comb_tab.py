@@ -20,6 +20,7 @@ import logging as _logging
 
 # RIPLpy
 import riplpy.db as _db
+from riplpy.config import resolve_directory as _resolve_directory
 from . import hfb as _hfb
 
 # Module logger
@@ -74,8 +75,10 @@ def load(db_cls, directory: str = None, file_path: str = None, Z: int = None) ->
     db = db_cls()
     if file_path is not None:
         db.load(file_path)
-    elif directory is not None and Z is not None:
+        return db
+    directory = _resolve_directory(directory)
+    if Z is not None:
         db.load_element(Z, directory)
-    elif directory is not None:
+    else:
         db.load_all(directory)
     return db

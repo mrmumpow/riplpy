@@ -38,11 +38,11 @@ def load(directory: str = None, file_path: str = None, Z: int = None) -> Databas
     return _comb_tab.load(Database, directory=directory, file_path=file_path, Z=Z)
 
 
-def load_all(directory: str) -> Database:
+def load_all(directory: str = None) -> Database:
     """Load all T-HFB combinatorial level densities under ``directory``."""
     return load(directory=directory)
 
 
-def load_element(Z: int, directory: str) -> Database:
+def load_element(Z: int, directory: str = None) -> Database:
     """Load T-HFB combinatorial level densities for a single element."""
     return load(directory=directory, Z=Z)

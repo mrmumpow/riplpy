@@ -1,6 +1,15 @@
 # -*- coding: utf-8 -*-
-"""Python objects that provide access to the Back-Shifted Fermi-Gas (BSFG) level density model. 
-   Level density parameters are provided for the BSFG model without explicit treatment of collective effects. 
+"""Python objects that provide access to the Back-Shifted Fermi-Gas (BSFG) level density model.
+
+   RIPL-3 LEGACY: The BSFG level density parameters
+   (``densities/level-densities-bfmeff.dat``) are a RIPL-3 legacy product.
+   They ship with the full RIPL distribution but are NOT part of the RIPL-4
+   GitHub release. The reader/writer are retained for users with the full
+   distribution; ``riplpy.densities.load()`` skips this model with a warning
+   when the data file is absent. For RIPL-4 use the EGSM model
+   (``densities.egsm``) or the microscopic combinatorial tables.
+
+   Level density parameters are provided for the BSFG model without explicit treatment of collective effects.
    The parameters are obtained by fitting the Fermi-gas model formula both to the RIPL II recommended spacings of s-wave neutron resonances D0 and to the cumulative number of low-lying levels evaluated from the analysis of nuclear levels. 
    Since the goal is to reproduce as well as possible both the discrete levels and the D0 values, the adopted parameters do not generally provide a perfect fit of D0. 
    Instead, we obtain a theoretical value Dth. 

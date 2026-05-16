@@ -1,10 +1,17 @@
 # -*- coding: utf-8 -*-
-"""Python objects that provide access to the Finite-Range Droplet Model (FRDM). 
+"""Python objects that provide access to the Finite-Range Droplet Model (FRDM 1995).
+
+RIPL-3 LEGACY: The FRDM1995 mass table (``masses/mass-frdm95.dat``) is a
+RIPL-3 legacy product. It ships with the full RIPL distribution but is NOT
+part of the RIPL-4 GitHub release. The reader/writer are retained for users
+with the full distribution; ``riplpy.masses.load()`` skips this model with a
+warning when the data file is absent. For RIPL-4 use ``masses.frdm12``
+(FRDM2012) instead.
 
 Python 3.10+ is expected to run this code properly.
 
 Examples:
-    (1) Load and print the FRDM1995 database::
+    (1) Load and print the FRDM1995 database (requires the full RIPL release)::
        $ import riplpy.masses as masses
        $ frdm1995 = masses.frdm95.load() # The FRDM1995 database
        $ print(frdm1995.data)

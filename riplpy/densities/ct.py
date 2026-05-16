@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Python objects that provide access to the Constant Temperature (CT) level density model. 
+"""Python objects that provide access to the Constant Temperature (CT) level density model.
+
+RIPL-3 LEGACY: The CT level density parameters
+(``densities/level-densities-ctmeff.dat``) are a RIPL-3 legacy product. They
+ship with the full RIPL distribution but are NOT part of the RIPL-4 GitHub
+release. The reader/writer are retained for users with the full distribution;
+``riplpy.densities.load()`` skips this model with a warning when the data file
+is absent. For RIPL-4 use the EGSM model (``densities.egsm``) or the
+microscopic combinatorial tables.
 
 Python 3.10+ is expected to run this code properly.
 

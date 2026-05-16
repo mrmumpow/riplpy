@@ -6,12 +6,19 @@ Fission barrier heights and parameters for actinide and transactinide nuclei.
 
 The fission section provides fission barrier data from both experimental compilations and theoretical calculations. Barriers are crucial for calculating fission cross sections and fission probabilities.
 
-**Available Models:**
-- **Empirical** - Experimental barrier heights
-- **Empirical (New)** - Updated experimental compilation
+**RIPL-4 Models (GitHub release + full distribution):**
+- **Empirical** - RIPL-4 empirical barrier heights (`empirical-barriers-ripl4.dat`)
+- **Empirical (New)** - Alias of the RIPL-4 empirical compilation
 - **EMPIRE** - EMPIRE code evaluated barriers
-- **HFB** - Hartree-Fock-Bogoliubov theoretical barriers
-- **BSkG3** - Brussels-Skyrme theoretical barriers
+- **BSkG3** - Brussels-Skyrme theoretical barriers (inner/outer/isomer sections)
+- **D1M** - Gogny D1M HFB low-energy fission path barriers (`barriers-d1m_lep.dat`)
+
+**RIPL-3 Legacy Models (full RIPL distribution only — NOT in the RIPL-4 GitHub release):**
+- **HFB** - Hartree-Fock-Bogoliubov theoretical barriers (`empirical-hfb-barriers.dat`)
+
+The HFB legacy database is skipped (returns empty) with a warning by
+`fission.load()` when its data file is absent; its reader/writer remain
+available for users with the full RIPL distribution.
 
 ## Quick Start
 
@@ -32,13 +39,14 @@ print(f"U-235 outer barrier: {barrier.Eb:.2f} MeV")
 
 ## Available Models
 
-| Model | Attribute | Type | Description |
-|-------|-----------|------|-------------|
-| Empirical | `empirical_barriers` | Experimental | Recommended experimental barriers |
-| Empirical (New) | `empirical_barriers_new` | Experimental | Updated compilation |
-| EMPIRE | `empire_barriers` | Experimental | EMPIRE evaluated |
-| HFB | `hfb_barriers` | Theoretical | HFB calculations |
-| BSkG3 | `bskg3_barriers` | Theoretical | BSkG3 calculations |
+| Model | Attribute | Type | Availability |
+|-------|-----------|------|--------------|
+| Empirical | `empirical_barriers` | Experimental | RIPL-4 |
+| Empirical (New) | `empirical_barriers_new` | Experimental | RIPL-4 (alias of Empirical) |
+| EMPIRE | `empire_barriers` | Experimental | RIPL-4 |
+| BSkG3 | `bskg3_barriers` | Theoretical | RIPL-4 |
+| D1M | `d1m_barriers` | Theoretical | RIPL-4 |
+| HFB | `hfb_barriers` | Theoretical | RIPL-3 legacy |
 
 ## Examples
 

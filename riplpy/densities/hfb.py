@@ -2,6 +2,14 @@
 """Python objects which provide access to the HFB (Hartree-Fock-Bogoliubov) level densities
 from the Reference Input Parameter Library (RIPL).
 
+RIPL-3 LEGACY: The HFB spin-dependent level density tables
+(``densities/total/level-densities-hfb/``) are a RIPL-3 legacy product. They
+ship with the full RIPL distribution but are NOT part of the RIPL-4 GitHub
+release, which provides the microscopic combinatorial tables instead
+(``bsk14-comb``, ``bskg3-comb``, ``qrpabe``, ``thfb-comb``).
+``riplpy.densities.load()`` skips this model with a warning when the directory
+is absent.
+
 The HFB level densities provide spin-dependent nuclear level densities for both
 positive and negative parities. The data is stored in per-element files (zXXX.tab).
 

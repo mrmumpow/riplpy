@@ -1,12 +1,19 @@
 # -*- coding: utf-8 -*-
-"""Python objects that provide access to the HFB mass model. 
+"""Python objects that provide access to the HFB-14 mass model.
+
+RIPL-3 LEGACY: The HFB-14 mass table (``masses/mass-hfb14.dat``) is a RIPL-3
+legacy product. It ships with the full RIPL distribution but is NOT part of
+the RIPL-4 GitHub release. The reader/writer are retained for users with the
+full distribution; ``riplpy.masses.load()`` skips this model with a warning
+when the data file is absent. For RIPL-4 use ``masses.hfb27`` (HFB-27)
+instead.
 
 Python 3.10+ is expected to run this code properly.
 
 Examples:
-    (1) Load and print the HFB14 database::
+    (1) Load and print the HFB14 database (requires the full RIPL release)::
        $ import riplpy.masses as masses
-       $ hfb14 = masses.hfb.load() # The HFB-14 database
+       $ hfb14 = masses.hfb14.load() # The HFB-14 database
        $ print(hfb14.data)
     (2) Access a particular entry of the mass database using the get method::
        $ from riplpy.collections import Nuclide

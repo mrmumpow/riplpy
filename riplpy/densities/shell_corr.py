@@ -1,3 +1,21 @@
+# -*- coding: utf-8 -*-
+"""Shell correction databases from the Reference Input Parameter Library (RIPL).
+
+Two compilations are provided:
+
+* Myers-Swiatecki (MS) shell corrections — ``densities/shellcor-ms.dat``.
+  Available in both the full RIPL distribution and the RIPL-4 GitHub release.
+  Loaded via ``load_ms()``.
+* Mengoni-Nakajima (MK) shell corrections — ``densities/shellmengoninakajima.dat``.
+  RIPL-3 LEGACY: ships with the full RIPL distribution but is NOT part of the
+  RIPL-4 GitHub release. Loaded via ``load_mk()``; ``riplpy.densities.load()``
+  skips it with a warning when the data file is absent.
+
+Python 3.10+ is expected to run this code properly.
+
+Authors:
+    * Matthew Mumpower {mumpower@lanl.gov}
+"""
 
 # ========================
 

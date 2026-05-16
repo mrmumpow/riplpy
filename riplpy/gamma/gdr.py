@@ -1,7 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Python objects which provide access to the giant dipole resonance (GDR) sector of the Reference Input Parameter Library (RIPL). 
+"""Python objects which provide access to the theoretical giant dipole resonance (GDR) parameters of the Reference Input Parameter Library (RIPL).
 
-Predictions of the Giant Dipole Resonance (GDR) energies and widths for about 6000 nuclei with 14<=Z<=110 lying between the proton and the neutron driplines. 
+RIPL-3 LEGACY: The single-file theoretical GDR parameter table
+(``gamma/gdr-parameters-theor.dat``) is a RIPL-3 legacy product. It ships
+with the full RIPL distribution but is NOT part of the RIPL-4 GitHub release,
+which replaces it with the per-nucleus D1M+QRPA predictions under
+``gamma/d1m/`` (see ``riplpy.gamma.d1m``). ``riplpy.gamma.load()`` returns an
+empty database with a warning when this legacy file is absent.
+
+Predictions of the Giant Dipole Resonance (GDR) energies and widths for about 6000 nuclei with 14<=Z<=110 lying between the proton and the neutron driplines.
 The GDR is represented in the Goldhaber-Teller model [1] where the neutron and proton densities perform an out-of-phase vibration around their centre of mass. 
 The dynamics of the oscillation is assumed to be dominated by the np-interaction [2]. 
 The present table gives the GDR energies predicted by [2] with a renormalized np-interaction of strength derived from a least-square fit to the experimental GDR energies [3]. 

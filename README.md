@@ -7,13 +7,20 @@ Python interface for the Reference Input Parameter Library (RIPL).
 RIPLpy provides access to the RIPL nuclear physics database, containing evaluated nuclear data for applications in nuclear reaction calculations, astrophysics simulations, and nuclear structure studies.
 
 **Supported RIPL Sections:**
-- **masses** - Atomic masses and mass models (AME2020, FRDM, HFB, etc.)
-- **densities** - Nuclear level density parameters (BSFG, CT, HFB models)
+- **masses** - Atomic masses and mass models (AME2020, FRDM2012, HFB27, BSkG3, D1M, WS4)
+- **densities** - Nuclear level density parameters (EGSM and microscopic combinatorial models)
 - **fission** - Fission barrier heights and parameters
 - **gamma** - Giant dipole resonance and gamma strength functions
 - **levels** - Discrete nuclear level schemes
 - **resonances** - Neutron resonance parameters (s-wave and p-wave)
 - **optical** - Optical model potentials (~584 parameterizations)
+
+> **RIPL-3 legacy support.** Some databases (mass models FRDM1995 / HFB14;
+> level densities BSFG / CT / HFB; Mengoni-Nakajima shell corrections;
+> theoretical GDR parameters) are RIPL-3 legacy products. They ship with the
+> full RIPL distribution but are **not** part of the RIPL-4 GitHub release.
+> RIPLpy retains their readers/writers and skips them with a warning when the
+> data files are absent, so code works against both layouts.
 
 ## Installation
 
@@ -142,9 +149,9 @@ mass_excess = riplpy.get_mass(82, 208, model='frdm12')    # Using FRDM2012 model
 entry = riplpy.get_mass_entry(82, 208)                    # Full mass entry
 
 # Level density parameters
-ld_params = riplpy.get_level_density(50, 120, model='bsfg')  # BSFG model for Sn-120
+ld_params = riplpy.get_level_density(50, 120, model='egsm')  # EGSM model for Sn-120
 
-# Giant Dipole Resonance
+# Giant Dipole Resonance (RIPL-3 legacy theoretical GDR; full distribution only)
 gdr = riplpy.get_gdr(82, 208)                             # GDR parameters for Pb-208
 
 # Resonance spacing
@@ -176,7 +183,7 @@ masses = riplpy.get_masses(nuclei, model='ame20')
 masses = riplpy.get_masses(nuclei, model='ame20', skip_missing=True)
 
 # Batch level densities
-ld_params = riplpy.get_level_densities(nuclei, model='bsfg', skip_missing=True)
+ld_params = riplpy.get_level_densities(nuclei, model='egsm', skip_missing=True)
 
 # Batch fission barriers
 actinides = [(92, 235), (92, 238), (94, 239), (94, 241)]

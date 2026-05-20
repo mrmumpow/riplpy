@@ -210,11 +210,11 @@
           "type": "dict"
         },
         "isomer": {
-          "description": "First isomer configuration {E[MeV], B20, B22, B30}",
+          "description": "First shape isomer {E[MeV], B20, B22, B30}",
           "type": "dict"
         },
         "isomer2": {
-          "description": "Second isomer configuration {E[MeV], B20, B22, B30}",
+          "description": "Second shape isomer {E[MeV], B20, B22, B30} (None on the legacy layout)",
           "type": "dict"
         },
         "n": {
@@ -1281,7 +1281,7 @@
           "type": "list"
         },
         "fE1": {
-          "description": "E1 photon strength function [MeV^-3]",
+          "description": "E1 strength column [mb/MeV for legacy gamma-strength-micro files; MeV^-3 for the D1M+QRPA fallback]",
           "type": "list"
         }
       },

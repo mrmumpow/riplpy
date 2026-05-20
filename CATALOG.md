@@ -96,8 +96,8 @@ _legacy/absent in this release_
 | `inner` | dict | Inner barrier {E[MeV], B20, B22, B30} |
 | `outer1` | dict | First outer barrier {E[MeV], B20, B22, B30} |
 | `outer2` | dict | Second outer barrier {E[MeV], B20, B22, B30} |
-| `isomer` | dict | First isomer configuration {E[MeV], B20, B22, B30} |
-| `isomer2` | dict | Second isomer configuration {E[MeV], B20, B22, B30} |
+| `isomer` | dict | First shape isomer {E[MeV], B20, B22, B30} |
+| `isomer2` | dict | Second shape isomer {E[MeV], B20, B22, B30} (None on the legacy layout) |
 
 ### d1m_barriers  (45 entries, key=Nuclide, entry=Entry)
 
@@ -414,7 +414,7 @@ _legacy/absent in this release_
 | Field | Type | Description |
 |-------|------|-------------|
 | `U` | list | Photon-energy grid [MeV] |
-| `fE1` | list | E1 photon strength function [MeV^-3] |
+| `fE1` | list | E1 strength column [mb/MeV for legacy gamma-strength-micro files; MeV^-3 for the D1M+QRPA fallback] |
 
 ### gsf_d1m  (43 entries, key=Nuclide, entry=Entry)
 

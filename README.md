@@ -237,10 +237,10 @@ riplpy.set_path('/path/to/RIPL-4')
 
 # Gamma microscopic strength functions
 import riplpy.gamma as gamma
-d1m  = gamma.d1m.load_element(Z=26)                 # D1M+QRPA E1, per Z
-smlo = gamma.smlo_e1.load_nucleus(Nuclide(82, 208)) # SMLO E1 photoabsorption
-tlo  = gamma.tlo.load_element(Z=34)                  # TLO E1 tables
-psf  = gamma.psf.load_category('oslo')               # experimental PSF database
+d1m  = gamma.d1m.load_element(Z=26)                       # D1M+QRPA E1, per Z
+smlo = gamma.smlo_e1.load_nucleus(Nuclide(Z=82, A=208))   # SMLO E1 photoabsorption
+tlo  = gamma.tlo.load_element(Z=34)                       # TLO E1 tables
+psf  = gamma.psf.load_category('oslo')                    # experimental PSF database
 
 # Fission paths and saddle-point level densities
 import riplpy.fission as fission
@@ -263,6 +263,83 @@ records = d1m.to_list()
 
 See `COVERAGE.md` for the exhaustive dataset/reader map and `SCHEMA.json`
 for a machine-readable field/units catalog.
+
+### Writing & Exporting Data
+
+Every loaded database supports the same five export methods plus the native
+ASCII writer, so the same recipes work for masses, level densities, fission
+barriers, resonances, levels, and gamma-strength tables alike. Use these for
+analysis pipelines, spreadsheet hand-off, ML ingestion, or to publish a
+modified subset of RIPL back out to disk in the original format.
+
+```python
+import riplpy
+riplpy.load()
+
+db = riplpy.get_database('masses.ame20')          # any database works
+
+# 1) Native RIPL ASCII (round-trip)
+db.save('ame20_copy.dat')
+
+# 2) Spreadsheet-friendly CSV (lists are stringified)
+db.to_csv('ame20.csv')
+
+# 3) JSON for general tooling
+db.to_json('ame20.json', indent=2)
+
+# 4) pandas DataFrame (Z, A, symbol always come first; array fields stay
+#    as native Python lists)
+df = db.to_dataframe()
+df.to_parquet('ame20.parquet')                    # if you have pyarrow
+
+# 5) Plain list of dicts (Nuclide -> {Z, A, symbol})
+records = db.to_list()                            # nested structures preserved
+flat    = db.to_flat_list()                       # nested -> dotted keys
+
+# Top-level convenience for ML/AI pipelines: one call, any section
+df  = riplpy.to_dataframe('fission.bskg3_barriers')
+rec = riplpy.to_records('resonances.swave')
+```
+
+Filter, then write a derived subset back out as ASCII (round-trips through
+the section's writer):
+
+```python
+import riplpy
+import riplpy.masses as masses
+masses.load(riplpy.get_path())
+
+heavy = masses.db.ame20.filter(lambda e: e.n.A > 200)
+heavy.save('ame20_heavy_only.dat')                # native ASCII, same format
+
+import riplpy.fission as fission
+fission.load(riplpy.get_path())
+high = fission.db.bskg3_barriers.filter(
+    lambda e: e.inner['E[MeV]'] > 7.0
+)
+high.to_csv('bskg3_high_inner.csv')
+```
+
+The gamma-strength `gsf` database can also write per-element or per-nucleus
+files (useful when staging a customised RIPL tree on disk):
+
+```python
+import riplpy.gamma as gamma
+gamma.load(riplpy.get_path(), include_heavy=True)
+gamma.db.gsf.save_all('out/gsf_by_Z')             # one file per element (zNNN.dat)
+gamma.db.gsf.save_entries_by_Z('out/gsf_by_nuc')  # one file per nucleus
+```
+
+And the per-element loaders that back the heavy spectral datasets are also
+fully exportable — they expose the same uniform `to_dataframe()` /
+`to_list()` interface as the scalar tables:
+
+```python
+import riplpy.densities as densities
+fe = densities.bsk14_comb.load_element(Z=26)
+fe.to_dataframe().to_csv('bsk14_fe.csv', index=False)
+fe.to_json('bsk14_fe.json')
+```
 
 ## Section-Specific Usage
 

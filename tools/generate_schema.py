@@ -17,8 +17,6 @@ Run from the repo root with the RIPL-4 path configured, e.g.::
 Heavy per-Z / per-nucleus array datasets are sampled with one element so the
 schema is captured without loading the entire (multi-thousand-file) tree.
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
 """
 
 import json

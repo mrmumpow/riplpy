@@ -25,7 +25,7 @@ resonances.load(riplpy.get_path())
 u238 = Nuclide(Z=92, A=238)
 swave = resonances.db.swave.get(u238)
 
-print(f"U-238 s-wave resonance spacing: {swave.D:.4f} keV")
+print(f"U-238 s-wave resonance spacing: {swave.D:.2f} eV")
 print(f"Neutron strength function: {swave.Str:.4f} × 10^-4")
 ```
 
@@ -54,9 +54,9 @@ swave = resonances.db.swave.get(fe56)
 print(f"Fe-56 s-wave resonance parameters:")
 print(f"  Target spin I_0: {swave.Io}")
 print(f"  Neutron binding energy: {swave.Bn:.3f} MeV")
-print(f"  Resonance spacing D_0: {swave.D:.2f} ± {swave.Derr:.2f} keV")
+print(f"  Resonance spacing D_0: {swave.D:.2f} ± {swave.Derr:.2f} eV")
 print(f"  Strength function S_0: {swave.Str:.4f} ± {swave.Serr:.4f} × 10^-4")
-print(f"  Radiative width Γ_γ: {swave.Gam:.1f} ± {swave.Gerr:.1f} meV")
+print(f"  Radiative width Γ_γ: {swave.Gam:.4f} ± {swave.Gerr:.4f} eV")
 ```
 
 ### Compare S-wave and P-wave
@@ -76,7 +76,7 @@ nuclei = [
 ]
 
 print("S-wave vs P-wave resonance spacing:")
-print(f"{'Nucleus':>10} {'D_0 (keV)':>12} {'D_1 (keV)':>12} {'Ratio':>8}")
+print(f"{'Nucleus':>10} {'D_0 (eV)':>12} {'D_1 (eV)':>12} {'Ratio':>8}")
 
 for Z, A, name in nuclei:
     n = Nuclide(Z=Z, A=A)
@@ -152,8 +152,8 @@ def level_density_at_Bn(Z, A):
     n = Nuclide(Z=Z, A=A)
     swave = resonances.db.swave.get(n)
 
-    D0_keV = swave.D  # Resonance spacing in keV
-    D0_MeV = D0_keV * 1e-3  # Convert to MeV
+    D0_eV  = swave.D       # Resonance spacing in eV
+    D0_MeV = D0_eV * 1e-6  # Convert to MeV
     I0 = swave.Io  # Target spin
 
     # For s-wave, compound nucleus has J = I_0 ± 1/2
@@ -186,13 +186,15 @@ resonances.load(riplpy.get_path())
 
 # Average radiative widths
 print("Average radiative widths:")
-print(f"{'Nucleus':>10} {'Γ_γ (meV)':>12} {'Uncertainty':>12}")
+print(f"{'Nucleus':>10} {'Γ_γ (eV)':>12} {'Uncertainty':>12}")
 
 for Z, A in [(26, 56), (28, 60), (50, 120), (82, 208), (92, 238)]:
     n = Nuclide(Z=Z, A=A)
     try:
         swave = resonances.db.swave.get(n)
-        print(f"{n.sym}-{n.A:3d}:   {swave.Gam:12.1f} {swave.Gerr:12.1f}")
+        if swave.Gam is None:
+            continue
+        print(f"{n.sym}-{n.A:3d}:   {swave.Gam:12.4f} {swave.Gerr if swave.Gerr is not None else 0.0:12.4f}")
     except KeyError:
         pass
 ```
@@ -206,14 +208,18 @@ import riplpy.resonances as resonances
 resonances.load(riplpy.get_path())
 
 # Find nuclei with large resonance spacing (sparse spectrum)
-large_spacing = resonances.db.swave.filter(lambda e: e.D > 10)  # D > 10 keV
+large_spacing = resonances.db.swave.filter(
+    lambda e: e.D is not None and e.D > 10_000  # D > 10 keV
+)
 print(f"Nuclei with D_0 > 10 keV: {len(large_spacing.data)}")
 
 for n, entry in list(large_spacing.data.items())[:5]:
-    print(f"  {n.sym}-{n.A}: D_0 = {entry.D:.1f} keV")
+    print(f"  {n.sym}-{n.A}: D_0 = {entry.D:.0f} eV")
 
 # Find nuclei with large strength function (s-wave giant resonance)
-large_S0 = resonances.db.swave.filter(lambda e: e.Str > 2.0)
+large_S0 = resonances.db.swave.filter(
+    lambda e: e.Str is not None and e.Str > 2.0
+)
 print(f"\nNuclei with S_0 > 2 × 10^-4: {len(large_S0.data)}")
 
 for n, entry in list(large_S0.data.items())[:5]:
@@ -242,9 +248,9 @@ def thermal_capture_estimate(Z, A):
     swave = resonances.db.swave.get(n)
 
     # Parameters
-    D0 = swave.D * 1e3  # Convert keV to eV
-    Gam_gamma = swave.Gam * 1e-3  # Convert meV to eV
-    S0 = swave.Str * 1e-4  # Strength function
+    D0 = swave.D                  # Resonance spacing [eV]
+    Gam_gamma = swave.Gam         # Radiative width [eV]
+    S0 = swave.Str * 1e-4         # Strength function (file value × 10^-4)
 
     # Estimate neutron width at thermal energy (0.0253 eV)
     E_th = 0.0253  # eV
@@ -269,31 +275,51 @@ for Z, A in [(26, 56), (50, 120), (92, 238)]:
 
 ## Entry Fields
 
-### S-wave Entry
-| Field | Description |
-|-------|-------------|
-| `n` | Target nuclide |
-| `Io` | Target ground state spin |
-| `Bn` | Neutron binding energy [MeV] |
-| `D` | Average s-wave resonance spacing [keV] |
-| `Derr` | Uncertainty on D [keV] |
-| `Str` | S-wave neutron strength function [×10^-4] |
-| `Serr` | Uncertainty on strength function |
-| `Gam` | Average radiative width [meV] |
-| `Gerr` | Uncertainty on radiative width |
-| `ref` | Reference string |
+### S-wave / P-wave Entry (RIPL-4)
 
-### P-wave Entry
+S-wave and P-wave share the same record schema; the `L` field distinguishes
+them (0 = s, 1 = p). RIPL-3 values are the primary set; the BNL/Mughabghab
+2018 values are exposed as parallel `_BNL` columns.
+
 | Field | Description |
 |-------|-------------|
 | `n` | Target nuclide |
-| `Io` | Target ground state spin |
+| `sym` | Element symbol of target nucleus |
+| `L` | Angular momentum of incident neutron (0 = s-wave, 1 = p-wave) |
+| `Io` | Spin of the target ground state |
+| `parity` | Parity of the target ground state (`+`/`-`) |
 | `Bn` | Neutron binding energy [MeV] |
-| `D` | Average p-wave resonance spacing [keV] |
-| `Derr` | Uncertainty on D [keV] |
-| `Str` | P-wave neutron strength function [×10^-4] |
-| `Serr` | Uncertainty on strength function |
-| `ref` | Reference string |
+| `D` / `Derr` | Average resonance spacing and uncertainty (RIPL-3) [eV] |
+| `Gam` / `Gerr` | Average radiative width and uncertainty (RIPL-3) [eV] |
+| `Str` / `Serr` | Neutron strength function and uncertainty (RIPL-3) [×10^-4] |
+| `D_BNL` / `D_BNL_err` | Mughabghab (2018) BNL resonance spacing [eV] |
+| `Gam_BNL` / `Gam_BNL_err` | Mughabghab (2018) BNL radiative width [eV] |
+| `Str_BNL` / `Str_BNL_err` | Mughabghab (2018) BNL strength function [×10^-4] |
+
+## Writing & Exporting
+
+S-wave and p-wave resonance databases support the standard export
+interface plus a native ASCII writer:
+
+```python
+import riplpy
+import riplpy.resonances as resonances
+resonances.load(riplpy.get_path())
+
+# Native ASCII round-trip
+resonances.db.swave.save('resonances_swave.dat')
+
+# Machine-readable exports
+resonances.db.swave.to_csv('swave.csv')
+resonances.db.swave.to_json('swave.json')
+df = resonances.db.swave.to_dataframe()
+
+# Filter then save (only nuclei with a measured radiative width)
+gam_measured = resonances.db.swave.filter(
+    lambda e: e.Gam is not None and e.Gam > 0
+)
+gam_measured.to_csv('swave_with_gam.csv')
+```
 
 ## Using with Main API
 

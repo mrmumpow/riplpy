@@ -4,8 +4,18 @@
 
 The legacy ``gamma/gamma-strength-micro`` per-nucleus directory is not shipped
 in the RIPL-4 GitHub release; ``load_all``/``load_nucleus`` transparently fall
-back to the RIPL-4 D1M+QRPA tables under ``gamma/d1m/`` (preserving the
-``U`` [MeV] / ``fE1`` [MeV^-3] schema).
+back to the RIPL-4 D1M+QRPA tables under ``gamma/d1m/``.
+
+``fE1`` units depend on the data source actually loaded:
+
+* Legacy ``gamma-strength-micro/z<NNN>.dat`` files (RIPL-3): ``fE1`` is the
+  E1 photoabsorption cross section in **mb/MeV** (the file header reads
+  ``U[MeV]  fE1[mb/MeV]`` and the .readme confirms it).
+* RIPL-4 D1M+QRPA fallback: ``fE1`` is the photon strength function in
+  **MeV^-3**.
+
+The reader passes the on-disk values through verbatim; convert between the
+two conventions yourself if you need apples-to-apples comparisons.
 
 Python 3.10+ is expected to run this code properly.
 
@@ -147,7 +157,7 @@ class PacketEntry(_db.PacketEntry):
 
     _field_info = {
         'U': 'Photon-energy grid [MeV]',
-        'fE1': 'E1 photon strength function [MeV^-3]',
+        'fE1': 'E1 strength column [mb/MeV for legacy gamma-strength-micro files; MeV^-3 for the D1M+QRPA fallback]',
     }
 
 

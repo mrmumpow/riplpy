@@ -504,8 +504,11 @@ class Database:
             return value
         elif isinstance(value, (int, float, str)):
             return value
-        elif hasattr(value, 'Z') and hasattr(value, 'A'):
-            # Nucleus-like object
+        elif hasattr(value, 'Z') and hasattr(value, 'A') and hasattr(value, 'element_symbol'):
+            # Nuclide / Nucleus / IsomericNucleus -- has the full nuclear-id
+            # surface. Other Z/A-bearing objects (e.g. coupled-channel
+            # ``RotationalIsotope``) fall through to the dataclass / vars()
+            # path below so all their fields are serialised.
             return {'Z': value.Z, 'A': value.A, 'symbol': value.element_symbol}
         elif hasattr(value, 'item') and hasattr(value, 'dtype') and getattr(value, 'shape', None) == ():
             # 0-d numpy scalar -> native Python scalar

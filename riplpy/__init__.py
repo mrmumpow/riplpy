@@ -92,8 +92,13 @@ def get_path() -> str:
 def _parallel_load(section: str) -> None:
    """An implicit method to load the given section in parallel. """
    if section in sections:
-      i = _im.import_module(f"riplpy.{section}")
-      i.load()
+      try:
+         i = _im.import_module(f"riplpy.{section}")
+         i.load()
+      except Exception as exc:  # noqa: BLE001
+         logger.warning(
+            f"load(): skipping section '{section}' (loader error): {exc}"
+         )
 
 
 def load(directory: str = None, quick: bool = False) -> None:
@@ -117,6 +122,10 @@ def load(directory: str = None, quick: bool = False) -> None:
 
    Note:
        Once this method is called, the databases cannot be unloaded.
+
+       A section whose backing data is absent (e.g. a legacy RIPL-3 layout, or
+       a partial install) is skipped with a warning rather than aborting the
+       whole load, so the databases that *are* available still populate.
    """
    if directory is None:
       directory = config.get_path()
@@ -137,7 +146,12 @@ def load(directory: str = None, quick: bool = False) -> None:
    else:
       for section in sections:
          module = globals()[section]
-         module.load(directory=directory)
+         try:
+            module.load(directory=directory)
+         except Exception as exc:  # noqa: BLE001
+            logger.warning(
+               f"load(): skipping section '{section}' (loader error): {exc}"
+            )
 
 
 def in_ripl(x: Nuclide | Element) -> bool:
@@ -233,7 +247,7 @@ def list_sections() -> list:
 
     Examples:
         >>> riplpy.list_sections()
-        ['densities', 'fission', 'gamma', 'levels', 'masses', 'resonances']
+        ['densities', 'fission', 'gamma', 'levels', 'masses', 'optical', 'resonances']
     """
     return list(sections)
 
@@ -606,16 +620,30 @@ def get_resonance(Z_or_nuclide, A: int = None, wave: str = 's') -> object:
 
     Raises:
         ValueError: If the wave type is not recognized
+        RiplFileNotFoundError: If the resonance database was skipped at load
+            time (e.g. legacy RIPL-3 layout or a partial install)
         NucleusNotFoundError: If the nucleus is not in the database
     """
+    from riplpy.exceptions import RiplFileNotFoundError
+
     n = _resolve_nucleus(Z_or_nuclide, A)
 
     if wave == 's':
-        return resonances.db.swave.get(n)
+        wave_db = resonances.db.swave
     elif wave == 'p':
-        return resonances.db.pwave.get(n)
+        wave_db = resonances.db.pwave
     else:
         raise ValueError(f"Unknown wave type '{wave}'. Available: 's', 'p'")
+
+    if wave_db is None:
+        raise RiplFileNotFoundError(
+            f"The {wave}-wave resonance database is not loaded. The RIPL-4 "
+            f"file (resonances_L{0 if wave == 's' else 1}.dat) was not found "
+            f"at the configured path; the legacy RIPL-3 "
+            f"resonances{0 if wave == 's' else 1}.dat format is not supported. "
+            f"Point RIPL_LOCATION at a RIPL-4 (github-layout) tree."
+        )
+    return wave_db.get(n)
 
 
 def get_fission_barrier(Z_or_nuclide, A: int = None, model: str = 'empirical') -> object:
@@ -717,7 +745,9 @@ def get_masses(nuclei: list, model: str = 'ame20', skip_missing: bool = False) -
         try:
             entry = db.get(n)
             result[n] = getattr(entry, field)
-        except NucleusNotFoundError:
+        except KeyError:
+            # NucleusNotFoundError subclasses KeyError; a few Database
+            # subclasses still raise the plain KeyError.
             if not skip_missing:
                 raise
             # skip_missing=True: just don't include in results
@@ -765,7 +795,9 @@ def get_mass_entries(nuclei: list, model: str = 'ame20', skip_missing: bool = Fa
     for n in nuclide_list:
         try:
             result[n] = db.get(n)
-        except NucleusNotFoundError:
+        except KeyError:
+            # NucleusNotFoundError subclasses KeyError; a few Database
+            # subclasses still raise the plain KeyError.
             if not skip_missing:
                 raise
 
@@ -820,7 +852,9 @@ def get_level_densities(nuclei: list, model: str = 'egsm', skip_missing: bool = 
     for n in nuclide_list:
         try:
             result[n] = db.get(n)
-        except NucleusNotFoundError:
+        except KeyError:
+            # NucleusNotFoundError subclasses KeyError; a few Database
+            # subclasses still raise the plain KeyError.
             if not skip_missing:
                 raise
 
@@ -864,7 +898,9 @@ def get_gdrs(nuclei: list, skip_missing: bool = False) -> dict:
     for n in nuclide_list:
         try:
             result[n] = db.get(n)
-        except NucleusNotFoundError:
+        except KeyError:
+            # NucleusNotFoundError subclasses KeyError; a few Database
+            # subclasses still raise the plain KeyError.
             if not skip_missing:
                 raise
 
@@ -909,7 +945,9 @@ def get_resonances(nuclei: list, wave: str = 's', skip_missing: bool = False) ->
     for n in nuclide_list:
         try:
             result[n] = db.get(n)
-        except NucleusNotFoundError:
+        except KeyError:
+            # NucleusNotFoundError subclasses KeyError; a few Database
+            # subclasses still raise the plain KeyError.
             if not skip_missing:
                 raise
 
@@ -960,7 +998,9 @@ def get_fission_barriers(nuclei: list, model: str = 'empirical', skip_missing: b
     for n in nuclide_list:
         try:
             result[n] = db.get(n)
-        except NucleusNotFoundError:
+        except KeyError:
+            # NucleusNotFoundError subclasses KeyError; a few Database
+            # subclasses still raise the plain KeyError.
             if not skip_missing:
                 raise
 

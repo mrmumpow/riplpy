@@ -20,9 +20,6 @@ Examples:
     (5) Print out all element symbols using the Elements class::
        $ print(Elements.SYMBOLS)
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

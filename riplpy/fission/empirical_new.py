@@ -9,9 +9,6 @@ RIPL-4 consolidates both into ``empirical-barriers-ripl4.dat``, so both
 
 Python 3.10+ is expected to run this code properly.
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

@@ -13,9 +13,6 @@ Examples:
        $ n = Nuclide(z=92, a=238)
        $ print(deform_db.get(n))
     (3) 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

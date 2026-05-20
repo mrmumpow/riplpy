@@ -18,9 +18,6 @@ Examples:
        $ entry = hfb.get(Nuclide(Z=92, A=238))
        $ print(entry.Bin, entry.Bout)
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

@@ -21,9 +21,6 @@ Examples:
         $ db = hfb.load_element(Z=26, directory='/path/to/RIPL-4')
         $ print(db.data)
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

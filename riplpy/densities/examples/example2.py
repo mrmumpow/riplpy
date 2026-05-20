@@ -18,9 +18,6 @@ Usage:
         # Print the ESGM database
         print(dens.db.egsm.data)
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

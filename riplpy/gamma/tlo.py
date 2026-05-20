@@ -14,8 +14,6 @@ For each nucleus we store ``U``, ``fE1`` (the second strength column, the
 unconditional fE1 value), the deformation parameters ``beta`` / ``gamma``,
 the calculation ``mode`` flag, and the full per-nucleus ``fE1_T`` array.
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
 """
 
 # OS

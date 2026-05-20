@@ -29,9 +29,6 @@ Examples:
        $ entry = gdr.get(Nuclide(Z=82, A=208))
        $ print(entry.E1, entry.W1)  # GDR energy / width [MeV]
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

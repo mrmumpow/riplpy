@@ -16,9 +16,6 @@ Usage:
         import os
         print(os.path.join(riplpy.get_path(), dens.shell_corr.db_ms_file_path))
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

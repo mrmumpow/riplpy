@@ -13,9 +13,6 @@ Examples:
        $ n = Nuclide(z=50, a=120)
        $ print(natab.get(n))
     (3) 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

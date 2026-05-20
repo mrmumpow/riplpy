@@ -20,9 +20,6 @@ Examples:
        $ n = Nuclide(z=82, a=208)
        $ print(frdm1995.get(n))
     (3) 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

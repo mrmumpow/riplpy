@@ -28,9 +28,6 @@ Examples:
     (2) Load a single element from the BSkG3 model:
         $ db = hfbpath.load_element(Z=92, model='bskg3')
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

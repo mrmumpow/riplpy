@@ -5,8 +5,6 @@ Data files (per-Z ``zXXX.tab``) provided by S. Goriely, August 19, 2025,
 under ``densities/total/thfb-comb/`` in the RIPL-4 release. The file
 format matches the HFB level density tables, so parsing is reused.
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
 """
 
 # OS

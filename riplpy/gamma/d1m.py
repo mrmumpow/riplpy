@@ -20,8 +20,6 @@ For each nucleus we store:
 The ``U`` / ``fE1`` schema matches the legacy ``gamma-strength-micro`` GSF
 reader so existing user code continues to work.
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
 """
 
 # OS

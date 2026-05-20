@@ -27,9 +27,6 @@ Examples:
        $ n = Nuclide(z=50, a=125)
        $ print(bsfg.get(n))
     (3) 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

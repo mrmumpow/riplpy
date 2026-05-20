@@ -20,8 +20,6 @@ and the experimental energy range plus reference.
 The ``MLO`` API is retained as an alias of ``SMLO`` for backwards
 compatibility, since RIPL-4 no longer distributes MLO-only fits.
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
 """
 
 # ========================

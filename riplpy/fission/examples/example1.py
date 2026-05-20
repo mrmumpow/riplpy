@@ -14,9 +14,6 @@ Usage:
         # Print the entire database
         print(bskg3.data)
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

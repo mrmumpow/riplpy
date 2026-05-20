@@ -7,8 +7,6 @@ under ``densities/total/bsk14-comb/`` in the RIPL-4 release.
 The file format is the same as the HFB level density tables, so the
 parsing reuses :mod:`riplpy.densities.hfb`.
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
 """
 
 # OS

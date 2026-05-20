@@ -21,9 +21,6 @@ Examples:
        $ n = Nuclide(z=17, a=36)
        $ print(ct.get(n))
     (3) 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

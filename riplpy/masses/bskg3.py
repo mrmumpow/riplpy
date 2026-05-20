@@ -13,9 +13,6 @@ Examples:
        $ n = Nuclide(z=82, a=208)
        $ print(bskg3.get(n))
     (3) 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

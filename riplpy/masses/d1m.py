@@ -13,9 +13,6 @@ Examples:
        $ n = Nuclide(z=82, a=208)
        $ print(d1m.get(n))
     (3) 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

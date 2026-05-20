@@ -18,8 +18,6 @@ For each nucleus we store ``U`` (the photon energy grid), ``fE1`` (cold-nucleus
 column T=0.0), the temperature labels ``T``, the full 2-D array ``fE1_T``, and
 the Lorentzian parameters ``Er1, Wr1, S1, beta`` extracted from the header.
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
 """
 
 # OS

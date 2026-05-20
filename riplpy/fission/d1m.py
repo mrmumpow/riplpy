@@ -8,9 +8,6 @@ extracted from the 2-dimensional least-energy path (LEP).
 
 Python 3.10+ is expected to run this code properly.
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

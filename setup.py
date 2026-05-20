@@ -34,7 +34,7 @@ setuptools.setup(
     name="Reference-Input-Parameter-Library",
     version=get_version("riplpy/__init__.py"),
     author="Matthew Mumpower",
-    author_email="mumpower@lanl.gov",
+    author_email="matthew@mumpower.net",
     description="A Python package for the Reference Input Parameter Library (RIPL)",
     long_description=long_description,
     long_description_content_type="text/markdown",

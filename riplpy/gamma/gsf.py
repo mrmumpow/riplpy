@@ -17,9 +17,6 @@ Examples:
        $ entry = db.get(Nuclide(Z=26, A=56))
        $ print(entry['U'][:3], entry['fE1'][:3])
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

@@ -6,8 +6,6 @@ These per-Z files (zXXX.tab) follow the same ASCII layout as the HFB
 ``level-densities-hfb`` tables, so we reuse :mod:`riplpy.densities.hfb`
 parsing primitives. Each model just points at a different directory.
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
 """
 
 # ========================

@@ -13,8 +13,6 @@ Two compilations are provided:
 
 Python 3.10+ is expected to run this code properly.
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
 """
 
 # ========================

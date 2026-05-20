@@ -15,9 +15,6 @@ Examples:
        $ entry = bskg3.get(Nuclide(Z=92, A=238))
        $ print(entry.inner, entry.outer1)
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================
@@ -52,12 +49,12 @@ LOCAL_FILE_PATH = _config.get_data_file_path(FILE_PATH_KEY)
 # ========================
 
 FILE_HEADER = (
-    "#             |        Inner            |            Outer 1         |         Outer 2           |     Isomer 1             |       Isomer 2\n"
-    "# Z   N   A   |  E[MeV] B20   B22   B30 |  E[MeV] B20   B22   B30    |  E[MeV] B20   B22   B30   | E[MeV] B20   B22   B30   |   E[MeV] B20   B22   B30\n"
+    "#         |         Inner            |            Outer 1         |         Outer 2          |    Isomer\n"
+    "# Z   N   |  E[MeV] B20   B22   B30  |  E[MeV]  B20   B22   B30   | E[MeV]  B20   B22   B30  |  E[MeV] B20   B22   B30\n"
 )
-# RIPL-4 layout includes Z, N, A and five sections: Inner, Outer 1, Outer 2,
-# Isomer 1, Isomer 2 (each section is E, B20, B22, B30).
-FORTRAN_FORMAT = '(i3,i4,i5,5(f10.3,3f6.2))'
+# RIPL-4 layout: Z, N, then four sections (Inner, Outer 1, Outer 2, Isomer),
+# each section being E[MeV] and the B20/B22/B30 deformation parameters.
+FORTRAN_FORMAT = '(i3,i4,4(f10.3,3f6.2))'
 reader = None  # parsing is whitespace-tolerant; fortranformat is not used
 writer = _ff.FortranRecordWriter(FORTRAN_FORMAT)
 
@@ -76,10 +73,10 @@ def _parse_section(tokens: list[str], offset: int) -> dict:
 def read_ascii_file(fpath: str) -> dict:
     """Read data from the BSkG3 ASCII file and return a dictionary.
 
-    The RIPL-4 file contains Z, N, A followed by five sections describing
-    inner barrier, outer barrier 1, outer barrier 2, isomer 1, and isomer 2.
-    Each section contains an energy in MeV plus the B20, B22, and B30
-    deformation parameters.
+    The RIPL-4 file contains Z, N followed by four sections describing
+    inner barrier, outer barrier 1, outer barrier 2, and the first shape
+    isomer. Each section contains an energy in MeV plus the B20, B22, and
+    B30 deformation parameters.
     """
     d = {}
     with open(fpath, 'r') as fp:
@@ -90,30 +87,27 @@ def read_ascii_file(fpath: str) -> dict:
                 continue
 
             tokens = line.split()
-            # Need at least Z, N, A + 5*4 = 23 columns
-            if len(tokens) < 23:
+            # Need at least Z, N + 4*4 = 18 columns
+            if len(tokens) < 18:
                 continue
 
             try:
                 Z = int(tokens[0])
                 N = int(tokens[1])
-                A = int(tokens[2])
-                inner   = _parse_section(tokens, 3)
-                outer1  = _parse_section(tokens, 7)
-                outer2  = _parse_section(tokens, 11)
-                isomer  = _parse_section(tokens, 15)
-                isomer2 = _parse_section(tokens, 19)
+                inner  = _parse_section(tokens, 2)
+                outer1 = _parse_section(tokens, 6)
+                outer2 = _parse_section(tokens, 10)
+                isomer = _parse_section(tokens, 14)
             except (ValueError, IndexError):
                 continue
 
-            n = _c.Nuclide(Z=Z, A=A)
+            n = _c.Nuclide(Z=Z, A=Z + N)
             d[n] = {
                 'n': n,
                 'inner': inner,
                 'outer1': outer1,
                 'outer2': outer2,
                 'isomer': isomer,
-                'isomer2': isomer2,
             }
     return d
 
@@ -124,8 +118,8 @@ def write_ascii_file(fpath: str, data: dict) -> None:
         fp.write(FILE_HEADER)
         for n in data.keys():
             e = data[n]
-            parts = [f"{e.n.Z:3d}{e.n.N:4d}{e.n.A:5d}"]
-            for sec in (e.inner, e.outer1, e.outer2, e.isomer, e.isomer2):
+            parts = [f"{e.n.Z:3d}{e.n.N:4d}"]
+            for sec in (e.inner, e.outer1, e.outer2, e.isomer):
                 parts.append(f"{sec['E[MeV]']:10.3f}{sec['B20']:6.2f}{sec['B22']:6.2f}{sec['B30']:6.2f}")
             fp.write(''.join(parts) + "\n")
 
@@ -142,7 +136,7 @@ class Entry(_db.NuclideDatabaseEntry):
         inner: Inner barrier {E[MeV], B20, B22, B30}
         outer1: First outer barrier {E[MeV], B20, B22, B30}
         outer2: Second outer barrier {E[MeV], B20, B22, B30}
-        isomer: Isomer configuration {E[MeV], B20, B22, B30}
+        isomer: First shape isomer {E[MeV], B20, B22, B30}
     """
 
     n      : _c.Nuclide = None
@@ -150,7 +144,6 @@ class Entry(_db.NuclideDatabaseEntry):
     outer1 : dict = None
     outer2 : dict = None
     isomer : dict = None
-    isomer2: dict = None
 
     # Field descriptions for help/info display
     _field_info: _ClassVar[dict] = {
@@ -158,19 +151,17 @@ class Entry(_db.NuclideDatabaseEntry):
         'inner': 'Inner barrier {E[MeV], B20, B22, B30}',
         'outer1': 'First outer barrier {E[MeV], B20, B22, B30}',
         'outer2': 'Second outer barrier {E[MeV], B20, B22, B30}',
-        'isomer': 'First isomer configuration {E[MeV], B20, B22, B30}',
-        'isomer2': 'Second isomer configuration {E[MeV], B20, B22, B30}',
+        'isomer': 'First shape isomer {E[MeV], B20, B22, B30}',
     }
 
     @property
     def as_tuple(self) -> tuple:
         """Return a tuple representation matching the ASCII file format."""
-        return (self.n.Z, self.n.N, self.n.A,
+        return (self.n.Z, self.n.N,
                 self.inner['E[MeV]'], self.inner['B20'], self.inner['B22'], self.inner['B30'],
                 self.outer1['E[MeV]'], self.outer1['B20'], self.outer1['B22'], self.outer1['B30'],
                 self.outer2['E[MeV]'], self.outer2['B20'], self.outer2['B22'], self.outer2['B30'],
-                self.isomer['E[MeV]'], self.isomer['B20'], self.isomer['B22'], self.isomer['B30'],
-                self.isomer2['E[MeV]'], self.isomer2['B20'], self.isomer2['B22'], self.isomer2['B30'])
+                self.isomer['E[MeV]'], self.isomer['B20'], self.isomer['B22'], self.isomer['B30'])
 
 
 class Database(_db.Database):

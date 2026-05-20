@@ -41,9 +41,6 @@ Examples:
        $ n, m, p, q = Nucleus(Z=82, N=126), Nucleus(Z=50, N=82), IsomericNucleus(Z=82, N=126, m=2), Nucleus(Z=71, N=111)
        $ s = set([n,m,p,q]) # contains all since the isomeric nucleus (p) is distinct from the ground state (n)
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

@@ -10,8 +10,6 @@ single line with the Fortran layout ``(2I4, 9F9.3, I5)``::
 where ``In=1`` flags experimental data and ``In=0`` flags systematics-only
 values. Spherical-nucleus rows leave the deformed-component fields blank.
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
 """
 
 # OS

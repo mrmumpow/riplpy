@@ -27,9 +27,6 @@ Examples:
         $ db = rmf.load_axial(directory='/path/to/RIPL-4')
         $ print(db.data)
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

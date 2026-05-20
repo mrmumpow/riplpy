@@ -16,9 +16,6 @@ Usage:
         # Print the entire database
         print(bsfg.data)
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

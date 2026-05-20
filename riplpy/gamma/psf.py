@@ -25,8 +25,6 @@ This is a *partial* implementation: it loads the common ``# Col`` header layout
 which covers the vast majority of the database. Files that deviate from that
 convention are skipped with a debug log entry.
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
 """
 
 # OS

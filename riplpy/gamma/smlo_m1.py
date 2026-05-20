@@ -9,8 +9,6 @@ Each per-nucleus block uses two strength columns labelled ``T=0`` and ``T>0``
 (cold versus finite-temperature limit), so ``fE1`` (alias of ``fM1``) is just
 the ``T=0`` column.
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
 """
 
 # OS

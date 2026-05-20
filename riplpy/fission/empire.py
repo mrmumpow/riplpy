@@ -11,9 +11,6 @@ Examples:
        $ entry = empire.get(Nuclide(Z=92, A=235))
        $ print(entry.Va, entry.Vb)  # inner / outer barrier heights [MeV]
 
-Authors:
-    * Matthew Mumpower {mumpower@lanl.gov}
-
 """
 
 # ========================

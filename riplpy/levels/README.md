@@ -51,7 +51,7 @@ scheme = levels.db.discrete_levels.get(ni60)
 
 print(f"Ni-60 discrete levels:")
 print(f"  Total levels: {scheme.num_levels}")
-print(f"  Max known energy: {scheme.max_energy:.3f} MeV")
+print(f"  Max known energy: {max(scheme.level_energies):.3f} MeV")
 print(f"\nFirst 10 levels:")
 print(f"{'#':>3} {'E (MeV)':>10} {'J':>6} {'π':>3}")
 
@@ -104,12 +104,17 @@ levels.load(riplpy.get_path())
 co60 = Nuclide(Z=27, A=60)
 scheme = levels.db.discrete_levels.get(co60)
 
+# Gamma transitions are stored on the scheme as a dict keyed by the
+# (1-based) level number. Level 1 is the ground state; gamma-emitting
+# excited states start at key 2.
 print(f"Co-60 gamma-ray transitions from first excited states:")
-for level in scheme.levels[1:5]:  # Skip ground state
-    if level.num_gammas > 0:
-        print(f"\nLevel at {level.energy:.4f} MeV (J = {level.spin}):")
-        for gamma in level.gammas:
-            print(f"  → E_γ = {gamma.energy:.4f} MeV, prob = {gamma.prob_g:.4f}")
+for idx, level in enumerate(scheme.levels[1:5], start=1):  # skip ground state
+    transitions = scheme.gammas.get(idx + 1, [])
+    if not transitions:
+        continue
+    print(f"\nLevel at {level.energy:.4f} MeV (J = {level.spin}):")
+    for gamma in transitions:
+        print(f"  → E_γ = {gamma.energy:.4f} MeV, prob = {gamma.prob_g:.4f}")
 ```
 
 ### Find Isomeric States
@@ -178,8 +183,9 @@ fe56 = Nuclide(Z=26, A=56)
 ct = levels.db.constant_temperature.get(fe56)
 
 print(f"Fe-56 Constant Temperature parameters:")
-print(f"  Temperature T: {ct.T:.3f} MeV")
-print(f"  Energy shift E0: {ct.E0:.3f} MeV")
+print(f"  Temperature T:    {ct.T:.3f} +/- {ct.dT:.3f} MeV")
+print(f"  Energy shift U0:  {ct.U0:.3f} +/- {ct.dU0:.3f} MeV")
+print(f"  Matching energy Umax: {ct.Umax:.3f} MeV, levels Nmax = {ct.Nmax}")
 ```
 
 ### Decay Modes
@@ -268,8 +274,7 @@ print(f"  Number of gammas: {level.num_gammas}")
 | `parity` | Parity (+1 or -1) |
 | `halflife` | Half-life [s] or None |
 | `jflag` | Spin estimation flag |
-| `num_gammas` | Number of gamma transitions |
-| `gammas` | List of DiscreteGamma objects |
+| `num_gammas` | Number of outgoing gamma transitions (transitions live on `scheme.gammas[level_number]`) |
 | `decay_modes` | List of DecayMode objects |
 
 ### Gamma Transition Object
@@ -285,8 +290,34 @@ print(f"  Number of gammas: {level.num_gammas}")
 | Field | Description |
 |-------|-------------|
 | `n` | Nuclide object |
-| `T` | Nuclear temperature [MeV] |
-| `E0` | Energy backshift [MeV] |
+| `T`, `dT` | Nuclear temperature and 1-sigma uncertainty [MeV] |
+| `U0`, `dU0` | Energy backshift and 1-sigma uncertainty [MeV] |
+| `Nlev`, `Nmax`, `N0`, `Nc` | Level counts used in the CT fit |
+| `Umax`, `Uc` | Matching energy and cutoff energy [MeV] |
+| `Chi`, `Fit`, `Flag` | Fit quality and provenance flags |
+| `sigma` | Spin cutoff [MeV] |
+
+## Writing & Exporting
+
+Both the discrete-level and constant-temperature databases support the
+standard export interface plus native ASCII writers:
+
+```python
+import riplpy
+import riplpy.levels as levels
+levels.load(riplpy.get_path())
+
+# Native ASCII round-trip (discrete-level scheme files are large)
+levels.db.discrete_levels.save('discrete_levels_copy.dat')
+
+# Machine-readable exports for the CT parameter fits
+levels.db.constant_temperature.to_csv('ct.csv')
+levels.db.constant_temperature.to_json('ct.json')
+df = levels.db.constant_temperature.to_dataframe()
+
+# Per-element discrete-level files (zNNN.dat) can also be loaded directly
+fe = levels.discrete.load_element(Z=26, directory=riplpy.get_path())
+```
 
 ## Using with Main API
 

@@ -352,6 +352,36 @@ distribution that still ships `gamma/gdr-parameters-theor.dat`.
 | `Er1`, `Wr1`, `S1`, `beta` | SMLO E1 header Lorentzian parameters (SMLO E1 only) |
 | `beta`, `gamma`, `mode` | TLO deformation and `EFF`/`INTER` mode flag (TLO only) |
 
+## Writing & Exporting
+
+All gamma databases (scalar SLO/SMLO fits and heavy strength-function
+tables) support the standard export interface:
+
+```python
+import riplpy
+import riplpy.gamma as gamma
+gamma.load(riplpy.get_path())
+
+# Scalar GDR fit databases
+gamma.db.experiment_slo.save('exp_slo.dat')              # native ASCII
+gamma.db.experiment_slo.to_csv('exp_slo.csv')
+gamma.db.experiment_slo.to_json('exp_slo.json')
+df = gamma.db.experiment_slo.to_dataframe()
+
+# Experiment-only subset (drop the systematics rows)
+exp_only = gamma.db.experiment_systematics_slo.filter(lambda x: x.In == 1)
+exp_only.to_csv('slo_exp_only.csv')
+
+# Heavy per-element spectral tables (load on demand)
+fe = gamma.d1m.load_element(Z=26, multipolarity='e1')
+fe.to_dataframe().to_csv('d1m_fe_e1.csv', index=False)   # U / fE1 / fE1_T
+
+# The legacy GSF database can also lay itself out on disk as RIPL did:
+gamma.load(riplpy.get_path(), include_heavy=True)
+gamma.db.gsf.save_all('out/gsf_by_Z')                    # per-element files
+gamma.db.gsf.save_entries_by_Z('out/gsf_by_nuc')         # per-nucleus files
+```
+
 ## Using with Main API
 
 ```python

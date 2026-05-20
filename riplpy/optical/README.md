@@ -85,10 +85,8 @@ print(f"  Dispersive: {pot.flags.uses_dispersion}")
 
 # Access potential components
 print(f"\nPotential has {len(pot.components)} components:")
-for i, comp in enumerate(pot.components):
-    names = ['Real Volume', 'Imag Volume', 'Real Surface',
-             'Imag Surface', 'Real Spin-Orbit', 'Imag Spin-Orbit']
-    print(f"  {names[i]}: {comp.n_ranges} energy range(s)")
+for comp in pot.components:
+    print(f"  {comp.name}: {len(comp.energy_ranges)} energy range(s)")
 ```
 
 ### Coupled-Channel Potentials
@@ -152,24 +150,26 @@ pot = optical.db.potentials.get(2405)
 
 # Real volume potential (component 0)
 real_vol = pot.components[0]
-print("Real volume potential parameters:")
+print(f"{real_vol.name} parameters:")
 
-# Energy ranges
+# Each EnergyRange covers E < `epot` MeV.
 for i, erange in enumerate(real_vol.energy_ranges):
-    print(f"\n  Energy range {i}: E < {erange.Emax} MeV")
+    print(f"\n  Energy range {i}: E < {erange.epot} MeV")
 
-    # Radius coefficients (r = r0 * A^(1/3))
+    # Radius coefficients (R = r0 * A^(1/3) + ...); .values is the full
+    # polynomial vector, .r0 is just the first (leading) term.
     rco = erange.radius
-    print(f"    r0 = {rco.c1:.4f} fm")
+    print(f"    r0 = {rco.r0:.4f} fm")
 
     # Diffuseness coefficients
     aco = erange.diffuseness
-    print(f"    a0 = {aco.c1:.4f} fm")
+    print(f"    a0 = {aco.a0:.4f} fm")
 
-    # Potential strength coefficients (V = V0 + V1*E + ...)
-    pot_str = erange.potential
-    print(f"    V0 = {pot_str.c1:.2f} MeV")
-    print(f"    V1 = {pot_str.c2:.4f} MeV/MeV")
+    # Potential strength (V = V0 + V1*E + ...): V0 is the leading term.
+    pot_str = erange.strength
+    print(f"    V0 = {pot_str.V0:.2f} MeV")
+    if len(pot_str.values) > 1:
+        print(f"    V1 = {pot_str.values[1]:.4f} MeV/MeV")
 ```
 
 ### Deformation Parameters
@@ -261,9 +261,9 @@ E = 14.0  # MeV
 
 # Get first energy range (simplified)
 real_vol = pot.components[0].energy_ranges[0]
-V0 = real_vol.potential.c1  # Base depth
-r0 = real_vol.radius.c1     # Radius parameter
-a0 = real_vol.diffuseness.c1  # Diffuseness
+V0 = real_vol.strength.V0    # Base depth
+r0 = real_vol.radius.r0      # Radius parameter
+a0 = real_vol.diffuseness.a0  # Diffuseness
 
 print(f"Woods-Saxon parameters for n + Pb-208:")
 print(f"  V0 = {V0:.2f} MeV")
@@ -307,6 +307,35 @@ for r in [0, 2, 4, 6, 7, 8, 9, 10]:
 | `L` | Deformation order (2=quadrupole, 3=octupole) |
 | `beta` | Deformation parameter |
 | `reference` | Data source |
+
+## Writing & Exporting
+
+The optical-model databases (potentials, deformations, references) all
+support the standard export interface:
+
+```python
+import riplpy
+import riplpy.optical as optical
+optical.load(riplpy.get_path())
+
+# CSV / JSON / DataFrame exports for any optical database
+optical.db.potentials.to_csv('potentials.csv')
+optical.db.potentials.to_json('potentials.json')
+df = optical.db.potentials.to_dataframe()
+optical.db.deformations.to_csv('deformations.csv')
+optical.db.references.to_json('references.json')
+
+# Filter then export a tailored subset (e.g. all neutron potentials)
+neutron = optical.db.potentials.filter_by_projectile('n')
+neutron.to_csv('neutron_omps.csv')
+
+# ATOMKI alpha-OMP per-nucleus profiles (each potential is a single
+# AtomkiAlphaPotential object, not a Database, so use as_dict to export)
+fe = optical.atomki.load_nucleus(26, 56)
+import json
+with open('atomki_fe56.json', 'w') as fp:
+    json.dump({'Z': fe.Z, 'A': fe.A, 'r': fe.r, 'U_real': fe.U_real}, fp)
+```
 
 ## Using with Main API
 

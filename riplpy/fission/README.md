@@ -82,32 +82,36 @@ fission.load(riplpy.get_path())
 
 # Compare models for U isotopes (inner barrier heights)
 print("Uranium fission barriers - Inner barrier (MeV):")
-print(f"{'Isotope':>10} {'Empirical':>12} {'HFB':>12} {'BSkG3':>12}")
+print(f"{'Isotope':>10} {'Empirical':>12} {'BSkG3':>12} {'HFB(legacy)':>12}")
 
 for A in range(232, 240):
     u = Nuclide(Z=92, A=A)
     values = []
 
-    # Empirical barriers
+    # Empirical barriers (Ea attribute)
     try:
         entry = fission.db.empirical_barriers.get(u)
         values.append(f"{entry.Ea:12.2f}")
     except KeyError:
         values.append("         N/A")
 
-    # HFB barriers
+    # BSkG3 barriers (dict-based inner section with key 'E[MeV]')
     try:
-        entry = fission.db.hfb_barriers.get(u)
-        values.append(f"{entry.Bin:12.2f}")
+        entry = fission.db.bskg3_barriers.get(u)
+        values.append(f"{entry.inner['E[MeV]']:12.2f}")
     except KeyError:
         values.append("         N/A")
 
-    # BSkG3 barriers
-    try:
-        entry = fission.db.bskg3_barriers.get(u)
-        values.append(f"{entry.Bin:12.2f}")
-    except KeyError:
-        values.append("         N/A")
+    # HFB barriers — RIPL-3 legacy, may be None
+    hfb_db = fission.db.hfb_barriers
+    if hfb_db is None:
+        values.append("    (legacy)")
+    else:
+        try:
+            entry = hfb_db.get(u)
+            values.append(f"{entry.Bin:12.2f}")
+        except KeyError:
+            values.append("         N/A")
 
     print(f"U-{A:3d}:   " + " ".join(values))
 ```
@@ -216,15 +220,15 @@ import riplpy.fission as fission
 fission.load(riplpy.get_path())
 
 # Find nuclei with relatively low fission barriers
-# HFB barriers use Bin for inner barrier height
-low_barrier = fission.db.hfb_barriers.filter(
-    lambda e: e.Bin is not None and e.Bin < 5.5
+# Empirical barriers use Ea (inner) / Eb (outer) — see Entry Fields below.
+low_barrier = fission.db.empirical_barriers.filter(
+    lambda e: e.Ea is not None and e.Ea < 5.0
 )
-print(f"Nuclei with inner barrier < 5.5 MeV: {len(low_barrier.data)}")
+print(f"Nuclei with empirical Ea < 5.0 MeV: {len(low_barrier.data)}")
 
 # List them
 for n, entry in list(low_barrier.data.items())[:10]:
-    print(f"  {n.sym}-{n.A}: Bin = {entry.Bin:.2f} MeV")
+    print(f"  {n.sym}-{n.A}: Ea = {entry.Ea:.2f} MeV")
 ```
 
 ## Entry Fields
@@ -241,7 +245,7 @@ for n, entry in list(low_barrier.data.items())[:10]:
 | `symb` | Outer saddle point symmetry |
 | `deltaf` | Fission splitting parameter [MeV] |
 
-### HFB/BSkG3 Barrier Entry
+### HFB Barrier Entry (RIPL-3 legacy)
 | Field | Description |
 |-------|-------------|
 | `n` | Nuclide object |
@@ -251,12 +255,47 @@ for n, entry in list(low_barrier.data.items())[:10]:
 | `hwout` | Outer barrier curvature [MeV] |
 | `Bout2` | Third barrier (if present) [MeV] |
 
+### BSkG3 Barrier Entry (RIPL-4)
+| Field | Description |
+|-------|-------------|
+| `n` | Nuclide object |
+| `inner` | Inner barrier `{E[MeV], B20, B22, B30}` |
+| `outer1` | First outer barrier `{E[MeV], B20, B22, B30}` |
+| `outer2` | Second outer barrier `{E[MeV], B20, B22, B30}` |
+| `isomer` | First shape isomer `{E[MeV], B20, B22, B30}` |
+
 ### Saddle Point Symmetries
 | Code | Meaning |
 |------|---------|
 | `S` | Symmetric |
 | `GA` | Axially asymmetric (triaxial) |
 | `MA` | Mass asymmetric |
+
+## Writing & Exporting
+
+Each fission database (empirical, EMPIRE, BSkG3, D1M, HFB) supports the
+standard export interface plus a native ASCII writer:
+
+```python
+import riplpy
+import riplpy.fission as fission
+fission.load(riplpy.get_path())
+
+# Native ASCII round-trip
+fission.db.bskg3_barriers.save('bskg3_copy.dat')
+
+# Machine-readable exports (DataFrame flattens nested
+# inner/outer1/outer2/isomer sections to dotted columns)
+fission.db.bskg3_barriers.to_csv('bskg3.csv')
+fission.db.bskg3_barriers.to_json('bskg3.json')
+df = fission.db.bskg3_barriers.to_dataframe()
+
+# Filter then save (still readable by the same loader)
+high_inner = fission.db.bskg3_barriers.filter(
+    lambda e: e.inner['E[MeV]'] > 7.0
+)
+high_inner.save('bskg3_high.dat')
+```
 
 ## Using with Main API
 

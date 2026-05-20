@@ -373,6 +373,35 @@ Each `ParityData` exposes the parallel lists `U`, `T`, `Ncumul`,
 | `E0` | Energy backshift [MeV] |
 | `Ematch` | Matching energy [MeV] |
 
+## Writing & Exporting
+
+All level-density databases expose the standard export interface (CSV, JSON,
+pandas, list-of-dicts) plus a native ASCII writer. The combinatorial tables
+(`bsk14_comb`, `bskg3_comb`, `qrpabe`, `thfb_comb`) preserve their per-spin
+`rho_J` arrays in DataFrames and JSON.
+
+```python
+import riplpy
+import riplpy.densities as densities
+densities.load(riplpy.get_path())
+
+# Native ASCII round-trip
+densities.db.egsm.save('egsm_copy.dat')
+
+# Machine-readable exports
+densities.db.egsm.to_csv('egsm.csv')
+densities.db.egsm.to_json('egsm.json')
+df = densities.db.egsm.to_dataframe()
+
+# Filter + write a derived subset
+big_a = densities.db.egsm.filter(lambda e: e.a is not None and e.a > 20)
+big_a.to_csv('egsm_large_a.csv')
+
+# Per-element combinatorial export (Z=26 = iron)
+fe = densities.bsk14_comb.load_element(Z=26)
+fe.to_dataframe().to_csv('bsk14_fe.csv', index=False)
+```
+
 ## Using with Main API
 
 The default level density model is `egsm` (RIPL-4).

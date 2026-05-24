@@ -10,9 +10,6 @@ import logging as _logging
 logger = _logging.getLogger(__name__)
 logger.addHandler(_logging.NullHandler())
 
-# Importlib
-import importlib as _im
-
 # Local
 from . import config as config
 from .collections import *
@@ -89,12 +86,18 @@ def get_path() -> str:
     return config.get_path()
 
 
-def _parallel_load(section: str) -> None:
-   """An implicit method to load the given section in parallel. """
+def _parallel_load(section: str, directory: str = None) -> None:
+   """Load a single section by name, used by the threaded quick loader.
+
+   Runs inside a worker thread (see :func:`load` with ``quick=True``). Threads
+   share the interpreter's memory, so the section's module-level ``db`` is
+   populated in the same process the caller is using — unlike a process pool,
+   whose workers would discard their results.
+   """
    if section in sections:
       try:
-         i = _im.import_module(f"riplpy.{section}")
-         i.load()
+         module = globals()[section]
+         module.load(directory=directory)
       except Exception as exc:  # noqa: BLE001
          logger.warning(
             f"load(): skipping section '{section}' (loader error): {exc}"
@@ -108,7 +111,9 @@ def load(directory: str = None, quick: bool = False) -> None:
        directory: Path to the RIPL database. If not provided, uses the
                   configured path (from set_path(), RIPL_LOCATION env var,
                   ~/.riplpyrc, or auto-detected location).
-       quick: If True, load sections in parallel using multiprocessing.
+       quick: If True, load the sections concurrently with a thread pool.
+              The readers are I/O-bound, so this overlaps their file parsing
+              while still populating the databases in this process.
 
    Raises:
        ValueError: If no directory is provided and no path is configured.
@@ -139,10 +144,20 @@ def load(directory: str = None, quick: bool = False) -> None:
          )
 
    if quick:
-      # @TODO: Re-evaluate the usefulness of this feature once database is complete
-      import multiprocessing as _mp
-      _pool = _mp.Pool(min(_mp.cpu_count(), len(sections)))
-      _pool.map(_parallel_load, sections)
+      # Load sections concurrently with threads. The readers are I/O-bound
+      # (parsing data files), so they release the GIL during file reads and
+      # genuinely overlap. Threads share memory, so each section's db is
+      # populated in this process -- a process pool would load into workers
+      # and discard the results. Each section writes to its own module-level
+      # db accessor, so there is no cross-thread contention.
+      from concurrent.futures import ThreadPoolExecutor as _ThreadPoolExecutor
+      with _ThreadPoolExecutor(max_workers=len(sections)) as _executor:
+         _futures = [
+            _executor.submit(_parallel_load, section, directory)
+            for section in sections
+         ]
+         for _future in _futures:
+            _future.result()  # surface unexpected (non-loader) exceptions
    else:
       for section in sections:
          module = globals()[section]

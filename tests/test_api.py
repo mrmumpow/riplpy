@@ -240,6 +240,53 @@ class TestConfiguration:
 
 
 # =============================================================================
+# API: Threaded "quick" loading
+# =============================================================================
+
+class TestQuickThreadedLoad:
+    """The quick=True path must populate databases in the *calling* process.
+
+    Regression: the old implementation used multiprocessing.Pool, whose worker
+    processes loaded the data into their own memory and discarded it, leaving
+    the caller's module-level db accessors empty. It also ignored the explicit
+    directory argument. The replacement uses a ThreadPoolExecutor (threads
+    share memory) and forwards the directory to each section loader.
+    """
+
+    def test_parallel_load_populates_in_process(self, ripl_path):
+        """_parallel_load (the per-thread worker) populates this process's db."""
+        riplpy._parallel_load('resonances', ripl_path)
+        assert resonances.db.swave is not None
+        assert len(resonances.db.swave.data) > 0
+
+    def test_parallel_load_honours_directory(self, ripl_path):
+        """The directory argument is forwarded to the section loader."""
+        # A bogus directory must not silently populate from a stale config.
+        masses.db.ame20 = None
+        riplpy._parallel_load('masses', '/nonexistent/ripl/path')
+        # Loader error is swallowed with a warning; db stays unpopulated.
+        assert masses.db.ame20 is None
+        # The real path repopulates it.
+        riplpy._parallel_load('masses', ripl_path)
+        assert masses.db.ame20 is not None
+        assert len(masses.db.ame20.data) > 0
+
+    def test_quick_load_matches_serial_subset(self, ripl_path):
+        """Threaded executor over multiple sections populates each in-process."""
+        from concurrent.futures import ThreadPoolExecutor
+
+        subset = ('masses', 'resonances', 'fission')
+        with ThreadPoolExecutor(max_workers=len(subset)) as ex:
+            for fut in [ex.submit(riplpy._parallel_load, s, ripl_path)
+                        for s in subset]:
+                fut.result()
+
+        assert len(masses.db.ame20.data) > 0
+        assert len(resonances.db.swave.data) > 0
+        assert len(fission.db.bskg3_barriers.data) > 0
+
+
+# =============================================================================
 # API: Query/Filter Methods
 # =============================================================================
 

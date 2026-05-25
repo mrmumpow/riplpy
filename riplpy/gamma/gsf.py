@@ -73,7 +73,7 @@ def read_ascii_file(fpath: str) -> dict:
     current_nuclide = None
     package = None
 
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         for line in fp:
             line_stripped = line.strip()
 
@@ -123,7 +123,7 @@ def write_ascii_file(fpath: str, data: dict, n: _c.Nuclide = None) -> None:
         data: Dictionary of entries keyed by Nuclide.
         n: If provided, write only this nucleus. Otherwise write all.
     """
-    with open(fpath, 'w') as fp:
+    with open(fpath, 'w', encoding='utf-8') as fp:
         # Determine which entries to write
         if n is not None:
             entries = [(n, data[n])]

@@ -82,7 +82,7 @@ def read_ascii_file(fpath: str) -> dict:
     ``fE1``, ``T``, and ``fE1_T``.
     """
     d: dict = {}
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         lines = fp.readlines()
 
     n = None

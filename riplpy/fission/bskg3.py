@@ -90,7 +90,7 @@ def read_ascii_file(fpath: str) -> dict:
     which layout is in effect. Lines that match neither are silently skipped.
     """
     d = {}
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         for line in fp:
             if not line.strip():
                 continue
@@ -145,7 +145,7 @@ def write_ascii_file(fpath: str, data: dict) -> None:
     came from the four-section legacy layout.
     """
     zero_section = {'E[MeV]': 0.0, 'B20': 0.0, 'B22': 0.0, 'B30': 0.0}
-    with open(fpath, 'w') as fp:
+    with open(fpath, 'w', encoding='utf-8') as fp:
         fp.write(FILE_HEADER)
         for n in data.keys():
             e = data[n]

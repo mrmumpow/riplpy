@@ -62,7 +62,7 @@ def read_ascii_file(fpath: str) -> dict:
     d = {}
 
     # RIPL discrete level files have no headers
-    with open(fpath, 'r') as fp:    
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:    
         # Begin reading data directly from the first line
         for line in fp.readlines():
             # Parse the given line
@@ -143,7 +143,7 @@ def write_ascii_file(fpath: str, data: dict) -> None:
     """"Write the discrete level information to file. This method assumes parse_ascii_dict has been called on the dictionary. """
 
     # Note: there is no file header
-    with open(fpath, 'w') as fp:
+    with open(fpath, 'w', encoding='utf-8') as fp:
 
         for nucleus, entry in data.items():
             # Extract header information from LevelEntry

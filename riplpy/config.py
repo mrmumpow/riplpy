@@ -47,7 +47,7 @@ def _read_config_file() -> str | None:
     """Read RIPL path from config file if it exists."""
     if os.path.exists(_CONFIG_FILE):
         try:
-            with open(_CONFIG_FILE, 'r') as f:
+            with open(_CONFIG_FILE, 'r', encoding='utf-8', errors='replace') as f:
                 for line in f:
                     line = line.strip()
                     # Skip comments and empty lines
@@ -202,7 +202,7 @@ def write_config_file(path: str) -> None:
     if not os.path.isdir(path):
         raise ValueError(f"Path does not exist or is not a directory: {path}")
 
-    with open(_CONFIG_FILE, 'w') as f:
+    with open(_CONFIG_FILE, 'w', encoding='utf-8') as f:
         f.write(f"# RIPLpy configuration file\n")
         f.write(f"# Generated automatically\n")
         f.write(f"RIPL_PATH = {path}\n")

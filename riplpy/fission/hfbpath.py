@@ -149,7 +149,7 @@ def read_ascii_file(fpath: str) -> dict:
     cur = None
     nbeta_expected = 0
 
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         for raw in fp:
             line = raw.rstrip("\n")
             stripped = line.strip()

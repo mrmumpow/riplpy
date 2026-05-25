@@ -109,7 +109,7 @@ def _parse_temperature_labels(line: str) -> list[str]:
 
 def read_ascii_file(fpath: str) -> dict:
     """Read a single SMLO E1 per-nucleus file."""
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         lines = fp.readlines()
 
     Z = A = None

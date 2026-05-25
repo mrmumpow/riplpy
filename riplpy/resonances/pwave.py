@@ -103,7 +103,7 @@ def read_ascii_file(fpath: str) -> dict:
     d = {}
 
     # Read data from file
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         for line in fp:
             # Skip header lines and blank lines
             if not line.strip() or line.lstrip().startswith('#'):
@@ -181,7 +181,7 @@ def _format_value(value, fmt_type, width, decimals=None):
 def write_ascii_file(fpath: str, data: dict) -> None:
     """Write resonance data to an ASCII file in the RIPL-4 format."""
 
-    with open(fpath, 'w') as fp:
+    with open(fpath, 'w', encoding='utf-8') as fp:
         # Write header
         fp.write(FILE_HEADER)
         # Loop over data

@@ -55,7 +55,7 @@ writer = _ff.FortranRecordWriter(FORTRAN_FORMAT)
 def read_ascii_file(fpath: str) -> dict:
     """Read data from the D1M LEP ASCII file and return a dictionary."""
     d = {}
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         for line in fp:
             stripped = line.rstrip("\n")
             if not stripped.strip():
@@ -100,7 +100,7 @@ def read_ascii_file(fpath: str) -> dict:
 
 def write_ascii_file(fpath: str, data: dict) -> None:
     """Write the database to an ASCII file in the D1M LEP layout."""
-    with open(fpath, 'w') as fp:
+    with open(fpath, 'w', encoding='utf-8') as fp:
         fp.write(FILE_HEADER)
         for n in data.keys():
             e = data[n]

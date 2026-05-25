@@ -190,7 +190,7 @@ def load_nucleus(Z: int, A: int, directory: _Optional[str] = None) -> AtomkiAlph
             "ATOMKI alpha-OMP file not found for Z={Z}, A={A}: {p}".format(
                 Z=Z, A=A, p=path))
 
-    with open(path, 'r') as fh:
+    with open(path, 'r', encoding='utf-8', errors='replace') as fh:
         lines = fh.readlines()
 
     if len(lines) < 4:

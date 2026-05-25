@@ -152,7 +152,7 @@ def read(path: str) -> ROP2013Database:
         raise FileNotFoundError(
             "ROP2013za.dat not found: {p}".format(p=path))
 
-    with open(path, 'r') as fh:
+    with open(path, 'r', encoding='utf-8', errors='replace') as fh:
         lines = fh.readlines()
 
     db = ROP2013Database()

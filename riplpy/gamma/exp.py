@@ -226,7 +226,7 @@ def _parse_errors_second_line(line: str) -> dict:
 def read_recommended_file(fpath: str) -> dict:
     """Read a single-line RIPL-4 recommended SLO/SMLO data file."""
     d = {}
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         for line in fp:
             if not line.strip() or line.lstrip().startswith('#'):
                 continue
@@ -242,7 +242,7 @@ def read_recommended_file(fpath: str) -> dict:
 def read_errors_file(fpath: str) -> dict:
     """Read a two-line RIPL-4 SLO/SMLO data file with uncertainties."""
     d = {}
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         # Pre-filter: drop blank and comment lines, keep order
         lines = [ln.rstrip('\n') for ln in fp if ln.strip() and not ln.lstrip().startswith('#')]
     i = 0
@@ -290,7 +290,7 @@ def _format_recommended_line(entry) -> str:
 
 def write_slo_ascii_file(fpath: str, data: dict) -> None:
     """Write entries to a recommended-style SLO ASCII file."""
-    with open(fpath, 'w') as fp:
+    with open(fpath, 'w', encoding='utf-8') as fp:
         fp.write(SLO_FILE_HEADER)
         for n, entry in data.items():
             fp.write(_format_recommended_line(entry) + "\n")
@@ -298,7 +298,7 @@ def write_slo_ascii_file(fpath: str, data: dict) -> None:
 
 def write_smlo_ascii_file(fpath: str, data: dict) -> None:
     """Write entries to a recommended-style SMLO ASCII file."""
-    with open(fpath, 'w') as fp:
+    with open(fpath, 'w', encoding='utf-8') as fp:
         fp.write(SMLO_FILE_HEADER)
         for n, entry in data.items():
             fp.write(_format_recommended_line(entry) + "\n")
@@ -325,7 +325,7 @@ class SLO_Database(_db.NuclideDatabase):
         and column count.
         """
         # Try the errors format first if the file has the 'dEr1' marker
-        with open(fpath, 'r') as fp:
+        with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
             head = fp.read(2048)
         if '/' in head and 'F8.3' in head and ',/,' in head.replace(' ', ''):
             data = read_errors_file(fpath)

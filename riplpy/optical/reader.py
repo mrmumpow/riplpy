@@ -253,7 +253,7 @@ class OMPFileReader:
         self._fp = None
 
     def __enter__(self):
-        self._fp = open(self.filepath, 'r')
+        self._fp = open(self.filepath, 'r', encoding='utf-8', errors='replace')
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):

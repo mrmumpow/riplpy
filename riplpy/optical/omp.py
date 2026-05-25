@@ -376,7 +376,7 @@ def _parse_single_omp_file(filepath: str) -> Optional[OMPType]:
     Returns:
         SphericalOMP or CoupledChannelOMP, or None if parsing fails
     """
-    with open(filepath, 'r') as fp:
+    with open(filepath, 'r', encoding='utf-8', errors='replace') as fp:
         lines = fp.readlines()
 
     # Clean up lines

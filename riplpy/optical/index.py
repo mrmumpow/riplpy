@@ -365,7 +365,7 @@ def read_index(filepath: str) -> OMPIndex:
         raise FileNotFoundError(f"Index file not found: {filepath}")
 
     data = {}
-    with open(filepath, 'r') as fp:
+    with open(filepath, 'r', encoding='utf-8', errors='replace') as fp:
         for line in fp:
             entry = _parse_index_line(line)
             if entry is not None:

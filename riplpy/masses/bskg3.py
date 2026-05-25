@@ -64,7 +64,7 @@ def read_ascii_file(fpath: str) -> dict:
     """Read data from an ASCII file and return a dictionary."""
     data_dict = {}
 
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         for line in fp.readlines():
             # Skip header or empty lines
             if line.startswith("#") or not line.strip():
@@ -95,7 +95,7 @@ def read_ascii_file(fpath: str) -> dict:
 
 def write_ascii_file(fpath: str, data: dict) -> None:
     """Write ASCII file given a filename and a data dictionary."""
-    with open(fpath, 'w') as fp:
+    with open(fpath, 'w', encoding='utf-8') as fp:
         # Write the header line
         fp.write(FILE_HEADER)
         for n, entry in data.items():

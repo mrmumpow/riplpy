@@ -76,7 +76,7 @@ def _parse_header(line: str) -> dict | None:
 def read_ascii_file(fpath: str) -> dict:
     """Read a per-Z TLO file containing multiple nuclei."""
     d: dict = {}
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         # The TLO files use CRLF line endings; readlines handles that.
         lines = fp.readlines()
 

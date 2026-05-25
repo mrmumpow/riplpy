@@ -94,7 +94,7 @@ def read_ascii_file(fpath: str) -> dict:
     current_data = None
     in_data_section = False
 
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         for line in fp:
             line_stripped = line.strip()
 
@@ -295,7 +295,7 @@ def write_ascii_file(fpath: str, data: dict) -> None:
         fpath: Path to the output file.
         data: Dictionary of Entry objects keyed by Nuclide.
     """
-    with open(fpath, 'w') as fp:
+    with open(fpath, 'w', encoding='utf-8') as fp:
         # Sort entries by Z then A
         sorted_entries = sorted(data.values(), key=lambda e: (e.n.Z, e.n.A))
 

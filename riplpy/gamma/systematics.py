@@ -56,7 +56,7 @@ def _safe_float(s: str) -> float | None:
 def read_ascii_file(fpath: str) -> dict:
     """Read a ``gdr-parameters_exp&systematics_<slo|smlo>.dat`` file."""
     d = {}
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         for line in fp:
             if not line.strip() or line.lstrip().startswith('#'):
                 continue

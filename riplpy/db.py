@@ -654,7 +654,7 @@ class Database:
         sorted_cols.extend(sorted(all_columns))
 
         # Write CSV
-        with open(fpath, 'w', newline='') as fp:
+        with open(fpath, 'w', newline='', encoding='utf-8') as fp:
             writer = _csv.DictWriter(fp, fieldnames=sorted_cols, extrasaction='ignore')
             writer.writeheader()
             for row in rows:
@@ -668,7 +668,7 @@ class Database:
             indent: Number of spaces for indentation (default: 2).
         """
         if not self.data:
-            with open(fpath, 'w') as fp:
+            with open(fpath, 'w', encoding='utf-8') as fp:
                 _json.dump([], fp)
             return
 
@@ -678,7 +678,7 @@ class Database:
             serialized = self._serialize_value(self._entry_as_mapping(entry))
             entries.append(serialized)
 
-        with open(fpath, 'w') as fp:
+        with open(fpath, 'w', encoding='utf-8') as fp:
             _json.dump(entries, fp, indent=indent)
 
     def to_dataframe(self) -> "pandas.DataFrame":

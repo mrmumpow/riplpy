@@ -65,7 +65,7 @@ def read_mk_ascii_file(fpath: str) -> dict:
     d = {}
 
     # Read data from file
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         for i, line in enumerate(fp.readlines()):
             # Skip the header line(s)
             if "#" in line[0]:
@@ -86,7 +86,7 @@ def read_ms_ascii_file(fpath: str) -> dict:
     d = {}
 
     # Read data from file
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         for i, line in enumerate(fp.readlines()):
             # Skip the header line(s)
             if "#" in line[0]:
@@ -104,7 +104,7 @@ def write_ms_ascii_file(fpath: str, data: dict) -> None:
     """Write a shell correction ASCII file given a filename and a data dictionary. """
 
     # Write data to file
-    with open(fpath, 'w') as fp:
+    with open(fpath, 'w', encoding='utf-8') as fp:
         # Write header line
         fp.write(FILE_MS_HEADER)
         # Loop over data
@@ -117,7 +117,7 @@ def write_mk_ascii_file(fpath: str, data: dict) -> None:
     """Write a shell correction ASCII file given a filename and a data dictionary. """
 
     # Write data to file
-    with open(fpath, 'w') as fp:
+    with open(fpath, 'w', encoding='utf-8') as fp:
         # Write header line (empty for MK format)
         fp.write(FILE_MK_HEADER)
         # Loop over data - use format matching the reader: (9x,i3,9x,i3,1x,f8.3)

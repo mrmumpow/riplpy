@@ -151,7 +151,7 @@ def read_ascii_file(filepath: str) -> dict:
     density_data = _defaultdict(list)
 
     try:
-        with open(filepath, 'r') as file:
+        with open(filepath, 'r', encoding='utf-8', errors='replace') as file:
             lines = iter(file.readlines())  # Create an iterator for the file lines
             for line in lines:
                 if not line.strip():  # Skip empty lines
@@ -192,7 +192,7 @@ def read_ascii_file(filepath: str) -> dict:
 def write_ascii_file(filepath: str, data: dict) -> None:
     """Write ASCII file given a filename and data dictionary. """
     try:
-        with open(filepath, 'w') as fp:
+        with open(filepath, 'w', encoding='utf-8') as fp:
             for nuclide, entry in data.items():
                 # Write the header for each nuclide
                 Z = nuclide.Z  # Charge number

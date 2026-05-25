@@ -136,7 +136,7 @@ def read_ascii_file(fpath: str, label: str) -> dict:
             'rho_J': cur_data['rho_J'],
         }
 
-    with open(fpath, 'r') as fp:
+    with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         for raw in fp:
             stripped = raw.strip()
             if not stripped:

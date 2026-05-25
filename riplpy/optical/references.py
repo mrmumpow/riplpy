@@ -205,7 +205,7 @@ def read_references(filepath: str) -> ReferenceDatabase:
     current_ref_num = None
     current_citation = []
 
-    with open(filepath, 'r') as fp:
+    with open(filepath, 'r', encoding='utf-8', errors='replace') as fp:
         for line in fp:
             line = line.replace('\r', '').rstrip()
 

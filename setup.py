@@ -8,7 +8,7 @@ import setuptools
 
 def read(rel_path: str) -> str:
     here = os.path.abspath(os.path.dirname(__file__))
-    with open(os.path.join(here, rel_path), 'r') as fp:
+    with open(os.path.join(here, rel_path), 'r', encoding='utf-8') as fp:
         return fp.read()
 
 
@@ -51,15 +51,20 @@ setuptools.setup(
     description="A Python package for the Reference Input Parameter Library (RIPL)",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    #url="https://github.com/pypa/sampleproject",
-    #project_urls={
-        #"Bug Tracker": "https://github.com/pypa/sampleproject/issues",
-    #},
+    url="https://github.com/mrmumpow/riplpy",
+    project_urls={
+        "Source": "https://github.com/mrmumpow/riplpy",
+        "Bug Tracker": "https://github.com/mrmumpow/riplpy/issues",
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
     ],
+    # Explicit package discovery (restricted to the riplpy tree) so installs
+    # are deterministic and never sweep in tests/ under flat-layout
+    # auto-discovery.
+    packages=setuptools.find_packages(include=["riplpy", "riplpy.*"]),
     include_package_data=True,
     python_requires=">=3.10",
     install_requires=reqs,

@@ -33,11 +33,12 @@ with open("requirements.txt", "r") as fh:
         if line.strip() and not line.strip().startswith("#")
     ]
 
-# Optional features. pandas is only needed for the DataFrame exporters
-# (Database.to_dataframe / riplpy.to_dataframe); the package imports and the
-# CSV/JSON/list exporters work without it.
+# Optional features. pandas/numpy are only needed for their respective
+# exporters (Database.to_dataframe / to_numpy and their riplpy.* wrappers);
+# the package imports and the CSV/JSON/list exporters work without either.
 extras = {
     "dataframe": ["pandas"],
+    "numpy": ["numpy"],
 }
 extras["all"] = sorted({dep for deps in extras.values() for dep in deps})
 

@@ -76,6 +76,60 @@ class TestSpectralExport:
         assert len(recs) == n_datasets
 
 
+class TestNumpyExport:
+    """to_numpy(): structured array (default) and float feature matrix."""
+
+    def test_structured_array_columns_and_dtypes(self, ripl_path):
+        np = pytest.importorskip("numpy")
+        db = masses.ame20.load(directory=ripl_path)
+        arr = db.to_numpy()
+        assert isinstance(arr, np.ndarray)
+        assert len(arr) == len(db.data)
+        # Z/A/symbol come first, mirroring to_dataframe
+        assert arr.dtype.names[:3] == ('n.Z', 'n.A', 'n.symbol')
+        # inferred dtypes: int Z, float mass, object symbol
+        assert arr['n.Z'].dtype == np.int64
+        assert arr['Mexp'].dtype == np.float64
+        assert arr['n.symbol'].dtype == object
+
+    def test_feature_matrix_is_dense_float(self, ripl_path):
+        np = pytest.importorskip("numpy")
+        db = masses.ame20.load(directory=ripl_path)
+        X, cols = db.to_numpy(structured=False)
+        assert X.dtype == np.float64
+        assert X.shape == (len(db.data), len(cols))
+        # non-numeric columns are dropped
+        assert 'n.symbol' not in cols
+        assert 'n.Z' in cols and 'Mexp' in cols
+
+    def test_none_gaps_become_nan(self, ripl_path):
+        np = pytest.importorskip("numpy")
+        # frdm12 has None deformation fields -> numeric column with NaN gaps
+        db = masses.frdm12.load(directory=ripl_path)
+        arr = db.to_numpy()
+        assert arr['beta2'].dtype == np.float64
+        assert np.isnan(arr['beta2']).any()
+
+    def test_spectral_object_column_stacks(self, ripl_path):
+        np = pytest.importorskip("numpy")
+        db = gamma.d1m.load_element(Z=26, directory=ripl_path)
+        arr = db.to_numpy()
+        # ragged/array fields are preserved as object cells...
+        assert arr['fE1'].dtype == object
+        # ...and stack into a dense (n_nuclei, n_energy) matrix when aligned
+        spectra = np.stack(arr['fE1'])
+        assert spectra.ndim == 2 and spectra.shape[0] == len(db.data)
+
+    def test_top_level_to_numpy_dispatch(self, ripl_path):
+        np = pytest.importorskip("numpy")
+        riplpy.set_path(ripl_path)
+        masses.load(directory=ripl_path)
+        arr = riplpy.to_numpy('masses.ame20')
+        assert isinstance(arr, np.ndarray) and len(arr) > 0
+        X, cols = riplpy.to_numpy('masses.ame20', structured=False)
+        assert X.shape[0] == len(arr)
+
+
 class TestUniformDispatch:
     """Top-level riplpy.to_dataframe(spec)/to_records(spec) (IM-3)."""
 

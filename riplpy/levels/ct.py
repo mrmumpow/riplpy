@@ -167,18 +167,6 @@ class Database(_db.NuclideDatabase):
     entry : object = Entry
     writer: object = write_ascii_file
 
-    # def load_numpy(self, filename: str) -> _np.array:
-    #     """"""
-    #     lst = []
-    #     with open(filename, 'r') as fp:
-    #         for line in fp.readlines():
-    #             # Skip header lines
-    #             if "#" in line[0]:
-    #                 continue
-    #             lst.append(const_reader.read(line))
-    #     return _np.array(lst)
-
-
 
 # Create the local 'load' function with config, database object, and file_path_key pre-filled
 load = _partial(_db.loader, config=_config, db_obj=Database, file_path_key=FILE_PATH_KEY)

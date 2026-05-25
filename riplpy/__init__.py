@@ -39,7 +39,7 @@ __all__ = [
     'in_ripl', 'in_sections', 'in_dbs', 'list_sections', 'list_databases',
     'list_nuclei', 'get_database',
     # Uniform ML/AI ingestion entry points
-    'to_dataframe', 'to_records',
+    'to_dataframe', 'to_records', 'to_numpy',
     # Scalar convenience getters
     'get_mass', 'get_mass_entry', 'get_level_density', 'get_gdr',
     'get_resonance', 'get_fission_barrier',
@@ -492,6 +492,41 @@ def to_records(database: str, section: str = None) -> list:
             f"dataset not yet loaded). Load it first."
         )
     return db.to_list()
+
+
+def to_numpy(database: str, section: str = None, structured: bool = True):
+    """Return a loaded database as a numpy array for ML/AI pipelines.
+
+    A uniform numpy ingestion entry point parallel to :func:`to_dataframe`.
+
+    Args:
+        database: Database name or 'section.database' (e.g. 'masses.ame20',
+                  'gamma.experiment_slo', 'fission.bskg3_barriers').
+        section: Optional section name if the database name is ambiguous.
+        structured: If True (default), return a numpy structured (record)
+            array with every column preserved (Z/A/symbol first). If False,
+            return ``(X, columns)`` where ``X`` is a dense float64 feature
+            matrix of the numeric columns only.
+
+    Returns:
+        numpy.ndarray when ``structured`` is True; otherwise a
+        ``(numpy.ndarray, list[str])`` tuple.
+
+    Raises:
+        ValueError: If the database is unknown/ambiguous or not loaded.
+        ImportError: If numpy is not installed (pip install 'riplpy[numpy]').
+
+    Examples:
+        >>> arr = riplpy.to_numpy('masses.ame20')
+        >>> X, cols = riplpy.to_numpy('masses.ame20', structured=False)
+    """
+    db = get_database(database, section)
+    if db is None:
+        raise ValueError(
+            f"Database '{database}' is not loaded (RIPL-3 legacy or a heavy "
+            f"dataset not yet loaded). Load it first."
+        )
+    return db.to_numpy(structured=structured)
 
 
 def _resolve_nucleus(Z_or_nuclide, A=None) -> Nuclide:

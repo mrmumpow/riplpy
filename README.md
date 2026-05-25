@@ -48,15 +48,19 @@ If you want the source to stay exactly as it was on the repository, use the abov
 
 ### Optional features
 
-`pandas` is only required for the DataFrame exporters
-(`Database.to_dataframe()` / `riplpy.to_dataframe()`); everything else,
-including the CSV/JSON/list exporters, works without it. Install the optional
-dependency with the `dataframe` extra:
+`pandas` and `numpy` are only required for their respective DataFrame and
+array exporters (`to_dataframe()` / `to_numpy()` and their `riplpy.*`
+wrappers); everything else, including the CSV/JSON/list/ASCII exporters, works
+without either. Install them via extras:
 
 ```bash
-pip install -e ".[dataframe]"   # editable install with pandas
-pip install ".[dataframe]"      # standard install with pandas
+pip install -e ".[dataframe]"     # pandas, for to_dataframe()
+pip install -e ".[numpy]"         # numpy, for to_numpy()
+pip install -e ".[dataframe,numpy]"   # both
+pip install -e ".[all]"           # all optional dependencies
 ```
+
+(Drop the `-e` for a non-editable install.)
 
 ## Quick Start
 
@@ -278,8 +282,8 @@ for a machine-readable field/units catalog.
 
 ### Writing & Exporting Data
 
-Every loaded database supports the same five export methods plus the native
-ASCII writer, so the same recipes work for masses, level densities, fission
+Every loaded database supports the same export methods plus the native ASCII
+writer, so the same recipes work for masses, level densities, fission
 barriers, resonances, levels, and gamma-strength tables alike. Use these for
 analysis pipelines, spreadsheet hand-off, ML ingestion, or to publish a
 modified subset of RIPL back out to disk in the original format.
@@ -300,18 +304,50 @@ db.to_csv('ame20.csv')
 db.to_json('ame20.json', indent=2)
 
 # 4) pandas DataFrame (Z, A, symbol always come first; array fields stay
-#    as native Python lists)
+#    as native Python lists). Requires the [dataframe] extra.
 df = db.to_dataframe()
 df.to_parquet('ame20.parquet')                    # if you have pyarrow
 
-# 5) Plain list of dicts (Nuclide -> {Z, A, symbol})
+# 5) numpy array (Z, A, symbol first). Requires the [numpy] extra.
+arr  = db.to_numpy()                              # structured (record) array
+arr['Mexp']                                       # -> float64 column
+X, cols = db.to_numpy(structured=False)           # dense float64 feature matrix
+
+# 6) Plain list of dicts (Nuclide -> {Z, A, symbol})
 records = db.to_list()                            # nested structures preserved
 flat    = db.to_flat_list()                       # nested -> dotted keys
 
 # Top-level convenience for ML/AI pipelines: one call, any section
-df  = riplpy.to_dataframe('fission.bskg3_barriers')
-rec = riplpy.to_records('resonances.swave')
+df   = riplpy.to_dataframe('fission.bskg3_barriers')   # [dataframe] extra
+arr  = riplpy.to_numpy('resonances.swave')             # [numpy] extra
+rec  = riplpy.to_records('resonances.swave')           # no extra needed
 ```
+
+For ML/AI feature engineering, `to_dataframe` and `to_numpy` are the two
+primary forms — a labelled table or a raw array:
+
+```python
+import numpy as np
+import riplpy
+riplpy.load()
+
+# (a) Scalar table -> DataFrame or feature matrix
+db = riplpy.get_database('masses.ame20')
+df = db.to_dataframe()                  # pandas: df['Mexp'], df['n.Z'], ...
+X, cols = db.to_numpy(structured=False) # numpy: dense (n_nuclei, n_features)
+
+# (b) Spectral table -> stacked (n_nuclei, n_energy) array for training
+import riplpy.gamma as gamma
+fe  = gamma.d1m.load_element(Z=26)      # per-Z D1M+QRPA E1 strengths
+arr = fe.to_numpy()                     # arr['fE1'] is an object column of lists
+spectra = np.stack(arr['fE1'])          # (n_iron_isotopes, 300) float matrix
+energy  = np.asarray(arr['U'][0])       # shared 0.1-30 MeV grid
+# `spectra` (and the matching DataFrame, fe.to_dataframe()) feed a model directly
+```
+
+> The DataFrame exporters need `pip install ".[dataframe]"` and the numpy
+> exporters need `pip install ".[numpy]"`; the CSV/JSON/list/ASCII exporters
+> have no optional dependencies.
 
 Filter, then write a derived subset back out as ASCII (round-trips through
 the section's writer):
@@ -444,10 +480,12 @@ for pot in potentials[:5]:  # Show first 5
 - Python 3.10+
 - `fortranformat`
 - `pandas` (optional, for `to_dataframe()`; install via the `dataframe` extra)
+- `numpy` (optional, for `to_numpy()`; install via the `numpy` extra)
 
-Install the required dependencies with `pip install .` and the optional
-DataFrame support with `pip install ".[dataframe]"`. See `requirements.txt`
-for the required dependency list.
+Install the required dependencies with `pip install .`, and the optional
+DataFrame/array exporters with `pip install ".[dataframe,numpy]"` (or
+`pip install ".[all]"`). See `requirements.txt` for the required dependency
+list.
 
 ## Author
 

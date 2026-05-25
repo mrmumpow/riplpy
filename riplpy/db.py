@@ -746,6 +746,109 @@ class Database:
             rows.append(row)
         return rows
 
+    def to_numpy(self, structured: bool = True):
+        """Export the database as a numpy array for ML/AI pipelines.
+
+        Args:
+            structured: If True (default), return a numpy *structured* (record)
+                array mirroring :meth:`to_dataframe`: every column is preserved
+                with the nuclide Z/A/symbol columns first, named fields, and
+                per-column dtypes inferred (all-int -> int64, numeric with gaps
+                -> float64 with NaN, list/spectral fields -> object). Access a
+                column by name, e.g. ``arr['Mexp']``.
+
+                If False, return ``(X, columns)`` where ``X`` is a dense
+                float64 2-D feature matrix of the *numeric* columns only
+                (missing values become NaN) and ``columns`` is the list of
+                column names. Non-numeric (string) and list-valued columns are
+                dropped, so ``X`` is model-ready.
+
+        Returns:
+            numpy.ndarray when ``structured`` is True; otherwise a
+            ``(numpy.ndarray, list[str])`` tuple.
+
+        Raises:
+            ImportError: If numpy is not installed.
+
+        Examples:
+            >>> arr = db.to_numpy()
+            >>> arr['Mexp']                     # float64 column
+            >>> X, cols = db.to_numpy(structured=False)
+            >>> X.shape                         # (n_rows, n_numeric_cols)
+        """
+        try:
+            import numpy as np
+        except ImportError:
+            raise ImportError(
+                "numpy is required for to_numpy(). Install the optional array "
+                "support with: pip install 'riplpy[numpy]' "
+                "(or directly: pip install numpy)"
+            )
+
+        rows = self.to_flat_list()
+
+        # Column ordering mirrors to_dataframe: Z/A/symbol first, then sorted.
+        all_cols = set()
+        for row in rows:
+            all_cols.update(row.keys())
+        priority_cols = ['n.Z', 'n.A', 'n.symbol', 'Z', 'A', 'symbol']
+        ordered = [c for c in priority_cols if c in all_cols]
+        ordered += sorted(c for c in all_cols if c not in priority_cols)
+
+        # Per-column value vectors (a missing key in a row becomes None).
+        col_values = {c: [row.get(c) for row in rows] for c in ordered}
+
+        def _classify(values):
+            """Return (numpy dtype, normalized values) for one column."""
+            non_none = [v for v in values if v is not None]
+            is_numeric = bool(non_none) and all(
+                isinstance(v, (int, float)) for v in non_none
+            )
+            if is_numeric:
+                all_int = all(isinstance(v, int) for v in non_none)
+                if all_int and None not in values:
+                    return np.int64, [int(v) for v in values]
+                return np.float64, [
+                    float(v) if v is not None else np.nan for v in values
+                ]
+            return object, list(values)
+
+        if not structured:
+            numeric_cols = [
+                c for c in ordered if _classify(col_values[c])[0] is not object
+            ]
+            X = np.empty((len(rows), len(numeric_cols)), dtype=np.float64)
+            for j, c in enumerate(numeric_cols):
+                X[:, j] = [
+                    float(v) if v is not None else np.nan
+                    for v in col_values[c]
+                ]
+            return X, numeric_cols
+
+        if not ordered:
+            return np.empty((len(rows),), dtype=object)
+
+        fields = []
+        normalized = {}
+        for c in ordered:
+            dt, vals = _classify(col_values[c])
+            fields.append((c, dt))
+            normalized[c] = (dt, vals)
+
+        arr = np.empty(len(rows), dtype=fields)
+        for c in ordered:
+            dt, vals = normalized[c]
+            if dt is object:
+                # Assign element-by-element so list/array cells are stored as
+                # objects rather than being broadcast into the field.
+                col = np.empty(len(rows), dtype=object)
+                for i, v in enumerate(vals):
+                    col[i] = v
+                arr[c] = col
+            else:
+                arr[c] = np.asarray(vals, dtype=dt)
+        return arr
+
     def filter(self, predicate=None, **kwargs) -> "Database":
         """Filter database entries and return a new database with matching entries.
 

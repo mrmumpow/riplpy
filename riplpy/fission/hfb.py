@@ -196,22 +196,6 @@ class Database(_db.Database):
     #     return ret
 
     # @property
-    # def as_numpy_array(self, ) -> _np.array:
-    #     """Return the database as a structured Numpy array. """
-    #     ret = []
-    #     for n, v in self.data.items():
-    #         # Define nucleus information
-    #         Z, N, A, sym = n.Z, n.N, n.A, n.element_symbol
-    #         # First barrier
-    #         Bin, hwin, alphain, deltain = v.A.height, v.A.curvature, v.A.alpha, v.A.delta
-    #         # Second barrier
-    #         Bout, hwout, alphaout, deltaout = v.B.height, v.B.curvature, v.B.alpha, v.B.delta
-    #         # Third barrier
-    #         Bout2, hwout2, alphaout2, deltaout2 = v.C.height, v.C.curvature, v.C.alpha, v.C.delta
-    #         ret.append((Z,N,A,sym,Bin,hwin,alphain,deltain,Bout,hwout,alphaout,deltaout,Bout2,hwout2,alphaout2,deltaout2))
-    #     return _np.array(ret, dtype=HFB_DB_NUMPY_DTYPE)
-
-    # @property
     # def as_nuclides(self, ) -> list:
     #     """Return the database as a list of Nuclides. Each nuclide contains the relevant barrier properties. """
     #     ret = []

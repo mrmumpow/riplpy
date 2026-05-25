@@ -129,31 +129,6 @@ class Theory_GDR_Parameter(Base_GDR_Parameter):
     #         r.append(Theory_GDR_Parameter(k, eta, E1, W1, E2, W2))
     #     return r
 
-    # def as_numpy_array(self, sort: bool = False) -> _np.array:
-    #     """Return the dataset as a Numpy array. """
-    #     dtype = {"names": ('Z', 'N', 'A', 'sym', 'eta', 'E1', 'W1', 'E2', 'W2'),
-    #              "formats": (_np.int16, _np.int16, _np.int16, object, _np.float, _np.float, _np.float, _np.float, _np.float)}
-        
-    #     # Attempt to sort
-    #     if sort:
-    #         keys = sorted(self.data.keys())
-    #     else:
-    #         keys = self.data.keys()
-        
-    #     # Placeholder return array
-    #     a = _np.empty(0, dtype=dtype)
-        
-    #     for k in self.data.keys():
-    #         Z,N,A,sym = k.Z,k.N,k.A,k.sym
-    #         eta = self.data[k]['eta']
-    #         E1  = self.data[k]['E1']
-    #         W1  = self.data[k]['W1']
-    #         E2  = self.data[k]['E2']
-    #         W2  = self.data[k]['W2']
-    #         v = _np.array((Z,N,A,sym,eta,E1,W1,E2,W2), dtype=dtype)
-    #         a = _np.append(a, v)
-    #     return a
-
 
 class Theory_GDR_ParameterMarshaller(object):
     """The marshaller for a Theory_GDR_Parameter object. It can perform conversions of a Theory_GDR_Parameter object to other formats. """

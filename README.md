@@ -261,7 +261,7 @@ df = d1m.to_dataframe()
 records = d1m.to_list()
 ```
 
-See `COVERAGE.md` for the exhaustive dataset/reader map and `SCHEMA.json`
+See `CATALOG.md` for the human-readable dataset/reader map and `SCHEMA.json`
 for a machine-readable field/units catalog.
 
 ### Writing & Exporting Data

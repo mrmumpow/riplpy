@@ -157,8 +157,8 @@ def write_ascii_file(fpath: str, data: dict) -> None:
                 nucleus.Z,
                 num_levels,                       # Number of levels
                 num_gammas,                       # Number of gamma-rays
-                entry.extras[0], entry.extras[1], #@TODO: Fix placeholder integers
-                entry.extras[2], entry.extras[3]  #@TODO: Fix placeholder floats
+                entry.extras[0], entry.extras[1], # Nmax, Nc (completeness limits)
+                entry.extras[2], entry.extras[3]  # Sn, Sp separation energies [MeV]
             ]
             fp.write(ident_writer.write(header_record) + '\n')
 

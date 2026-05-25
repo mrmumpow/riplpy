@@ -1088,30 +1088,36 @@ class ElementDatabase(Database):
             raise TypeError(f"Entry must be of type = ({type(self.entry)}); given = ({type(entry)})!")
 
     def remove_by_entry(self, entry: object) -> None:
-        """Remove an existing entry in the database. """
-        # Check that a proper entry has been provided
-        if hasattr(entry, 'Z'):
-            try:
-                self.data.pop(entry.Z)
-            except KeyError:
-                raise ElementNotFoundError(f"Element {entry.Z} not found in database.")
-        elif hasattr(entry, 'sym'):
-            try:
-                self.data.pop(entry.Z)
-            except KeyError:
-                raise ElementNotFoundError(f"Element with symbol {entry.sym} not found in database.")
-        elif hasattr(entry, 'symbol'):
-            try:
-                self.data.pop(entry.Z)
-            except KeyError:
-                raise ElementNotFoundError(f"Element with symbol {entry.symbol} not found in database.")
-        elif hasattr(entry, 'name'):
-            try:
-                self.data.pop(entry.Z)
-            except KeyError:
-                raise ElementNotFoundError(f"Element with name {entry.name} not found in database.")
+        """Remove an existing entry, which is keyed by element number (Z).
+
+        The entry's ``Z`` is used when present; otherwise its element symbol
+        (``sym``/``symbol``) or ``name`` is resolved to a ``Z``. Raises
+        ElementNotFoundError if the element is not in the database (or is not a
+        recognized symbol/name), matching :meth:`get`'s contract.
+        """
+        # Resolve the element key (Z) from whatever identifier the entry carries.
+        if getattr(entry, 'Z', None) is not None:
+            z = entry.Z
+            ident = entry.Z
         else:
-            raise TypeError("Entry object must have an element number!")
+            from riplpy.elements import Elements
+            sym = getattr(entry, 'sym', None) or getattr(entry, 'symbol', None)
+            name = getattr(entry, 'name', None)
+            if sym is not None:
+                ident = sym
+                z = Elements.SymtoZ.get(str(sym).capitalize())
+            elif name is not None:
+                ident = name
+                z = Elements.NametoZ.get(str(name).capitalize())
+            else:
+                raise TypeError("Entry object must have an element number, symbol, or name!")
+            if z is None:
+                raise ElementNotFoundError(f"Element '{ident}' is not a recognized symbol or name.")
+
+        try:
+            self.data.pop(z)
+        except KeyError:
+            raise ElementNotFoundError(f"Element {ident} not found in database.")
 
 
 class _DbAccessor:

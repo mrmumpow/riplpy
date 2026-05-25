@@ -693,7 +693,11 @@ class Database:
         try:
             import pandas as pd
         except ImportError:
-            raise ImportError("pandas is required for to_dataframe(). Install with: pip install pandas")
+            raise ImportError(
+                "pandas is required for to_dataframe(). Install the optional "
+                "DataFrame support with: pip install 'riplpy[dataframe]' "
+                "(or directly: pip install pandas)"
+            )
 
         if not self.data:
             return pd.DataFrame()

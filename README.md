@@ -46,6 +46,18 @@ pip install .
 
 If you want the source to stay exactly as it was on the repository, use the above command instead. Note the lack of the "-e" option. This installation method is intended for production environments.
 
+### Optional features
+
+`pandas` is only required for the DataFrame exporters
+(`Database.to_dataframe()` / `riplpy.to_dataframe()`); everything else,
+including the CSV/JSON/list exporters, works without it. Install the optional
+dependency with the `dataframe` extra:
+
+```bash
+pip install -e ".[dataframe]"   # editable install with pandas
+pip install ".[dataframe]"      # standard install with pandas
+```
+
 ## Quick Start
 
 ```python
@@ -431,9 +443,11 @@ for pot in potentials[:5]:  # Show first 5
 
 - Python 3.10+
 - `fortranformat`
-- pandas (optional, for `to_dataframe()`)
+- `pandas` (optional, for `to_dataframe()`; install via the `dataframe` extra)
 
-See `requirements.txt` for the full dependency list.
+Install the required dependencies with `pip install .` and the optional
+DataFrame support with `pip install ".[dataframe]"`. See `requirements.txt`
+for the required dependency list.
 
 ## Author
 

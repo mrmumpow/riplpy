@@ -25,9 +25,21 @@ def get_version(rel_path):
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-# Requirements
+# Requirements (one per line; skip blanks and comments)
 with open("requirements.txt", "r") as fh:
-    reqs = fh.read()
+    reqs = [
+        line.strip()
+        for line in fh
+        if line.strip() and not line.strip().startswith("#")
+    ]
+
+# Optional features. pandas is only needed for the DataFrame exporters
+# (Database.to_dataframe / riplpy.to_dataframe); the package imports and the
+# CSV/JSON/list exporters work without it.
+extras = {
+    "dataframe": ["pandas"],
+}
+extras["all"] = sorted({dep for deps in extras.values() for dep in deps})
 
 
 setuptools.setup(
@@ -50,4 +62,5 @@ setuptools.setup(
     include_package_data=True,
     python_requires=">=3.10",
     install_requires=reqs,
-) 
+    extras_require=extras,
+)

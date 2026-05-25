@@ -362,26 +362,19 @@ class Nuclide(NucleusBase):
 
     @classmethod
     def from_string(cls, val: str):
-        """Initialize the object from a string. """
-        if "-" in val:
-            # @TODO: Implement
-            pass
-        else:
-            # Assume of the form '###El'
-            lst = []
-            for i in _re.split(r'(\d+)', val):
-                i = i.strip()
-                if len(i) > 0:
-                    lst.append(i)
-            assert len(lst) == 2
-            for v in lst:
-                if v.isnumeric():
-                    A = int(v)
-                else:
-                    sym = v
-            Z = Elements.element_from_symbol(sym)
-            N = A - Z
-            return cls(Z=Z, N=N)
+        """Initialize the object from an isotope string.
+
+        Accepts the common notations regardless of separator or element/mass
+        order, e.g. ``'56Fe'``, ``'Fe-56'``, ``'Fe56'``, ``'Fe 56'``, and the
+        full-name forms ``'Iron-56'`` / ``'56 iron'``.
+
+        Raises:
+            ValueError: If the string cannot be parsed into an element and a
+                mass number, or the element is not recognized.
+        """
+        from .elements import isotope_str_to_tuple
+        Z, N, A = isotope_str_to_tuple(val)
+        return cls(Z=Z, N=N)
 
     def _subset(self, kwargs: dict) -> tuple:
         """Return a tuple of two sets: 

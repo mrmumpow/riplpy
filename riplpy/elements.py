@@ -324,11 +324,40 @@ NametoZ = dict(map(reversed, ZtoName.items()))
 
 
 def isotope_str_to_tuple(istr: str) -> tuple:
-    """Convert an isotope string to a tuple of (Z,N,A); assumes the first two entries are A followed by symbol. """
-    res = re.findall(r'(\d+|[A-Za-z]+)', istr)
-    Z   = SymtoZ[res[1]]
-    A   = int(res[0])
-    return (Z, A-Z, A)
+    """Convert an isotope string to a tuple of ``(Z, N, A)``.
+
+    Accepts the common notations regardless of separator or of whether the
+    element or the mass number comes first, e.g. ``'56Fe'``, ``'Fe-56'``,
+    ``'Fe56'``, ``'Fe 56'``, and the full-name forms ``'Iron-56'`` /
+    ``'56 iron'``. The element token is matched against element symbols first,
+    then full names, both case-insensitively.
+
+    Args:
+        istr: The isotope string to parse.
+
+    Returns:
+        ``(Z, N, A)``.
+
+    Raises:
+        ValueError: If the string does not contain exactly one element token
+            and one mass-number token, or the element is not recognized.
+    """
+    symbols = re.findall(r'[A-Za-z]+', istr)
+    numbers = re.findall(r'\d+', istr)
+    if len(symbols) != 1 or len(numbers) != 1:
+        raise ValueError(
+            f"Cannot parse isotope string {istr!r}; expected one element "
+            f"symbol/name and one mass number (e.g. '56Fe' or 'Fe-56')."
+        )
+
+    token = symbols[0].capitalize()
+    A = int(numbers[0])
+    Z = SymtoZ.get(token, NametoZ.get(token))
+    if Z is None:
+        raise ValueError(
+            f"Unrecognized element '{symbols[0]}' in isotope string {istr!r}."
+        )
+    return (Z, A - Z, A)
 
 
 class ElementsMeta(type):

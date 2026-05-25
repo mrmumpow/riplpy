@@ -342,10 +342,10 @@ def list_nuclei(database: str, section: str = None) -> list:
             raise ValueError(f"Unknown section '{section}'. Available: {list(sections)}")
         module = globals()[section]
         db_accessor = getattr(module, 'db')
-        if database not in list(db_accessor()):
+        if not db_accessor.has(database):
             available = list(db_accessor())
             raise ValueError(f"Database '{database}' not found in section '{section}'. Available: {available}")
-        db = getattr(db_accessor, database)
+        db = getattr(db_accessor, db_accessor.resolve(database))
         return list(db.data.keys())
 
     # Search all sections for the database
@@ -353,7 +353,7 @@ def list_nuclei(database: str, section: str = None) -> list:
     for sec in sections:
         module = globals()[sec]
         db_accessor = getattr(module, 'db')
-        if database in list(db_accessor()):
+        if db_accessor.has(database):
             found_in.append(sec)
 
     if len(found_in) == 0:
@@ -364,7 +364,8 @@ def list_nuclei(database: str, section: str = None) -> list:
 
     # Unambiguous - return the nuclei
     module = globals()[found_in[0]]
-    db = getattr(getattr(module, 'db'), database)
+    db_accessor = getattr(module, 'db')
+    db = getattr(db_accessor, db_accessor.resolve(database))
     return list(db.data.keys())
 
 
@@ -403,17 +404,17 @@ def get_database(database: str, section: str = None) -> object:
             raise ValueError(f"Unknown section '{section}'. Available: {list(sections)}")
         module = globals()[section]
         db_accessor = getattr(module, 'db')
-        if database not in list(db_accessor()):
+        if not db_accessor.has(database):
             available = list(db_accessor())
             raise ValueError(f"Database '{database}' not found in section '{section}'. Available: {available}")
-        return getattr(db_accessor, database)
+        return getattr(db_accessor, db_accessor.resolve(database))
 
     # Search all sections for the database
     found_in = []
     for sec in sections:
         module = globals()[sec]
         db_accessor = getattr(module, 'db')
-        if database in list(db_accessor()):
+        if db_accessor.has(database):
             found_in.append(sec)
 
     if len(found_in) == 0:
@@ -424,7 +425,8 @@ def get_database(database: str, section: str = None) -> object:
 
     # Unambiguous - return the database
     module = globals()[found_in[0]]
-    return getattr(getattr(module, 'db'), database)
+    db_accessor = getattr(module, 'db')
+    return getattr(db_accessor, db_accessor.resolve(database))
 
 
 def to_dataframe(database: str, section: str = None) -> "pandas.DataFrame":

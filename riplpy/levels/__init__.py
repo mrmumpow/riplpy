@@ -12,6 +12,10 @@ from . import discrete as discrete
 
 db = _DbAccessor()
 
+# Shorthand aliases for the verbose canonical names.
+db.add_alias('ct', 'constant_temperature')
+db.add_alias('discrete', 'discrete_levels')
+
 # ========================
 
 def load(directory: str = None) -> None:

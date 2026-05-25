@@ -287,6 +287,47 @@ class TestQuickThreadedLoad:
 
 
 # =============================================================================
+# API: Database shorthand/longhand aliases
+# =============================================================================
+
+class TestDatabaseAliases:
+    """Shorthand/longhand aliases resolve to the same database, work through
+    get_database/list_nuclei, and do not pollute list_databases.
+    """
+
+    def test_direct_attribute_aliases(self, ripl_path):
+        masses.load(directory=ripl_path)
+        fission.load(directory=ripl_path)
+        import riplpy.levels as levels
+        levels.load(directory=ripl_path)
+        assert masses.db.frdm12 is masses.db.frdm2012
+        assert masses.db.frdm95 is masses.db.frdm1995
+        assert masses.db.ame2020 is masses.db.ame20
+        assert fission.db.bskg3 is fission.db.bskg3_barriers
+        assert fission.db.empirical is fission.db.empirical_barriers
+        assert levels.db.ct is levels.db.constant_temperature
+
+    def test_get_database_accepts_aliases(self, ripl_path):
+        riplpy.set_path(ripl_path)
+        masses.load(directory=ripl_path)
+        import riplpy.levels as levels
+        levels.load(directory=ripl_path)
+        assert riplpy.get_database('masses.frdm12') is masses.db.frdm2012
+        assert riplpy.get_database('levels.ct') is levels.db.constant_temperature
+
+    def test_aliases_not_listed(self, ripl_path):
+        masses.load(directory=ripl_path)
+        listed = riplpy.list_databases('masses')
+        assert 'frdm2012' in listed       # canonical present
+        assert 'frdm12' not in listed     # alias not listed
+
+    def test_unknown_database_still_errors(self, ripl_path):
+        masses.load(directory=ripl_path)
+        with pytest.raises(ValueError):
+            riplpy.get_database('masses.does_not_exist')
+
+
+# =============================================================================
 # API: Query/Filter Methods
 # =============================================================================
 

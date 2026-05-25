@@ -29,6 +29,12 @@ from . import deformations as deformations
 
 db = _DbAccessor()
 
+# Shorthand <-> longhand aliases so db.frdm12 resolves to db.frdm2012, etc.
+# (the canonical attribute carries the full year; the abbreviation is the alias)
+db.add_alias('frdm12', 'frdm2012')
+db.add_alias('frdm95', 'frdm1995')
+db.add_alias('ame2020', 'ame20')
+
 # ========================
 
 # Model map: user-friendly name -> (db attribute name, mass excess field name)

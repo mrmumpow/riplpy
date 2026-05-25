@@ -1121,20 +1121,53 @@ class ElementDatabase(Database):
 
 
 class _DbAccessor:
-    """A pass through object which enables dynamic Database access. """
+    """A pass-through object which enables dynamic Database access.
+
+    Canonical databases are stored as plain attributes. Shorthand/longhand
+    aliases (e.g. ``frdm12`` -> ``frdm2012``) can be registered with
+    :meth:`add_alias`; an alias resolves to its canonical attribute on access
+    (``db.frdm12``) but is NOT listed by iteration, so ``list_databases`` keeps
+    showing one canonical name per database.
+    """
 
     def __init__(self, ) -> None:
-        """Store dynamically assigned attributes in a separate set. """
-        self._attributes = set()
+        """Store dynamically assigned attributes and aliases separately. """
+        super().__setattr__("_attributes", set())
+        super().__setattr__("_aliases", {})
 
     def __setattr__(self, name, value):
         """Set attribute so long as it isn't protected. """
-        if name not in ("_attributes", ) and not name.startswith("__"):
+        if name not in ("_attributes", "_aliases") and not name.startswith("__"):
             self._attributes.add(name)
         super().__setattr__(name, value)
 
+    def __getattr__(self, name):
+        """Resolve a registered alias to its canonical attribute.
+
+        Only invoked when normal attribute lookup fails, so canonical
+        databases never reach here.
+        """
+        aliases = self.__dict__.get("_aliases", {})
+        if name in aliases:
+            return getattr(self, aliases[name])
+        raise AttributeError(
+            f"{type(self).__name__!r} object has no attribute {name!r}"
+        )
+
+    def add_alias(self, alias: str, canonical: str) -> None:
+        """Register ``alias`` as another name for the ``canonical`` database. """
+        self._aliases[alias] = canonical
+
+    def resolve(self, name: str) -> str:
+        """Return the canonical attribute name for a possibly-aliased name. """
+        return self.__dict__.get("_aliases", {}).get(name, name)
+
+    def has(self, name: str) -> bool:
+        """True if ``name`` is a known database (canonical or alias). """
+        return self.resolve(name) in self._attributes
+
     def __call__(self):
-        """Iterate over assigned attributes. """
+        """Iterate over assigned (canonical) attributes. """
         for attr_name in self._attributes:
             yield attr_name
 

@@ -38,6 +38,11 @@ BARRIER_MODELS = {
     'd1m': 'd1m_barriers',
 }
 
+# Shorthand aliases so db.bskg3 / db.empirical resolve to the canonical
+# '*_barriers' attributes (mirrors the BARRIER_MODELS shorthand names).
+for _short, _canonical in BARRIER_MODELS.items():
+    db.add_alias(_short, _canonical)
+
 # ========================
 
 

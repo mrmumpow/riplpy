@@ -214,8 +214,15 @@ class Element(Base):
         return hash(self.Z)
 
     def __str__(self, ) -> str:
-        """Return a string representation of the object. """
-        return f"<{self.__class__.__name__}(z={self.Z}, symbol={self.symbol}, name={self.name})>"
+        """Return a string representation of the object.
+
+        Falls back to a symbol-less form when ``Z`` is outside the element
+        table, so formatting never crashes on an out-of-range value.
+        """
+        try:
+            return f"<{self.__class__.__name__}(z={self.Z}, symbol={self.symbol}, name={self.name})>"
+        except LookupError:
+            return f"<{self.__class__.__name__}(z={self.Z})>"
 
     def __repr__(self, ) -> str:
         """Return a string representation of the object. """
@@ -401,8 +408,15 @@ class Nuclide(NucleusBase):
             return False
 
     def __str__(self, ) -> str:
-        """Return a string representation of the object. """
-        return f"<Nuclide(z={self.Z}, a={self.A}, symbol={self.element_symbol})>"
+        """Return a string representation of the object.
+
+        Falls back to a symbol-less form when ``Z`` is outside the element
+        table, so formatting never crashes on an out-of-range value.
+        """
+        try:
+            return f"<Nuclide(z={self.Z}, a={self.A}, symbol={self.element_symbol})>"
+        except LookupError:
+            return f"<Nuclide(z={self.Z}, a={self.A})>"
 
     def __repr__(self, ) -> str:
         """Return a string representation of the object which can be used to initialize. """
@@ -445,8 +459,15 @@ class IsomericNucleus(Nucleus, NucleusBase):
         return hash((self.Z, self.N, self.m))
 
     def __str__(self, ) -> str:
-        """Return a string representation of the object. """
-        return f"<IsomericNucleus(z={self.Z}, n={self.N}, m={self.m}, symbol={self.element_symbol})>"
+        """Return a string representation of the object.
+
+        Falls back to a symbol-less form when ``Z`` is outside the element
+        table, so formatting never crashes on an out-of-range value.
+        """
+        try:
+            return f"<IsomericNucleus(z={self.Z}, n={self.N}, m={self.m}, symbol={self.element_symbol})>"
+        except LookupError:
+            return f"<IsomericNucleus(z={self.Z}, n={self.N}, m={self.m})>"
 
     def __repr__(self, ) -> str:
         """Return a string representation of the object which can be used to initialize. """

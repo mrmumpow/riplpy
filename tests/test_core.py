@@ -64,6 +64,26 @@ class TestNuclide:
         d = {n1: "test"}
         assert d[n2] == "test"
 
+    def test_out_of_range_z_does_not_crash_formatting(self):
+        """str()/repr of a Nuclide with no element symbol must not crash.
+
+        Regression: formatting used self.element_symbol unguarded, so any
+        Z > 118 raised a confusing bare KeyError from inside repr -- which in
+        turn corrupted error messages of any caller that f-string-formatted
+        the nuclide (e.g. NucleusNotFoundError construction in db.get).
+        """
+        from riplpy.exceptions import ElementNotFoundError
+        n = Nuclide(Z=200, A=400)
+        # str/repr must not raise
+        s = str(n); r = repr(n)
+        assert '200' in s and 'symbol' not in s
+        assert '200' in r
+        # element_symbol/name now raise ElementNotFoundError, not bare KeyError
+        with pytest.raises(ElementNotFoundError):
+            n.element_symbol
+        with pytest.raises(ElementNotFoundError):
+            n.element_name
+
 
 class TestElement:
     """Tests for the Element class."""

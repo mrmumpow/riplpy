@@ -399,18 +399,34 @@ class Elements(object, metaclass=ElementsMeta):
 
     @classmethod
     def name(cls, Z: int) -> str:
-        """Return the element name given element proton number (Z). """
-        return cls.ZtoName[int(Z)]
-    
+        """Return the element name given element proton number (Z).
+
+        Raises:
+            ElementNotFoundError: If Z is outside the element table.
+        """
+        try:
+            return cls.ZtoName[int(Z)]
+        except KeyError:
+            from riplpy.exceptions import ElementNotFoundError
+            raise ElementNotFoundError(f"No element with Z={Z}")
+
     @classmethod
     def names(cls, lst: list) -> list:
         """Return a list of element names given a list of proton numbers. """
         return [cls.name(z) for z in lst]
-    
+
     @classmethod
     def symbol(cls, Z: int) -> str:
-        """Return the element symbol given element proton number (Z). """
-        return cls.ZtoSym[int(Z)]
+        """Return the element symbol given element proton number (Z).
+
+        Raises:
+            ElementNotFoundError: If Z is outside the element table.
+        """
+        try:
+            return cls.ZtoSym[int(Z)]
+        except KeyError:
+            from riplpy.exceptions import ElementNotFoundError
+            raise ElementNotFoundError(f"No element with Z={Z}")
 
 
     @classmethod

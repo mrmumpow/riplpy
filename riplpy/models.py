@@ -33,6 +33,10 @@ class DensityModel(str, _Enum):
     EGSM = 'egsm'
     EGSM_NORM = 'egsm_norm'
     HFB = 'hfb'
+    BSK14_COMB = 'bsk14_comb'
+    BSKG3_COMB = 'bskg3_comb'
+    QRPABE = 'qrpabe'
+    THFB_COMB = 'thfb_comb'
 
 
 class FissionModel(str, _Enum):
@@ -42,6 +46,7 @@ class FissionModel(str, _Enum):
     EMPIRE = 'empire'
     HFB = 'hfb'
     BSKG3 = 'bskg3'
+    D1M = 'd1m'
 
 
 class ResonanceWave(str, _Enum):

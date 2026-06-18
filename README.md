@@ -268,9 +268,11 @@ nld   = fission.nld_fis.load('Max1')                 # saddle-point NLD
 import riplpy.densities as densities
 comb  = densities.bsk14_comb.load_element(Z=26)      # BSk14 combinatorial NLD
 
-# Alpha optical potentials
+# Optical model potentials — select by incident particle (n, p, d, t, He3, alpha)
 import riplpy.optical as optical
-atomki = optical.atomki.load_nucleus(26, 56)         # TALYS alpha-OMP
+optical.load()
+omps   = optical.find_for_reaction('alpha', Z=26, A=56, E=20.0)  # alpha-OMPs for Fe-56
+atomki = optical.atomki.load_nucleus(26, 56)         # ATOMKI / TALYS alphaomp9 alpha-OMP
 
 # Every array DB exports uniformly for ML pipelines:
 df = d1m.to_dataframe()

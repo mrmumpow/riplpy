@@ -421,6 +421,19 @@ class TestOMPDatabase:
         assert has_spherical
         assert has_cc
 
+    def test_top_level_find_for_reaction(self, ripl_path):
+        """Top-level optical.find_for_reaction selects OMPs by incident particle."""
+        optical.load(directory=ripl_path)
+
+        # Alpha + Fe-56 at 20 MeV via the convenience wrapper.
+        matches = optical.find_for_reaction('alpha', Z=26, A=56, E=20.0)
+        assert len(matches) > 0
+        for omp in matches:
+            assert omp.projectile == 'a'
+
+        # The 'a' alias selects the same set.
+        assert len(optical.find_for_reaction('a', Z=26, A=56, E=20.0)) == len(matches)
+
     def test_database_info(self, ripl_path):
         """Test the info method."""
         db = optical.omp.load(directory=ripl_path)

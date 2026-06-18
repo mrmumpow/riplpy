@@ -153,3 +153,40 @@ def load_with_modifications(directory: str = None, apply_modifications: bool = T
         >>> pot = db.get(1480)
     """
     return omp.load_with_modifications(directory=directory, apply_modifications=apply_modifications)
+
+
+def find_for_reaction(projectile: str, Z: int, A: int, E: float = None):
+    """Find OMPs valid for a given projectile + target (and optional energy).
+
+    Convenience wrapper over :meth:`omp.OMPDatabase.find_for_reaction` that
+    operates on the main library loaded into :data:`optical.db.potentials`.
+    Use this to clearly select which incident particle the optical potential
+    is for, e.g. ``find_for_reaction('alpha', 26, 56)`` for alpha + Fe-56.
+
+    Args:
+        projectile: Incident particle name. One of ``'n'``, ``'p'``, ``'d'``,
+            ``'t'``, ``'He3'`` (or ``'3He'``), ``'a'`` (or ``'alpha'``).
+        Z: Target atomic number.
+        A: Target mass number.
+        E: Projectile energy [MeV]. If ``None``, no energy filtering.
+
+    Returns:
+        List of OMP objects (``SphericalOMP`` / ``CoupledChannelOMP``) valid
+        for this reaction.
+
+    Raises:
+        RuntimeError: If the main OMP library has not been loaded yet.
+
+    Example:
+        >>> import riplpy.optical as optical
+        >>> optical.load()
+        >>> omps = optical.find_for_reaction('alpha', Z=26, A=56, E=20.0)
+        >>> [p.projectile for p in omps]
+        ['a', 'a', ...]
+    """
+    if not hasattr(db, 'potentials'):
+        raise RuntimeError(
+            "Main OMP library not loaded. Call optical.load() first "
+            "(or load a database with optical.omp.load())."
+        )
+    return db.potentials.find_for_reaction(projectile, Z=Z, A=A, E=E)

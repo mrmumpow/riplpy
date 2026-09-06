@@ -34,6 +34,9 @@ all = ["numpy", "pandas"]
 Homepage = "https://github.com/mrmumpow/riplpy"
 Source = "https://github.com/mrmumpow/riplpy"
 "Bug Tracker" = "https://github.com/mrmumpow/riplpy/issues"
+# Upstream RIPL-4 database; users must obtain this separately and point
+# RIPL_LOCATION at it (see riplpy.config).
+"RIPL-4 Database" = "https://github.com/IAEA-NDS/RIPL-4"
 
 [tool.setuptools.dynamic]
 version = { attr = "riplpy.__version__" }

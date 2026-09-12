@@ -10,6 +10,11 @@ on:
   pull_request:
     branches: [main]
   workflow_call:      # reused by release.yml so a release re-runs the gate
+    inputs:
+      full-matrix:
+        description: "Run the whole interpreter matrix rather than a single version"
+        type: boolean
+        default: false
   workflow_dispatch:
 
 concurrency:
@@ -34,8 +39,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Full matrix only on PRs into main; a single version elsewhere.
-        python-version: ${{ fromJSON(github.event_name == 'pull_request' && '["3.10","3.11","3.12","3.13"]' || '["3.12"]') }}
+        # Full matrix on PRs into main and on releases (release.yml passes
+        # full-matrix: true); a single version for fast dev feedback. In a
+        # reusable workflow github.event_name is the CALLER's event, so a
+        # release reads as 'release' and would otherwise collapse to one
+        # version on the run that matters most.
+        python-version: ${{ fromJSON((github.event_name == 'pull_request' || inputs.full-matrix) && '["3.10","3.11","3.12","3.13"]' || '["3.12"]') }}
 
     steps:
       - name: Check out riplpy

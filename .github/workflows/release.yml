@@ -22,6 +22,9 @@ jobs:
   # Re-runs the full matrix via workflow_call. A release must be 100% green.
   test:
     uses: ./.github/workflows/tests.yml
+    with:
+      # A release is the last gate before an immutable upload: run everything.
+      full-matrix: ${{ github.event_name == 'release' }}
 
   build:
     needs: test

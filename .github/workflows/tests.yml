@@ -25,11 +25,14 @@ permissions:
   contents: read
 
 env:
-  # Number of tests expected to skip because the GitHub RIPL-4 release is a
-  # subset of the full RIPL tree (missing BSFG/CT/HFB density files,
-  # gdr-parameters-theor.dat, legacy HFB barriers, frdm95/hfb14 masses,
-  # shellmengoninakajima.dat). Verified 2026-09: 275 passed, 22 skipped.
-  SKIP_BASELINE: "22"
+  # Tests expected to skip because IAEA-NDS/RIPL-4 is a subset of the full
+  # RIPL tree: BSFG/CT/HFB density files, gdr-parameters-theor.dat, legacy HFB
+  # barriers, frdm95/hfb14 masses, shellmengoninakajima.dat, and the TLO and
+  # PSFDatabase tables, which RIPL-4 does not publish at all.
+  # Verified 2026-09 against a pristine RIPL-4 checkout: 273 passed,
+  # 24 skipped, 0 failed. A reorganised tree with TLO/PSF data present skips
+  # 22 instead, which the gate reports as a notice rather than a failure.
+  SKIP_BASELINE: "24"
 
 jobs:
   test:

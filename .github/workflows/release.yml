@@ -1,0 +1,159 @@
+name: release
+
+# Publishes to PyPI when a GitHub Release is published. The full test gate
+# runs first: nothing reaches PyPI on a red suite. A PyPI version can never
+# be re-uploaded, so every check here is deliberately fail-closed.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Where to publish"
+        required: true
+        default: testpypi
+        type: choice
+        options: [testpypi, pypi]
+
+permissions:
+  contents: read
+
+jobs:
+  # Re-runs the full matrix via workflow_call. A release must be 100% green.
+  test:
+    uses: ./.github/workflows/tests.yml
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+
+      - name: Validate artifact metadata
+        run: python -m twine check dist/*
+
+      - name: Confirm the tag matches riplpy.__version__
+        # pyproject reads the version from riplpy/__init__.py, so a mistyped
+        # tag would otherwise publish under the wrong number - unfixable
+        # afterwards, since PyPI versions are immutable.
+        if: github.event_name == 'release'
+        run: |
+          version=$(python -c "import re,pathlib; \
+            print(re.search(r'__version__ = \"([^\"]+)\"', \
+            pathlib.Path('riplpy/__init__.py').read_text()).group(1))")
+          tag="${GITHUB_REF_NAME#v}"
+          echo "tag=$tag  __version__=$version"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::tag '$GITHUB_REF_NAME' does not match __version__ '$version'"
+            exit 1
+          fi
+
+      - name: Install the built wheel in a clean venv and import it
+        run: |
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install dist/*.whl
+          /tmp/smoke/bin/python -c "import riplpy; print('imported', riplpy.__version__)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  testpypi:
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi'
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write        # required for Trusted Publishing (OIDC)
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  pypi:
+    needs: build
+    if: github.event_name == 'release' || inputs.target == 'pypi'
+    runs-on: ubuntu-latest
+    environment: pypi        # add a required reviewer here for a manual gate
+    permissions:
+      id-token: write        # required for Trusted Publishing (OIDC)
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  # Mirrors the released source into IAEA-NDS/RIPL-4 under RIPLpy/ and opens a
+  # PR there. That folder is a vendored copy rather than a submodule, so
+  # without this it drifts: as of the 0.6.1 migration it still held the
+  # pre-migration setup.py, which cannot build a wheel.
+  #
+  # Requires a secret RIPL4_SYNC_TOKEN: a fine-grained PAT scoped to
+  # IAEA-NDS/RIPL-4 with Contents: read+write and Pull requests: read+write.
+  # The default GITHUB_TOKEN cannot be used - it is scoped to this repo only.
+  sync-ripl4:
+    needs: pypi
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out riplpy at the released tag
+        uses: actions/checkout@v4
+        with:
+          path: riplpy-src
+
+      - name: Check out IAEA-NDS/RIPL-4
+        uses: actions/checkout@v4
+        with:
+          repository: IAEA-NDS/RIPL-4
+          ref: main
+          path: ripl4
+          token: ${{ secrets.RIPL4_SYNC_TOKEN }}
+          persist-credentials: true
+
+      - name: Mirror the source tree into RIPLpy/
+        run: riplpy-src/.github/scripts/sync_ripl4.sh riplpy-src ripl4
+
+      - name: Open a pull request if anything changed
+        working-directory: ripl4
+        env:
+          GH_TOKEN: ${{ secrets.RIPL4_SYNC_TOKEN }}
+          VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "RIPLpy/ is already current; nothing to do."
+            exit 0
+          fi
+
+          branch="riplpy-sync-${VERSION}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add -A RIPLpy
+          git commit -m "RIPLpy: syncs vendored copy to ${VERSION}"
+          git push --force-with-lease origin "$branch"
+
+          gh pr create \
+            --repo IAEA-NDS/RIPL-4 \
+            --base main \
+            --head "$branch" \
+            --title "RIPLpy: sync vendored copy to ${VERSION}" \
+            --body "Automated sync of \`RIPLpy/\` to [riplpy ${VERSION}](https://github.com/mrmumpow/riplpy/releases/tag/${VERSION}).
+
+          Mirrors the release tag of https://github.com/mrmumpow/riplpy. Generated by that repository's \`release.yml\`; the source of truth is its \`main\` branch.
+
+          The package is also on PyPI, so \`pip install riplpy\` is an alternative to using this vendored copy."

@@ -1,0 +1,91 @@
+name: tests
+
+# Runs the full suite against the real RIPL-4 database. The suite is slow
+# (14-20 min, disk-bound on a 4.5 GB data tree), so the full interpreter
+# matrix is reserved for pull requests into main; pushes to dev get a single
+# version for fast feedback.
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [main]
+  workflow_call:      # reused by release.yml so a release re-runs the gate
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Number of tests expected to skip because the GitHub RIPL-4 release is a
+  # subset of the full RIPL tree (missing BSFG/CT/HFB density files,
+  # gdr-parameters-theor.dat, legacy HFB barriers, frdm95/hfb14 masses,
+  # shellmengoninakajima.dat). Verified 2026-09: 275 passed, 22 skipped.
+  SKIP_BASELINE: "22"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45   # observed 14:18-19:54; generous so a slow runner is not a false red
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Full matrix only on PRs into main; a single version elsewhere.
+        python-version: ${{ fromJSON(github.event_name == 'pull_request' && '["3.10","3.11","3.12","3.13"]' || '["3.12"]') }}
+
+    steps:
+      - name: Check out riplpy
+        uses: actions/checkout@v4
+
+      - name: Check out the RIPL-4 database
+        uses: actions/checkout@v4
+        with:
+          repository: IAEA-NDS/RIPL-4
+          ref: main
+          path: ripl-data
+          # actions/checkout is depth-1 by default. 0.67 GB packed / 4.5 GB
+          # unpacked. Deliberately NOT cached: an actions/cache entry this
+          # large is slower to compress and restore than the shallow clone,
+          # and would consume most of the 10 GB per-repo cache budget.
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package and test tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".[all]" pytest
+
+      - name: Verify the RIPL data actually resolved
+        # Guards the failure mode where the data is absent, every data-backed
+        # test skips, and the run goes green having tested nothing.
+        run: |
+          for d in masses levels densities gamma fission optical resonances; do
+            if [ ! -d "ripl-data/$d" ]; then
+              echo "::error::RIPL-4 checkout is missing '$d' - data layout changed?"
+              exit 1
+            fi
+          done
+          echo "RIPL-4 data present at ${GITHUB_WORKSPACE}/ripl-data"
+
+      - name: Run the test suite
+        env:
+          RIPL_LOCATION: ${{ github.workspace }}/ripl-data
+        run: python -m pytest -rs --junitxml=report-${{ matrix.python-version }}.xml
+
+      - name: Enforce the failure and skip budget
+        if: always()
+        run: python .github/scripts/check_results.py "report-${{ matrix.python-version }}.xml" "$SKIP_BASELINE"
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-${{ matrix.python-version }}
+          path: report-${{ matrix.python-version }}.xml

@@ -106,9 +106,15 @@ jobs:
   # without this it drifts: as of the 0.6.1 migration it still held the
   # pre-migration setup.py, which cannot build a wheel.
   #
-  # Requires a secret RIPL4_SYNC_TOKEN: a fine-grained PAT scoped to
-  # IAEA-NDS/RIPL-4 with Contents: read+write and Pull requests: read+write.
-  # The default GITHUB_TOKEN cannot be used - it is scoped to this repo only.
+  # Requires a secret RIPL4_SYNC_TOKEN. The default GITHUB_TOKEN cannot be
+  # used: it is scoped to this repository only and cannot push elsewhere.
+  #
+  # A fine-grained PAT is not an option here - those can only target an
+  # organization you are a MEMBER of, and we hold write access on RIPL-4 as an
+  # outside collaborator, so IAEA-NDS never appears as a resource owner.
+  # Use a classic PAT with the single `public_repo` scope: both riplpy and
+  # RIPL-4 are public, so the broader `repo` scope is unnecessary and would
+  # additionally expose every private repository the account can reach.
   sync-ripl4:
     needs: pypi
     if: github.event_name == 'release'

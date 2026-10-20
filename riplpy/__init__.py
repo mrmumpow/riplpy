@@ -1,7 +1,7 @@
 
 
 # Code version
-__version__ = "0.6.2"
+__version__ = "0.6.3"
 
 # Logging
 import logging as _logging

@@ -357,6 +357,23 @@ class TestFilterMethods:
         for n in isobars.data.keys():
             assert n.A == 208
 
+    def test_filter_unknown_keyword_raises(self, ame20_db):
+        """Test that a keyword which is not an entry attribute raises.
+
+        Previously filter(func=...) or a typo such as filter(Zz=82) returned
+        an empty database, which looks like a valid answer.
+        """
+        with pytest.raises(TypeError, match="func"):
+            ame20_db.filter(func=lambda e: e.n.Z == 82)
+        with pytest.raises(TypeError, match="Zz"):
+            ame20_db.filter(Zz=82)
+
+    def test_filter_by_entry_attribute(self, ame20_db):
+        """Test that a real entry attribute is still accepted as a keyword."""
+        first = next(iter(ame20_db.data.values()))
+        matches = ame20_db.filter(Mexp=first.Mexp)
+        assert len(matches.data) > 0
+
     def test_filter_by_predicate(self, ame20_db):
         """Test filter with custom predicate function."""
         # Filter for neutron-rich nuclei (N > Z)

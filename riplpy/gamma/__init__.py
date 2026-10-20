@@ -21,6 +21,11 @@ from . import psf
 
 db = _DbAccessor()
 
+# Databases this section skips unless asked (the heavy per-nucleus tables).
+# riplpy.missing_databases() leaves these out, since they are absent by
+# choice rather than because their data files are missing.
+_deferred = ()
+
 # ========================
 
 def _safe_load(name: str, loader, *args, **kwargs):
@@ -125,3 +130,6 @@ def load(directory: str = None, include_heavy: bool = False) -> None:
         db.psf  = _safe_load('psf', psf.load_all, directory)
     else:
         db.psf  = None
+
+    global _deferred
+    _deferred = () if include_heavy else ('gsf', 'gsf_d1m', 'smlo_e1', 'smlo_m1', 'tlo', 'psf')

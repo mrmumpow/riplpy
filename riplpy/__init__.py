@@ -5,6 +5,7 @@ __version__ = "0.6.3"
 
 # Logging
 import logging as _logging
+import warnings as _warnings
 
 # Set up library-level logger with NullHandler (users can configure their own handlers)
 logger = _logging.getLogger(__name__)
@@ -34,7 +35,7 @@ __all__ = [
     'densities', 'fission', 'gamma', 'levels', 'masses', 'optical',
     'resonances', 'config', 'sections',
     # Configuration
-    'set_path', 'get_path', 'load',
+    'set_path', 'get_path', 'load', 'missing_databases',
     # Discovery / introspection
     'in_ripl', 'in_sections', 'in_dbs', 'list_sections', 'list_databases',
     'list_nuclei', 'get_database',
@@ -167,6 +168,60 @@ def load(directory: str = None, quick: bool = False) -> None:
             logger.warning(
                f"load(): skipping section '{section}' (loader error): {exc}"
             )
+
+   # A database whose data file is absent is left empty (or None) so the rest
+   # of RIPL still loads. Say so with a warning that is shown by default:
+   # the per-file logging messages are invisible unless logging is set up.
+   missing = missing_databases()
+   if missing:
+      from .exceptions import MissingDataWarning as _MissingDataWarning
+      _warnings.warn(
+         f"riplpy.load(): {len(missing)} database(s) are empty because their "
+         f"data files were not found (or held no entries) under {directory}: "
+         f"{', '.join(missing)}. Lookups in these databases will fail. "
+         f"Call riplpy.missing_databases() to list them again.",
+         _MissingDataWarning, stacklevel=2,
+      )
+
+
+def missing_databases() -> list:
+   """List the loaded databases that hold no entries, as 'section.name'.
+
+   A database is listed when it is None or has zero entries after loading,
+   which on a RIPL-4 checkout means its data file is not part of the release.
+   Databases a section skips on purpose (the heavy per-nucleus tables that
+   load() only reads with include_heavy=True or include_paths=True) are not
+   listed.
+
+   Returns:
+      Sorted list of names such as 'masses.frdm1995'. Empty if nothing is
+      missing or nothing has been loaded yet.
+
+   Examples:
+      >>> riplpy.load()
+      >>> riplpy.missing_databases()
+      ['densities.bsfg', 'densities.ct', ...]
+   """
+   missing = []
+   for section in sections:
+      module = globals()[section]
+      accessor = getattr(module, 'db', None)
+      if not callable(accessor):
+         continue
+      deferred = getattr(module, '_deferred', ())
+      for name in accessor():
+         if name in deferred:
+            continue
+         value = getattr(accessor, name)
+         if value is None:
+            missing.append(f"{section}.{name}")
+            continue
+         try:
+            if len(value) == 0:
+               missing.append(f"{section}.{name}")
+         except TypeError:
+            continue  # Not a sized container; cannot tell, so do not report
+   return sorted(missing)
 
 
 def in_ripl(x: Nuclide | Element) -> bool:

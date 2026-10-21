@@ -141,6 +141,32 @@ class TestDiscoveryIntrospection:
         assert 'ame20' in mass_dbs
         assert len(mass_dbs) > 5  # Should have multiple mass models
 
+    def test_list_databases_sorted(self, ripl_path):
+        """Names come back in alphabetical order, the same on every run.
+
+        They used to come from a set, whose order changes between runs.
+        """
+        masses.load(directory=ripl_path)
+        mass_dbs = riplpy.list_databases('masses')
+        assert mass_dbs == sorted(mass_dbs)
+        for names in riplpy.list_databases().values():
+            assert names == sorted(names)
+
+    def test_list_databases_include_empty(self, ripl_path):
+        """include_empty=False leaves out databases with no entries."""
+        masses.load(directory=ripl_path)
+        everything = riplpy.list_databases('masses')
+        loaded = riplpy.list_databases('masses', include_empty=False)
+        assert 'ame20' in loaded
+        assert set(loaded) <= set(everything)
+        for name in set(everything) - set(loaded):
+            db = getattr(masses.db, name)
+            assert db is None or len(db) == 0
+        if len(masses.db.frdm1995) == 0:  # not shipped in RIPL-4
+            assert 'frdm1995' in everything and 'frdm1995' not in loaded
+        by_section = riplpy.list_databases(include_empty=False)
+        assert by_section['masses'] == loaded
+
     def test_list_databases_invalid_section(self):
         """Test list_databases with invalid section raises ValueError."""
         with pytest.raises(ValueError, match="Unknown section"):

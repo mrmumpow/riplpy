@@ -322,22 +322,30 @@ def list_sections() -> list:
     return list(sections)
 
 
-def list_databases(section: str = None) -> list | dict:
-    """List available databases, optionally filtered by section.
+def list_databases(section: str = None, include_empty: bool = True) -> list | dict:
+    """List database names, optionally filtered by section.
 
     Args:
         section: Section name to filter by (e.g., 'masses', 'densities').
                  If None, returns a dict of all sections and their databases.
+        include_empty: If True (default), list every database name, including
+                 databases that hold no entries: those whose data file is
+                 missing from this RIPL release (see missing_databases()) and
+                 the heavy tables load() skips unless asked. If False, list
+                 only databases that hold at least one entry.
 
     Returns:
         If section is provided: List of database names in that section
         If section is None: Dict mapping section names to lists of database names
+        Names are in alphabetical order.
 
     Examples:
         >>> riplpy.list_databases('masses')
         ['ame20', 'bskg3', 'd1m', 'frdm1995', 'frdm2012', ...]
         >>> riplpy.list_databases()
-        {'densities': ['bsfg', 'ct', ...], 'masses': ['ame20', ...], ...}
+        {'densities': ['bsfg', 'bsk14_comb', ...], 'masses': ['ame20', ...], ...}
+        >>> riplpy.list_databases('masses', include_empty=False)
+        ['ame20', 'bskg3', 'd1m', 'deformations', 'frdm2012', ...]
 
     Raises:
         ValueError: If the section name is not recognized
@@ -345,18 +353,31 @@ def list_databases(section: str = None) -> list | dict:
     Note:
         Databases must be loaded first via riplpy.load() for this to return results.
     """
+    def _names(sec):
+        accessor = getattr(globals()[sec], 'db')
+        names = list(accessor())
+        if include_empty:
+            return names
+        kept = []
+        for name in names:
+            value = getattr(accessor, name)
+            if value is None:
+                continue
+            try:
+                if len(value) == 0:
+                    continue
+            except TypeError:
+                pass  # Not a sized container; keep it
+            kept.append(name)
+        return kept
+
     if section is not None:
         if section not in sections:
             raise ValueError(f"Unknown section '{section}'. Available: {list(sections)}")
-        module = globals()[section]
-        return list(getattr(module, 'db')())
+        return _names(section)
 
     # Return all sections
-    result = {}
-    for sec in sections:
-        module = globals()[sec]
-        result[sec] = list(getattr(module, 'db')())
-    return result
+    return {sec: _names(sec) for sec in sections}
 
 
 def list_nuclei(database: str, section: str = None) -> list:

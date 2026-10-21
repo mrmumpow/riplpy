@@ -1198,8 +1198,12 @@ class _DbAccessor:
         return self.resolve(name) in self._attributes
 
     def __call__(self):
-        """Iterate over assigned (canonical) attributes. """
-        for attr_name in self._attributes:
+        """Iterate over assigned (canonical) attributes, in alphabetical order.
+
+        The names are stored in a set, whose iteration order changes between
+        runs; sorting makes every listing reproducible.
+        """
+        for attr_name in sorted(self._attributes):
             yield attr_name
 
 

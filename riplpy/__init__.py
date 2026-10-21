@@ -1189,7 +1189,7 @@ def list_omps(projectile: str = None) -> list:
 
     Args:
         projectile: Optional projectile filter: 'n', 'p', 'd', 't', 'He3' (or
-                    '3He', 'h', 'helion'), 'a' (or 'alpha').
+                    '3He', 'h', 'helion'), 'a' (or 'alpha', '4He').
                     If None, returns all potentials.
 
     Returns:
@@ -1213,7 +1213,7 @@ def find_omp(projectile: str, Z: int, A: int, E: float = None) -> list:
 
     Args:
         projectile: Projectile type: 'n', 'p', 'd', 't', 'He3' (or '3He', 'h',
-                    'helion'), 'a' (or 'alpha')
+                    'helion'), 'a' (or 'alpha', '4He')
         Z: Target atomic number
         A: Target mass number
         E: Optional projectile energy in MeV. If provided, filters to

@@ -166,7 +166,7 @@ def find_for_reaction(projectile: str, Z: int, A: int, E: float = None):
     Args:
         projectile: Incident particle name. One of ``'n'``, ``'p'``, ``'d'``,
             ``'t'``, ``'He3'`` (or ``'3He'``, ``'h'``, ``'helion'``), ``'a'``
-            (or ``'alpha'``).
+            (or ``'alpha'``, ``'4He'``).
         Z: Target atomic number.
         A: Target mass number.
         E: Projectile energy [MeV]. If ``None``, no energy filtering.

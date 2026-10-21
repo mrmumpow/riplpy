@@ -340,6 +340,19 @@ class TestOMPDatabase:
         for omp in neutron_db.data.values():
             assert omp.projectile == 'n'
 
+    def test_filter_by_projectile_helion_aliases(self, ripl_path):
+        """Test that 'h' and 'helion' select the same potentials as 'He3'.
+
+        The find_omp and list_omps docstrings list 'h', which used to raise
+        ValueError.
+        """
+        db = optical.omp.load(directory=ripl_path)
+
+        he3 = set(db.filter_by_projectile('He3').data)
+        assert len(he3) > 0
+        for name in ('h', 'helion', '3He'):
+            assert set(db.filter_by_projectile(name).data) == he3
+
     def test_filter_by_target(self, ripl_path):
         """Test filtering database by target."""
         db = optical.omp.load(directory=ripl_path)

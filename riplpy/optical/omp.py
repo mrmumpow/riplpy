@@ -138,7 +138,8 @@ class OMPDatabase(Database):
         """Filter potentials by projectile type.
 
         Args:
-            projectile: Projectile name ('n', 'p', 'd', 't', 'He3', 'a')
+            projectile: Projectile name: 'n', 'p', 'd', 't', 'He3' (or '3He',
+                'h', 'helion'), 'a' (or 'alpha')
 
         Returns:
             New OMPDatabase with filtered potentials
@@ -151,6 +152,8 @@ class OMPDatabase(Database):
             't': (1, 3),
             'He3': (2, 3),
             '3He': (2, 3),
+            'h': (2, 3),
+            'helion': (2, 3),
             'a': (2, 4),
             'alpha': (2, 4),
         }
@@ -278,7 +281,7 @@ class OMPDatabase(Database):
         """Find all potentials valid for a specific reaction.
 
         Args:
-            projectile: Projectile type ('n', 'p', etc.)
+            projectile: Projectile type, as for filter_by_projectile()
             Z: Target atomic number
             A: Target mass number
             E: Projectile energy [MeV]. If None, no energy filtering.

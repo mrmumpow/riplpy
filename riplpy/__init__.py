@@ -1143,7 +1143,8 @@ def list_omps(projectile: str = None) -> list:
     """List all optical model potential reference numbers.
 
     Args:
-        projectile: Optional projectile filter ('n', 'p', 'd', 't', 'h', 'a').
+        projectile: Optional projectile filter: 'n', 'p', 'd', 't', 'He3' (or
+                    '3He', 'h', 'helion'), 'a' (or 'alpha').
                     If None, returns all potentials.
 
     Returns:
@@ -1166,7 +1167,8 @@ def find_omp(projectile: str, Z: int, A: int, E: float = None) -> list:
     """Find optical model potentials suitable for a specific reaction.
 
     Args:
-        projectile: Projectile type ('n', 'p', 'd', 't', 'h', 'a')
+        projectile: Projectile type: 'n', 'p', 'd', 't', 'He3' (or '3He', 'h',
+                    'helion'), 'a' (or 'alpha')
         Z: Target atomic number
         A: Target mass number
         E: Optional projectile energy in MeV. If provided, filters to

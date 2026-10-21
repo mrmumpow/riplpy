@@ -200,6 +200,37 @@ class TestExperimentalGDR:
         assert set(li.fits) == set(li.data)
         assert [f.Id for f in li.get_fits(Nuclide(Z=3, A=6))] == ['2', '4']
 
+    @pytest.mark.parametrize('loader', ['load_slo', 'load_smlo'])
+    def test_errors_table_round_trip(self, ripl_path, tmp_path, loader):
+        """Saving an errors table writes the two-line layout with every fit.
+
+        It used to write the one-line recommended layout, which kept only
+        the recommended fit of each nuclide and dropped the uncertainties.
+        """
+        db = getattr(gamma.exp, loader)(directory=ripl_path, errors=True)
+        out = tmp_path / 'errors.dat'
+        db.save(str(out))
+
+        again = getattr(gamma.exp, loader)(file_path=str(out))
+        assert again.errors_layout
+        assert set(again.fits) == set(db.fits)
+        fields = ('Id', 'Er1', 'Wr1', 'Sr1', 'CSp1', 'Er2', 'Wr2', 'Sr2', 'CSp2', 'Sr',
+                  'dEr1', 'dWr1', 'dSr1', 'dCSp1', 'dEr2', 'dWr2', 'dSr2', 'dCSp2', 'dSr',
+                  'Emin', 'Emax', 'reference')
+        for n, fits in db.fits.items():
+            assert len(again.fits[n]) == len(fits), n
+            for a, b in zip(fits, again.fits[n]):
+                for f in fields:
+                    # nan_ok: the SLO file has a literal NaN (V-51, Id 4b, dCSp2).
+                    assert getattr(b, f) == pytest.approx(getattr(a, f), nan_ok=True), (n, a.Id, f)
+
+    def test_filtered_errors_table_saves_errors_layout(self, ripl_path, tmp_path):
+        db = gamma.exp.load_smlo(directory=ripl_path, errors=True).filter(Z=82)
+        out = tmp_path / 'pb.dat'
+        db.save(str(out))
+        again = gamma.exp.load_smlo(file_path=str(out))
+        assert len(again.get_fits(Nuclide(Z=82, A=208))) == 9
+
     def test_get_fits_missing_nuclide_raises(self, ripl_path):
         from riplpy.exceptions import NucleusNotFoundError
         db = gamma.exp.load_smlo(directory=ripl_path, errors=True)

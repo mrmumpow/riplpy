@@ -160,6 +160,58 @@ class TestExperimentalGDR:
         again.load(str(out))
         assert set(again.data) == set(db.data)
 
+    @pytest.mark.parametrize('loader', ['load_slo', 'load_smlo'])
+    def test_errors_file_keeps_every_fit(self, ripl_path, loader):
+        """The errors files hold several fits per nuclide; all are kept.
+
+        The readme gives 478 entries (one per nuclide and type of
+        experimental data, the Id column). Previously only the last fit per
+        nuclide was kept.
+        """
+        db = getattr(gamma.exp, loader)(directory=ripl_path, errors=True)
+        assert len(db.data) == 163
+        assert sum(len(f) for f in db.fits.values()) == 478
+
+        # Li-6 rows in file order: Id 2, then Id 4.
+        li6 = Nuclide(Z=3, A=6)
+        assert [f.Id for f in db.get_fits(li6)] == ['2', '4']
+        assert db.data[li6] is db.get_fits(li6)[0]
+
+    @pytest.mark.parametrize('loader', ['load_slo', 'load_smlo'])
+    def test_errors_file_first_fit_is_recommended(self, ripl_path, loader):
+        """data[n] is the first fit, which the readme calls recommended.
+
+        It must match the recommended file for every nuclide.
+        """
+        load = getattr(gamma.exp, loader)
+        rec = load(directory=ripl_path)
+        err = load(directory=ripl_path, errors=True)
+        assert set(err.data) == set(rec.data)
+        fields = ('Er1', 'Wr1', 'Sr1', 'CSp1', 'Er2', 'Wr2', 'Sr2', 'CSp2', 'Sr')
+        for n, r in rec.data.items():
+            e = err.data[n]
+            for f in fields:
+                assert getattr(e, f) == pytest.approx(getattr(r, f)), (n, f)
+
+    def test_filter_keeps_fits(self, ripl_path):
+        """A filtered errors database still has every fit of its nuclides."""
+        db = gamma.exp.load_smlo(directory=ripl_path, errors=True)
+        li = db.filter(Z=3)
+        assert set(li.fits) == set(li.data)
+        assert [f.Id for f in li.get_fits(Nuclide(Z=3, A=6))] == ['2', '4']
+
+    def test_get_fits_missing_nuclide_raises(self, ripl_path):
+        from riplpy.exceptions import NucleusNotFoundError
+        db = gamma.exp.load_smlo(directory=ripl_path, errors=True)
+        with pytest.raises(NucleusNotFoundError):
+            db.get_fits(Nuclide(Z=26, A=56))
+
+    def test_recommended_file_has_one_fit_each(self, ripl_path):
+        """The single-line recommended file gives one fit per nuclide."""
+        db = gamma.exp.load_smlo(directory=ripl_path)
+        assert all(len(f) == 1 for f in db.fits.values())
+        assert len(db.fits) == len(db.data)
+
     def test_experimental_vs_systematics_overlap(self, ripl_path):
         exp_db = gamma.exp.load_slo(directory=ripl_path)
         sys_db = gamma.systematics.load_slo(directory=ripl_path)

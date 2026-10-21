@@ -34,6 +34,7 @@ import logging as _logging
 import riplpy.collections as _c
 import riplpy.config as _config
 import riplpy.db as _db
+from riplpy.exceptions import NucleusNotFoundError as _NucleusNotFoundError
 from riplpy.config import resolve_directory as _resolve_directory
 from riplpy.gamma import _layout as _layout
 from . import core as _core
@@ -47,7 +48,7 @@ __all__ = (
     'slo_local_file_path', 'smlo_local_file_path', 'mlo_local_file_path',
     'slo_errors_local_file_path', 'smlo_errors_local_file_path',
     'SLO_FILE_HEADER', 'SMLO_FILE_HEADER', 'MLO_FILE_HEADER',
-    'read_recommended_file', 'read_errors_file',
+    'read_recommended_file', 'read_errors_file', 'read_errors_records',
     'write_slo_ascii_file', 'write_smlo_ascii_file',
     'Entry', 'SLO_Database', 'SMLO_Database', 'MLO_Database',
     'load_slo', 'load_smlo', 'load_mlo',
@@ -249,9 +250,14 @@ def read_recommended_file(fpath: str) -> dict:
     return d
 
 
-def read_errors_file(fpath: str) -> dict:
-    """Read a two-line RIPL-4 SLO/SMLO data file with uncertainties."""
-    d = {}
+def read_errors_records(fpath: str) -> list:
+    """Read every record of a two-line RIPL-4 SLO/SMLO file, in file order.
+
+    The errors files hold one record per nuclide and type of experimental
+    data (the Id column), so a nuclide can appear several times. The readme
+    calls the first record for each nuclide the recommended one.
+    """
+    records = []
     with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
         # Pre-filter: drop blank and comment lines, keep order
         lines = [ln.rstrip('\n') for ln in fp if ln.strip() and not ln.lstrip().startswith('#')]
@@ -268,8 +274,20 @@ def read_errors_file(fpath: str) -> dict:
                 packet.update(_parse_errors_second_line(lines[i + 1]))
             except (ValueError, IndexError) as exc:
                 _logger.debug(f"Skipping malformed errors line in {fpath}: {exc}")
-        d[packet['n']] = packet
+        records.append(packet)
         i += 2
+    return records
+
+
+def read_errors_file(fpath: str) -> dict:
+    """Read a two-line RIPL-4 SLO/SMLO file, keeping the recommended record.
+
+    Returns one record per nuclide: the first one in the file, which the
+    readme calls recommended. Use :func:`read_errors_records` for all of them.
+    """
+    d = {}
+    for packet in read_errors_records(fpath):
+        d.setdefault(packet['n'], packet)
     return d
 
 
@@ -324,10 +342,38 @@ class Entry(_core.Experimental_GDR_Parameter, _db.NuclideDatabaseEntry):
 
 
 class SLO_Database(_db.NuclideDatabase):
+    """Experimental GDR fits, keyed by nuclide.
+
+    ``data[n]`` (and ``get(n)``) is the recommended fit for nuclide ``n``.
+    ``fits[n]`` (and ``get_fits(n)``) lists every fit for ``n`` in file order,
+    recommended first. The recommended files give one fit per nuclide; the
+    errors files give one per type of experimental data (``Entry.Id``).
+    Natural-composition rows are keyed as ``Nuclide(Z, A=0)``.
+    """
 
     reader: object = read_ascii_file
     entry : object = Entry
     writer: object = write_slo_ascii_file
+
+    def __init__(self, data: dict | None = None) -> None:
+        super().__init__(data)
+        self.fits = {n: [e] for n, e in self.data.items()}
+
+    def get_fits(self, n) -> list:
+        """Return every fit for nuclide ``n``, recommended first.
+
+        Raises:
+            NucleusNotFoundError: If ``n`` has no fit in this database.
+        """
+        if n not in self.fits:
+            raise _NucleusNotFoundError(f"Nuclide {n!r} not found in database.")
+        return list(self.fits[n])
+
+    def filter(self, predicate=None, **kwargs) -> "SLO_Database":
+        """As :meth:`Database.filter`, keeping every fit of the kept nuclides."""
+        result = super().filter(predicate, **kwargs)
+        result.fits = {n: list(self.fits[n]) for n in result.data if n in self.fits}
+        return result
 
     def load(self, fpath: str) -> None:
         """Load entries from either a recommended (single-line) or errors
@@ -338,13 +384,16 @@ class SLO_Database(_db.NuclideDatabase):
         with open(fpath, 'r', encoding='utf-8', errors='replace') as fp:
             head = fp.read(2048)
         if '/' in head and 'F8.3' in head and ',/,' in head.replace(' ', ''):
-            data = read_errors_file(fpath)
+            records = read_errors_records(fpath)
         elif 'errors' in head.lower() and 'second line' in head.lower():
-            data = read_errors_file(fpath)
+            records = read_errors_records(fpath)
         else:
-            data = read_recommended_file(fpath)
-        for key, pkt in data.items():
-            self.data[key] = self.entry(**pkt)
+            records = list(read_recommended_file(fpath).values())
+        for pkt in records:
+            entry = self.entry(**pkt)
+            self.fits.setdefault(entry.n, []).append(entry)
+            # The first fit for a nuclide is the recommended one (readme).
+            self.data.setdefault(entry.n, entry)
 
 
 class SMLO_Database(SLO_Database):

@@ -151,9 +151,9 @@ def _parse_recommended_line(line: str) -> dict:
         elif parts and not parts[-1].replace('.', '').replace('-', '').isdigit():
             reference = parts[-1]
 
-    n = _c.Nuclide(Z=Z, A=A) if A > 0 else _c.Nuclide(Z=Z, A=Z * 2)
-    # A==0 marks "natural element" rows; map to Nuclide(Z, A=2Z) heuristically so
-    # the database key is hashable. Tag the Id to mark it.
+    # A == 0 marks a natural-isotopic-composition row (readme). Keep it under
+    # Nuclide(Z, A=0) so it cannot collide with a real isotope, and tag the Id.
+    n = _c.Nuclide(Z=Z, A=A)
     Id = 'nat' if A == 0 else None
 
     return {
@@ -202,7 +202,7 @@ def _parse_errors_first_line(line: str) -> dict:
         elif parts:
             reference = parts[-1]
 
-    n = _c.Nuclide(Z=Z, A=A) if A > 0 else _c.Nuclide(Z=Z, A=Z * 2)
+    n = _c.Nuclide(Z=Z, A=A)  # A == 0: natural composition, see above
     if A == 0 and Id is None:
         Id = 'nat'
 

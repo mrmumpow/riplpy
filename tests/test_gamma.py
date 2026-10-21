@@ -129,6 +129,37 @@ class TestExperimentalGDR:
             if entry.Er1 is not None:
                 assert hasattr(entry, 'dEr1')
 
+    def test_natural_rows_do_not_overwrite_isotopes(self, ripl_path):
+        """Natural-composition rows (A = 0) are kept apart from isotopes.
+
+        They used to be stored under A = 2Z, which replaced the C-12, O-16,
+        Mg-24, Si-28, S-32 and Ca-40 rows. File rows (SMLO, recommended):
+            6  12 C      22.90    3.69
+            6   0 C      23.14    4.24
+        """
+        db = gamma.exp.load_smlo(directory=ripl_path)
+
+        c12 = db.data[Nuclide(Z=6, A=12)]
+        assert (c12.Er1, c12.Wr1, c12.Id) == (pytest.approx(22.90), pytest.approx(3.69), None)
+
+        nat_c = db.data[Nuclide(Z=6, A=0)]
+        assert (nat_c.Er1, nat_c.Wr1, nat_c.Id) == (pytest.approx(23.14), pytest.approx(4.24), 'nat')
+
+        # Every row of the recommended file is loaded: 144 isotopes and
+        # 19 natural elements (readme), and no made-up A = 2Z nuclides.
+        assert len(db.data) == 163
+        assert sum(1 for n in db.data if n.A == 0) == 19
+        assert Nuclide(Z=82, A=164) not in db.data
+
+    def test_natural_rows_round_trip(self, ripl_path, tmp_path):
+        """Writing the database back keeps A = 0 for natural rows."""
+        db = gamma.exp.load_smlo(directory=ripl_path)
+        out = tmp_path / 'smlo.dat'
+        gamma.exp.write_smlo_ascii_file(str(out), db.data)
+        again = gamma.exp.SMLO_Database()
+        again.load(str(out))
+        assert set(again.data) == set(db.data)
+
     def test_experimental_vs_systematics_overlap(self, ripl_path):
         exp_db = gamma.exp.load_slo(directory=ripl_path)
         sys_db = gamma.systematics.load_slo(directory=ripl_path)

@@ -21,6 +21,18 @@ from . import psf
 
 db = _DbAccessor()
 
+# GDR model name -> database attribute, used by riplpy.get_gdr / get_gdrs.
+# 'auto' (handled there) is 'theory' when that RIPL-3 table is loaded, else
+# 'smlo'. The systematics tables cover 8980 nuclei: recommended experimental
+# fits where they exist (entry.In == 1), systematics elsewhere (In == 0).
+GDR_MODELS = {
+    'theory':   'theory_gdr',                   # RIPL-3 theoretical fits
+    'smlo':     'experiment_systematics_smlo',  # RIPL-4 SMLO, exp + systematics
+    'slo':      'experiment_systematics_slo',   # RIPL-4 SLO, exp + systematics
+    'exp_smlo': 'experiment_smlo',              # RIPL-4 SMLO, recommended exp only
+    'exp_slo':  'experiment_slo',               # RIPL-4 SLO, recommended exp only
+}
+
 # Databases this section skips unless asked (the heavy per-nucleus tables).
 # riplpy.missing_databases() leaves these out, since they are absent by
 # choice rather than because their data files are missing.

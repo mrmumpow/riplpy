@@ -39,6 +39,16 @@ class DensityModel(str, _Enum):
     THFB_COMB = 'thfb_comb'
 
 
+class GdrModel(str, _Enum):
+    """Giant Dipole Resonance (GDR) parameter model identifiers."""
+    AUTO = 'auto'
+    THEORY = 'theory'
+    SMLO = 'smlo'
+    SLO = 'slo'
+    EXP_SMLO = 'exp_smlo'
+    EXP_SLO = 'exp_slo'
+
+
 class FissionModel(str, _Enum):
     """Fission barrier model identifiers."""
     EMPIRICAL = 'empirical'
@@ -71,7 +81,8 @@ class Models:
     Mass = MassModel
     Density = DensityModel
     Fission = FissionModel
+    Gdr = GdrModel
     Wave = ResonanceWave
 
 
-__all__ = ['Models', 'MassModel', 'DensityModel', 'FissionModel', 'ResonanceWave']
+__all__ = ['Models', 'MassModel', 'DensityModel', 'GdrModel', 'FissionModel', 'ResonanceWave']

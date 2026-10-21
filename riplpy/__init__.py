@@ -691,27 +691,69 @@ def get_level_density(Z_or_nuclide, A: int = None, model: str = 'egsm') -> objec
     return db.get(n)
 
 
-def get_gdr(Z_or_nuclide, A: int = None) -> object:
+def _gdr_database(model: str):
+    """Return the GDR database for ``model``, resolving 'auto'.
+
+    'auto' is 'theory' when the RIPL-3 theoretical table is loaded, and
+    'smlo' otherwise (every RIPL-4 install). One model is used for the whole
+    call; there is no per-nucleus fallback between tables.
+    """
+    from riplpy.exceptions import NucleusNotFoundError
+
+    model = getattr(model, 'value', model)
+    if model == 'auto':
+        theory = getattr(gamma.db, 'theory_gdr', None)
+        model = 'theory' if theory is not None and len(theory) > 0 else 'smlo'
+
+    if model not in gamma.GDR_MODELS:
+        raise ValueError(
+            f"Unknown GDR model '{model}'. Available: "
+            f"{['auto'] + list(gamma.GDR_MODELS.keys())}"
+        )
+
+    db = getattr(gamma.db, gamma.GDR_MODELS[model], None)
+    if db is None or len(db) == 0:
+        raise NucleusNotFoundError(
+            f"GDR model '{model}' database ({gamma.GDR_MODELS[model]}) is not "
+            f"loaded or its data file is missing"
+        )
+    return db
+
+
+def get_gdr(Z_or_nuclide, A: int = None, model: str = 'auto') -> object:
     """Get Giant Dipole Resonance (GDR) parameters for a nucleus.
 
     Args:
         Z_or_nuclide: Either a Nuclide/Nucleus object, or the atomic number Z
         A: Mass number (required if Z_or_nuclide is an integer)
+        model: GDR parameter source. Options:
+               'smlo' / 'slo' -- RIPL-4 experiment + systematics tables (8980
+               nuclei); entry.In is 1 for a recommended experimental value
+               and 0 for a systematics value.
+               'exp_smlo' / 'exp_slo' -- RIPL-4 recommended experimental fits
+               only (157 nuclei), with uncertainties and fitted energy range.
+               'theory' -- RIPL-3 theoretical table (full RIPL-3 distribution
+               only).
+               'auto' (default) -- 'theory' if that table is loaded, else
+               'smlo'.
+               The entry fields differ between tables (e.g. E1/W1 in the
+               systematics and theory tables, Er1/Wr1 in the experimental
+               fits).
 
     Returns:
         Entry object containing GDR parameters
 
     Raises:
-        NucleusNotFoundError: If the nucleus is not in the database
+        ValueError: If the model is not recognized
+        NucleusNotFoundError: If the model's database is not loaded, or the
+            nucleus is not in it
+
+    Examples:
+        >>> riplpy.get_gdr(82, 208)                    # SMLO on RIPL-4
+        >>> riplpy.get_gdr(82, 208, model='exp_smlo')  # measured fit only
     """
-    from riplpy.exceptions import NucleusNotFoundError
     n = _resolve_nucleus(Z_or_nuclide, A)
-    db = gamma.db.theory_gdr
-    if db is None:
-        raise NucleusNotFoundError(
-            "Theoretical GDR database not loaded (gdr-parameters-theor.dat missing)"
-        )
-    return db.get(n)
+    return _gdr_database(model).get(n)
 
 
 def get_resonance(Z_or_nuclide, A: int = None, wave: str = 's') -> object:
@@ -968,7 +1010,7 @@ def get_level_densities(nuclei: list, model: str = 'egsm', skip_missing: bool = 
     return result
 
 
-def get_gdrs(nuclei: list, skip_missing: bool = False) -> dict:
+def get_gdrs(nuclei: list, skip_missing: bool = False, model: str = 'auto') -> dict:
     """Get Giant Dipole Resonance (GDR) parameters for multiple nuclei.
 
     Args:
@@ -976,8 +1018,10 @@ def get_gdrs(nuclei: list, skip_missing: bool = False) -> dict:
                 - A Nuclide/Nucleus object
                 - A tuple (Z, A)
                 - A list [Z, A]
-        skip_missing: If True, skip nuclei not in the database.
+        skip_missing: If True, skip nuclei not in the database, and return
+                      an empty dict if the model's database is not loaded.
                       If False (default), raise NucleusNotFoundError.
+        model: GDR parameter source, as for get_gdr(). Default: 'auto'
 
     Returns:
         Dictionary mapping Nuclide -> Entry object
@@ -985,8 +1029,10 @@ def get_gdrs(nuclei: list, skip_missing: bool = False) -> dict:
     Examples:
         >>> nuclei = [(82, 208), (50, 120), (28, 58)]
         >>> gdrs = riplpy.get_gdrs(nuclei)
+        >>> measured = riplpy.get_gdrs(nuclei, model='exp_smlo', skip_missing=True)
 
     Raises:
+        ValueError: If the model is not recognized
         NucleusNotFoundError: If a nucleus is not found and skip_missing=False
     """
     from riplpy.exceptions import NucleusNotFoundError
@@ -994,13 +1040,12 @@ def get_gdrs(nuclei: list, skip_missing: bool = False) -> dict:
     nuclide_list = _normalize_nuclei_list(nuclei)
     result = {}
 
-    db = gamma.db.theory_gdr
-    if db is None:
+    try:
+        db = _gdr_database(model)
+    except NucleusNotFoundError:
         if skip_missing:
             return result
-        raise NucleusNotFoundError(
-            "Theoretical GDR database not loaded (gdr-parameters-theor.dat missing)"
-        )
+        raise
 
     for n in nuclide_list:
         try:

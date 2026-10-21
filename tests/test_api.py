@@ -942,3 +942,67 @@ class TestOpticalConvenienceFunctions:
         # Optical should be loaded
         assert riplpy.optical.db.potentials is not None
         assert len(riplpy.optical.db.potentials.data) > 0
+
+
+class TestGdrModels:
+    """Tests for the model argument of get_gdr / get_gdrs.
+
+    RIPL-4 does not ship the RIPL-3 theoretical GDR table, so before the
+    model argument get_gdr raised NucleusNotFoundError for every nucleus.
+    Reference values are the Pb-208 rows of the RIPL-4 files:
+      gdr-parameters_exp&systematics_smlo.dat  E1 13.34  W1 3.64  In 1
+      gdr_parameters_recommended_exp_smlo.dat  Er1 13.34 Wr1 3.64
+    """
+
+    @pytest.fixture(autouse=True)
+    def _load_gamma(self, ripl_path):
+        gamma.load(directory=ripl_path)
+
+    def test_auto_falls_back_to_smlo_systematics(self):
+        """Without the theory table, the default reads the SMLO systematics."""
+        if len(gamma.db.theory_gdr) > 0:
+            pytest.skip("Theoretical GDR table present; auto uses it")
+        entry = riplpy.get_gdr(82, 208)
+        assert entry is gamma.db.experiment_systematics_smlo.get(Nuclide(Z=82, A=208))
+        assert entry.E1 == pytest.approx(13.34)
+        assert entry.W1 == pytest.approx(3.64)
+        assert entry.In == 1
+
+    def test_systematics_covers_unmeasured_nuclei(self):
+        """Fe-56 has no recommended fit, but has a systematics value (In=0)."""
+        entry = riplpy.get_gdr(26, 56, model='smlo')
+        assert entry.In == 0
+        with pytest.raises(KeyError):
+            riplpy.get_gdr(26, 56, model='exp_smlo')
+
+    def test_explicit_models(self):
+        """Each named model reads its own table."""
+        assert riplpy.get_gdr(82, 208, model='exp_smlo').Er1 == pytest.approx(13.34)
+        assert riplpy.get_gdr(82, 208, model='slo') is \
+            gamma.db.experiment_systematics_slo.get(Nuclide(Z=82, A=208))
+        assert riplpy.get_gdr(82, 208, model='exp_slo') is \
+            gamma.db.experiment_slo.get(Nuclide(Z=82, A=208))
+
+    def test_theory_absent_says_so(self):
+        """Asking for the theory table on RIPL-4 names the missing table."""
+        if len(gamma.db.theory_gdr) > 0:
+            pytest.skip("Theoretical GDR table present")
+        with pytest.raises(KeyError, match="theory"):
+            riplpy.get_gdr(82, 208, model='theory')
+
+    def test_unknown_model_raises(self):
+        with pytest.raises(ValueError, match="smlo"):
+            riplpy.get_gdr(82, 208, model='smo')
+
+    def test_get_gdrs_uses_model(self):
+        """The batch getter takes the same model argument."""
+        result = riplpy.get_gdrs([(82, 208), (26, 56)], model='smlo')
+        assert len(result) == 2
+        result = riplpy.get_gdrs([(82, 208), (26, 56)], model='exp_smlo',
+                                 skip_missing=True)
+        assert list(result) == [Nuclide(Z=82, A=208)]
+
+    def test_models_enum(self):
+        """Models.Gdr values are accepted as model names."""
+        from riplpy import Models
+        assert riplpy.get_gdr(82, 208, model=Models.Gdr.SMLO).E1 == pytest.approx(13.34)
